@@ -12,48 +12,41 @@ import {
 
 const priorityIssues = [
   {
-    id: "PRI-001",
-    client: "HDFC Bank",
-    branch: "Mumbai Main",
-    issue: "AC unit failure in server room",
-    priority: "Critical",
-    timeReported: "2 hours ago",
-    scheduledFor: "Today, 14:00",
-    assignee: {
-      name: "Rajesh Kumar",
-      avatar: "/avatars/rajesh.jpg",
-      initials: "RK"
-    }
+    id: "1",
+  title: "Site visit with client",
+  client: "ABC Corp",
+  branch: "Delhi",
+  priority: "Critical",
+  assignee: {
+    name: "John Doe",
+    avatar: "/avatars/john.jpg",
+    initials: "JD"
   },
-  {
-    id: "PRI-002",
-    client: "ICICI Bank",
-    branch: "Delhi Central",
-    issue: "Water leakage in ATM area",
-    priority: "High",
-    timeReported: "6 hours ago",
-    scheduledFor: "Today, 16:30",
-    assignee: {
-      name: "Priya Sharma",
-      avatar: "/avatars/priya.jpg",
-      initials: "PS"
-    }
-  },
-  {
-    id: "PRI-003",
-    client: "SBI Bank",
-    branch: "Bangalore East",
-    issue: "Electrical short circuit in cabin area",
-    priority: "High",
-    timeReported: "Yesterday",
-    scheduledFor: "Tomorrow, 10:00",
-    assignee: {
-      name: "Vikram Singh",
-      avatar: "/avatars/vikram.jpg",
-      initials: "VS"
-    }
+  issue : "hard",
+  timeReported : "",
+  dueDate: "2025-05-20",
+  createdAt: "2025-05-10",
+  scheduledFor : "",
+  description: "Follow-up for quote discussion",
+  comments: 3,
+  workStage: {
+    stateName: "Delhi",
+    adminName: "Admin1",
+    clientName: "ABC Corp",
+    siteName: "Site 12",
+    quoteNo: "Q1234",
+    dateReceived: "2025-05-08",
+    quoteTaxable: 180000,
+    quoteAmount: 212400,
+    workStatus: "Pending",
+    approval: "Approved",
+    poStatus: "Generated",
+    poNumber: "PO4567",
+    jcrStatus: "Initiated",
+    agentName: "John Doe"
   }
-];
+}
+]
 
 export default function PriorityIssues() {
   return (
@@ -65,7 +58,7 @@ export default function PriorityIssues() {
         >
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Badge variant={issue.priority === "Critical" ? "destructive" : "warning"}>
+              <Badge variant={issue.priority === "Critical" ? "destructive" : "secondary"}>
                 {issue.priority}
               </Badge>
               <span className="text-sm font-medium">{issue.id}</span>

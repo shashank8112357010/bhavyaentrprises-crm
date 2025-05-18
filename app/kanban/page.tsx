@@ -25,6 +25,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import KanbanBoard from "@/components/kanban/kanban-board";
+import { WorkStage } from "@/components/kanban/types";
+const defaultWorkStage: WorkStage = {
+  stateName: "Delhi",
+  adminName: "Admin",
+  clientName: "ABC Corp",
+  siteName: "Main Site",
+  quoteNo: "Q0001",
+  dateReceived: new Date().toISOString(),
+  quoteTaxable: 100000,
+  quoteAmount: 118000,
+  workStatus: "Pending",
+  approval: "Not Started",
+  poStatus: "NA",
+  poNumber: "",
+  jcrStatus: "NA",
+  agentName: "Agent X",
+};
 
 // Sample ticket data
 const initialTickets = {
@@ -40,6 +57,8 @@ const initialTickets = {
         avatar: "",
         initials: "UN"
       },
+      workStage: defaultWorkStage,
+      
       dueDate: "Sep 18",
       createdAt: "1 day ago",
       description: "The AC in the main meeting room is not cooling properly and making noise.",
@@ -56,6 +75,7 @@ const initialTickets = {
         avatar: "",
         initials: "UN"
       },
+      workStage: defaultWorkStage,
       dueDate: "Sep 15",
       createdAt: "2 days ago",
       description: "There is water leakage from the ceiling in the staff restroom on the first floor.",
@@ -72,6 +92,7 @@ const initialTickets = {
         avatar: "",
         initials: "UN"
       },
+      workStage: defaultWorkStage,
       dueDate: "Sep 20",
       createdAt: "5 hours ago",
       description: "A window in the customer waiting area has a crack and needs replacement.",
@@ -90,6 +111,7 @@ const initialTickets = {
         avatar: "/avatars/rajesh.jpg",
         initials: "RK"
       },
+      workStage: defaultWorkStage,
       dueDate: "Sep 14",
       createdAt: "2 days ago",
       description: "The main server room AC has completely failed causing temperature rise. Critical for server operations.",
@@ -106,6 +128,7 @@ const initialTickets = {
         avatar: "/avatars/priya.jpg",
         initials: "PS"
       },
+      workStage: defaultWorkStage,
       dueDate: "Sep 15",
       createdAt: "1 day ago",
       description: "Water leakage from ceiling above ATM machines. Risk of electrical short circuit.",
@@ -124,6 +147,7 @@ const initialTickets = {
         avatar: "/avatars/vikram.jpg",
         initials: "VS"
       },
+      workStage: defaultWorkStage,
       dueDate: "Sep 14",
       scheduledDate: "Sep 14, 10:00 AM",
       createdAt: "3 days ago",
@@ -141,6 +165,8 @@ const initialTickets = {
         avatar: "/avatars/ankit.jpg",
         initials: "AP"
       },
+       workStage: defaultWorkStage,
+      
       dueDate: "Sep 15",
       scheduledDate: "Sep 15, 2:30 PM",
       createdAt: "2 days ago",
@@ -160,6 +186,7 @@ const initialTickets = {
         avatar: "/avatars/deepak.jpg",
         initials: "DV"
       },
+      workStage: defaultWorkStage,
       dueDate: "Sep 20",
       createdAt: "4 days ago",
       description: "Marble flooring in main customer area has cracks and needs repair. Waiting for material approval.",
@@ -179,6 +206,7 @@ const initialTickets = {
         avatar: "/avatars/amit.jpg",
         initials: "AS"
       },
+      workStage: defaultWorkStage,
       completedDate: "Sep 12",
       createdAt: "7 days ago",
       description: "Replaced all faulty light fixtures in the customer area with energy-efficient LED lights.",
@@ -195,6 +223,7 @@ const initialTickets = {
         avatar: "/avatars/suresh.jpg",
         initials: "SK"
       },
+      workStage: defaultWorkStage,
       completedDate: "Sep 11",
       createdAt: "8 days ago",
       description: "Repaired malfunctioning biometric access control system at the main entrance.",
