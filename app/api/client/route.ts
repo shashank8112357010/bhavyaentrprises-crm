@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
 import { createClientSchema } from "@/lib/validations/clientSchema";
 
-const prisma = new PrismaClient();
+
 
 export async function POST(req: Request) {
   try {
@@ -56,7 +57,19 @@ export async function GET() {
       activeTickets: client.tickets.length,
     }));
 
-    return NextResponse.json({clients : clientsWithTicketCount});
+    return new NextResponse(
+      JSON.stringify({ clients: clientsWithTicketCount }),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store',
+        },
+      }
+    );
+    
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

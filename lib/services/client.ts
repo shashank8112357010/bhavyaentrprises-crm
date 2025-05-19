@@ -35,11 +35,17 @@ export async function getAllClients() {
     try {
       const response = await axios.get("/client", {
         withCredentials: true,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
       return response.data;
     } catch (error: any) {
       const message =
-        error.response?.data?.error || "Failed to fetch leads.";
+        error.response?.data?.error || "Failed to fetch clients.";
       throw new Error(message);
     }
   }
+  
