@@ -20,6 +20,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.9.0",
     "@next/swc-wasm-nodejs": "13.5.1",
+    "@prisma/client": "^6.8.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -52,6 +53,7 @@
     "@types/react-dom": "18.2.7",
     "autoprefixer": "10.4.15",
     "axios": "^1.9.0",
+    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -75,11 +77,9 @@
     "tailwindcss": "3.3.3",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "5.2.2",
-    "bcryptjs": "^3.0.2",
     "vaul": "^0.9.9",
     "zod": "^3.23.8",
-    "zustand": "^5.0.4",
-    "@prisma/client": "^6.8.1"
+    "zustand": "^5.0.4"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.9",
