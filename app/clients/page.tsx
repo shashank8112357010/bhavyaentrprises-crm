@@ -54,6 +54,14 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { format } from "date-fns";
+
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { createClient, getAllClients } from "@/lib/services/client";
 
@@ -73,13 +81,12 @@ type Client = {
 };
 
 export default function ClientsPage() {
-
   const [searchQuery, setSearchQuery] = useState("");
   const [clientType, setClientType] = useState("all");
   const [clients, setClients] = useState<Client[]>([]);
   const [newClient, setNewClient] = useState<Client>({
     name: "",
-    type: "bank",
+    type: "Choose Bank",
     totalBranches: 1,
     contactPerson: "",
     contactEmail: "",
@@ -130,41 +137,34 @@ export default function ClientsPage() {
   }
   return (
     <div className="flex flex-col gap-6">
-       <Dialog>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground">
-            Manage client information and service requests
-          </p>
-        </div>
-       
+      <Dialog>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+            <p className="text-muted-foreground">
+              Manage client information and service requests
+            </p>
+          </div>
 
-       
-        <div className="flex items-end gap-2">
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Client
+          <div className="flex items-end gap-2">
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Client
+              </Button>
+            </DialogTrigger>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export
             </Button>
-          </DialogTrigger>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+          </div>
         </div>
-        </div>
-     
 
-    
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Add New Client</DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={handleCreateClient}
-            className="space-y-4"
-          >
+          <form onSubmit={handleCreateClient} className="space-y-4">
             <Input
               placeholder="Client Name"
               value={newClient.name}
@@ -175,16 +175,18 @@ export default function ClientsPage() {
             />
             <Select
               value={newClient.type}
+              
               onValueChange={(value) =>
                 setNewClient({ ...newClient, type: value })
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Type" />
+                <SelectValue placeholder="Type" className="text-white" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="bank">Bank</SelectItem>
-                <SelectItem value="nbfc">NBFC</SelectItem>
+                <SelectItem value="Choose Bank" >Choose Bank</SelectItem>
+                <SelectItem value="NBFC">NBFC</SelectItem>
+              
               </SelectContent>
             </Select>
             <Input
@@ -223,14 +225,40 @@ export default function ClientsPage() {
               }
               required
             />
-            <Input
-              placeholder="Last Service Date (YYYY-MM-DD)"
-              value={newClient.lastServiceDate}
-              onChange={(e) =>
-                setNewClient({ ...newClient, lastServiceDate: e.target.value })
-              }
-              required
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={`w-full justify-start text-left font-normal ${
+                    newClient.lastServiceDate
+                      ? "text-white"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {newClient.lastServiceDate
+                    ? format(new Date(newClient.lastServiceDate), "PPP")
+                    : "Select Last Service Date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={
+                    newClient.lastServiceDate
+                      ? new Date(newClient.lastServiceDate)
+                      : undefined
+                  }
+                  onSelect={(date) =>
+                    date &&
+                    setNewClient({
+                      ...newClient,
+                      lastServiceDate: date.toISOString(),
+                    })
+                  }
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
             <Input
               placeholder="Initials"
               value={newClient.initials}
@@ -360,7 +388,11 @@ export default function ClientsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    {client.lastServiceDate}
+                    {client.lastServiceDate
+                      .split("T")[0]
+                      .split("-")
+                      .reverse()
+                      .join("-")}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -446,7 +478,7 @@ export default function ClientsPage() {
                       <div>
                         <div className="text-sm font-medium">Last Service</div>
                         <div className="text-sm">
-                          {client.lastServiceDate.split(",")[0]}
+                          {client.lastServiceDate.split("T")[0]}
                         </div>
                       </div>
                     </div>

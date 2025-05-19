@@ -2,7 +2,7 @@
 import { z } from "zod";
 
 export const createClientSchema = z.object({
-  id: z.string().min(1, "Client ID is required"),
+  
   name: z.string().min(1, "Name is required"),
   type: z.enum(["Bank", "NBFC"]),
   totalBranches: z.number().int().min(0),

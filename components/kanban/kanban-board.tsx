@@ -205,7 +205,7 @@ export default function KanbanBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mt-2 pb-10 overflow-x-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mt-2 pb-10 overflow-x-auto">
         {(Object.keys(tickets) as Array<keyof TicketsState>).map((status) => (
           <KanbanColumn
             key={status}

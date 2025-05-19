@@ -20,10 +20,8 @@ export async function POST(req: Request) {
     const clientData = parsed.data;
 
     // Upsert client by id (or create new)
-    const client = await prisma.client.upsert({
-      where: { id: clientData.id },
-      update: clientData,
-      create: clientData,
+    const client = await prisma.client.create({
+      data: clientData,
     });
 
     return NextResponse.json(client, { status: 201 });

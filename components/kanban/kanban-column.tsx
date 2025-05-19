@@ -20,7 +20,7 @@ export function KanbanColumn({ id, title, icon, tickets }: KanbanColumnProps) {
   return (
     <div 
       ref={setNodeRef}
-      className="min-w-[280px] bg-background border rounded-lg p-3 flex flex-col h-[calc(100vh-240px)]"
+      className="min-w-[270px] bg-background border  rounded-lg p-3 flex flex-col h-[calc(100vh-240px)]"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center">
@@ -29,12 +29,12 @@ export function KanbanColumn({ id, title, icon, tickets }: KanbanColumnProps) {
             {title} ({tickets.length})
           </h3>
         </div>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+        {/* <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
           <Plus className="h-4 w-4" />
-        </Button>
+        </Button> */}
       </div>
       
-      <div className="flex-1 overflow-y-auto pr-1">
+      <div className="flex-1 overflow-y-auto">
         <SortableContext items={tickets.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tickets.map((ticket) => (
             <SortableTicket key={ticket.id} ticket={ticket} />
