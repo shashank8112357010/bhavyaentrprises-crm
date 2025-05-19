@@ -1,3 +1,4 @@
+"use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,8 +19,15 @@ import PriorityIssues from "@/components/dashboard/priority-issues";
 import OverviewMetrics from "@/components/dashboard/overview-metrics";
 import ExternalCallsList from "@/components/dashboard/external-calls-list";
 import UpcomingSchedule from "@/components/dashboard/upcoming-schedule";
+import { useEffect } from "react";
+import { getAllLeads } from "@/lib/services/lead";
 
 export default function Home() {
+  useEffect(()=>{
+    const response = getAllLeads()
+    console.log(response);
+    
+  })
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

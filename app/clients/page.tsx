@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { 
-  Building, 
-  Download, 
-  Filter, 
-  MoreHorizontal, 
-  Plus, 
-  Search, 
-  Sliders 
+import { useEffect, useState } from "react";
+import {
+  Building,
+  Download,
+  Filter,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Sliders,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,162 +44,216 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
-// Sample client data
-const clients = [
-  {
-    id: "CL-001",
-    name: "HDFC Bank",
-    type: "Bank",
-    totalBranches: 42,
-    contactPerson: "Sanjay Mehta",
-    contactEmail: "sanjay.mehta@hdfcbank.com",
-    contactPhone: "+91-98765-43210",
-    activeTickets: 12,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 10, 2023",
-    avatar: "/logos/hdfc.png",
-    initials: "HB"
-  },
-  {
-    id: "CL-002",
-    name: "ICICI Bank",
-    type: "Bank",
-    totalBranches: 38,
-    contactPerson: "Priya Malhotra",
-    contactEmail: "priya.malhotra@icicibank.com",
-    contactPhone: "+91-98765-43211",
-    activeTickets: 7,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 08, 2023",
-    avatar: "/logos/icici.png",
-    initials: "IB"
-  },
-  {
-    id: "CL-003",
-    name: "SBI Bank",
-    type: "Bank",
-    totalBranches: 56,
-    contactPerson: "Ravi Kumar",
-    contactEmail: "ravi.kumar@sbi.co.in",
-    contactPhone: "+91-98765-43212",
-    activeTickets: 15,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 12, 2023",
-    avatar: "/logos/sbi.png",
-    initials: "SB"
-  },
-  {
-    id: "CL-004",
-    name: "Axis Bank",
-    type: "Bank",
-    totalBranches: 31,
-    contactPerson: "Neha Gupta",
-    contactEmail: "neha.gupta@axisbank.com",
-    contactPhone: "+91-98765-43213",
-    activeTickets: 5,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 05, 2023",
-    avatar: "/logos/axis.png",
-    initials: "AB"
-  },
-  {
-    id: "CL-005",
-    name: "Punjab National Bank",
-    type: "Bank",
-    totalBranches: 28,
-    contactPerson: "Vikram Singh",
-    contactEmail: "vikram.singh@pnb.co.in",
-    contactPhone: "+91-98765-43214",
-    activeTickets: 9,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 07, 2023",
-    avatar: "/logos/pnb.png",
-    initials: "PB"
-  },
-  {
-    id: "CL-006",
-    name: "Bajaj Finance",
-    type: "NBFC",
-    totalBranches: 18,
-    contactPerson: "Amit Sharma",
-    contactEmail: "amit.sharma@bajajfinance.in",
-    contactPhone: "+91-98765-43215",
-    activeTickets: 3,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 09, 2023",
-    avatar: "/logos/bajaj.png",
-    initials: "BF"
-  },
-  {
-    id: "CL-007",
-    name: "HDFC Home Loans",
-    type: "NBFC",
-    totalBranches: 22,
-    contactPerson: "Anjali Desai",
-    contactEmail: "anjali.desai@hdfcloans.com",
-    contactPhone: "+91-98765-43216",
-    activeTickets: 6,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 03, 2023",
-    avatar: "/logos/hdfc-home.png",
-    initials: "HL"
-  },
-  {
-    id: "CL-008",
-    name: "LIC Housing Finance",
-    type: "NBFC",
-    totalBranches: 15,
-    contactPerson: "Rahul Khanna",
-    contactEmail: "rahul.khanna@lichf.com",
-    contactPhone: "+91-98765-43217",
-    activeTickets: 2,
-    contractStatus: "Active",
-    lastServiceDate: "Sep 01, 2023",
-    avatar: "/logos/lic.png",
-    initials: "LH"
-  },
-];
+import { createClient, getAllClients } from "@/lib/services/client";
+
+type Client = {
+  id?: string;
+  name: string;
+  type: string;
+  totalBranches: number;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  contractStatus: string;
+  lastServiceDate: string;
+  avatar: string;
+  initials: string;
+  activeTickets?: number;
+};
 
 export default function ClientsPage() {
+
   const [searchQuery, setSearchQuery] = useState("");
   const [clientType, setClientType] = useState("all");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [newClient, setNewClient] = useState<Client>({
+    name: "",
+    type: "bank",
+    totalBranches: 1,
+    contactPerson: "",
+    contactEmail: "",
+    contactPhone: "",
+    contractStatus: "Active",
+    lastServiceDate: "",
+    avatar: "",
+    initials: "",
+  });
 
-  const filteredClients = clients.filter(client => {
-    const matchesSearch = 
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const data = await getAllClients();
+        console.log(data);
+
+        setClients(data?.clients || []);
+      } catch (err) {
+        console.error("Failed to fetch clients:", err);
+      }
+    }
+
+    fetchClients();
+  }, []);
+
+  const filteredClients = clients.filter((client: any) => {
+    const matchesSearch =
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.id.toLowerCase().includes(searchQuery.toLowerCase());
-      
-    const matchesType = clientType === "all" || client.type.toLowerCase() === clientType.toLowerCase();
-    
+
+    const matchesType =
+      clientType === "all" ||
+      client.type.toLowerCase() === clientType.toLowerCase();
+
     return matchesSearch && matchesType;
   });
 
+  async function handleCreateClient(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    try {
+      const createdClient = await createClient(newClient);
+      setClients((prev) => [...prev, createdClient]); // Assuming API returns the new client with `id`
+      // Optionally reset form here
+    } catch (err) {
+      console.error("Error creating client", err);
+    }
+  }
   return (
     <div className="flex flex-col gap-6">
+       <Dialog>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground">Manage client information and service requests</p>
+          <p className="text-muted-foreground">
+            Manage client information and service requests
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Client
-          </Button>
+       
+
+       
+        <div className="flex items-end gap-2">
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Client
+            </Button>
+          </DialogTrigger>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
         </div>
-      </div>
+        </div>
+     
+
+    
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add New Client</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={handleCreateClient}
+            className="space-y-4"
+          >
+            <Input
+              placeholder="Client Name"
+              value={newClient.name}
+              onChange={(e) =>
+                setNewClient({ ...newClient, name: e.target.value })
+              }
+              required
+            />
+            <Select
+              value={newClient.type}
+              onValueChange={(value) =>
+                setNewClient({ ...newClient, type: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bank">Bank</SelectItem>
+                <SelectItem value="nbfc">NBFC</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              placeholder="Total Branches"
+              value={newClient.totalBranches}
+              onChange={(e) =>
+                setNewClient({
+                  ...newClient,
+                  totalBranches: parseInt(e.target.value),
+                })
+              }
+              required
+            />
+            <Input
+              placeholder="Contact Person"
+              value={newClient.contactPerson}
+              onChange={(e) =>
+                setNewClient({ ...newClient, contactPerson: e.target.value })
+              }
+              required
+            />
+            <Input
+              type="email"
+              placeholder="Contact Email"
+              value={newClient.contactEmail}
+              onChange={(e) =>
+                setNewClient({ ...newClient, contactEmail: e.target.value })
+              }
+            />
+            <Input
+              placeholder="Contact Phone"
+              value={newClient.contactPhone}
+              onChange={(e) =>
+                setNewClient({ ...newClient, contactPhone: e.target.value })
+              }
+              required
+            />
+            <Input
+              placeholder="Last Service Date (YYYY-MM-DD)"
+              value={newClient.lastServiceDate}
+              onChange={(e) =>
+                setNewClient({ ...newClient, lastServiceDate: e.target.value })
+              }
+              required
+            />
+            <Input
+              placeholder="Initials"
+              value={newClient.initials}
+              onChange={(e) =>
+                setNewClient({ ...newClient, initials: e.target.value })
+              }
+              required
+            />
+            <Input
+              placeholder="Avatar URL"
+              value={newClient.avatar}
+              onChange={(e) =>
+                setNewClient({ ...newClient, avatar: e.target.value })
+              }
+            />
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="submit">Create Client</Button>
+              </DialogClose>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative w-full md:w-auto">
@@ -212,8 +266,8 @@ export default function ClientsPage() {
           />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <Select 
-            defaultValue="all" 
+          <Select
+            defaultValue="all"
             value={clientType}
             onValueChange={setClientType}
           >
@@ -247,15 +301,19 @@ export default function ClientsPage() {
                 <TableHead>Client</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Contact Person</TableHead>
-                <TableHead className="hidden md:table-cell">Contact Info</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Contact Info
+                </TableHead>
                 <TableHead className="hidden lg:table-cell">Branches</TableHead>
                 <TableHead>Active Tickets</TableHead>
-                <TableHead className="hidden lg:table-cell">Last Service</TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  Last Service
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClients.map((client) => (
+              {filteredClients.map((client: any) => (
                 <TableRow key={client.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -265,7 +323,9 @@ export default function ClientsPage() {
                       </Avatar>
                       <div>
                         <div className="font-medium">{client.name}</div>
-                        <div className="text-xs text-muted-foreground">{client.id}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {client.id}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -278,14 +338,24 @@ export default function ClientsPage() {
                   <TableCell className="hidden md:table-cell">
                     <div className="text-sm">
                       <div>{client.contactEmail}</div>
-                      <div className="text-muted-foreground">{client.contactPhone}</div>
+                      <div className="text-muted-foreground">
+                        {client.contactPhone}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     {client.totalBranches}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={client.activeTickets > 10 ? "destructive" : client.activeTickets > 5 ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        client.activeTickets > 10
+                          ? "destructive"
+                          : client.activeTickets > 5
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
                       {client.activeTickets}
                     </Badge>
                   </TableCell>
@@ -295,7 +365,11 @@ export default function ClientsPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -316,7 +390,7 @@ export default function ClientsPage() {
         </TabsContent>
         <TabsContent value="grid">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredClients.map((client) => (
+            {filteredClients.map((client: any) => (
               <Card key={client.id} className="overflow-hidden">
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between">
@@ -342,7 +416,9 @@ export default function ClientsPage() {
                     <div>
                       <div className="text-sm font-medium">Contact Info</div>
                       <div className="text-sm">{client.contactEmail}</div>
-                      <div className="text-sm text-muted-foreground">{client.contactPhone}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {client.contactPhone}
+                      </div>
                     </div>
                     <div className="flex justify-between pt-2">
                       <div>
@@ -350,16 +426,28 @@ export default function ClientsPage() {
                         <div className="text-sm">{client.totalBranches}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">Active Tickets</div>
+                        <div className="text-sm font-medium">
+                          Active Tickets
+                        </div>
                         <div className="text-center">
-                          <Badge variant={client.activeTickets > 10 ? "destructive" : client.activeTickets > 5 ? "default" : "secondary"}>
+                          <Badge
+                            variant={
+                              client.activeTickets > 10
+                                ? "destructive"
+                                : client.activeTickets > 5
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
                             {client.activeTickets}
                           </Badge>
                         </div>
                       </div>
                       <div>
                         <div className="text-sm font-medium">Last Service</div>
-                        <div className="text-sm">{client.lastServiceDate.split(',')[0]}</div>
+                        <div className="text-sm">
+                          {client.lastServiceDate.split(",")[0]}
+                        </div>
                       </div>
                     </div>
                   </div>

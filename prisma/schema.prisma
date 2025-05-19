@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  BACKEND
+  RM
+  MST
+  ACCOUNTS
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  tickets   Ticket[] // relation
+}
+model Client {
+  id               String   @id @default(uuid())
+  name             String
+  type             String   // e.g., "Bank"
+  totalBranches    Int
+  contactPerson    String
+  contactEmail     String?
+  contactPhone     String
+  contractStatus   String   // e.g., "Active"
+  lastServiceDate  DateTime
+  avatar           String?   // logo path or URL
+  initials         String
+
+  tickets          Ticket[] // one-to-many relationship
+}
+
+
+model Ticket {
+  id            String       @id @default(uuid())
+  title         String
+  branch        String
+  priority      String
+  dueDate       DateTime?
+  scheduledDate DateTime?
+  completedDate DateTime?
+  createdAt     DateTime     @default(now())
+  description   String
+  comments      Int
+  holdReason    String?
+
+  assigneeId    String
+  assignee      User         @relation(fields: [assigneeId], references: [id])
+  status        TicketStatus @default(new)
+
+  workStageId   String?      @unique
+  workStage     WorkStage?   @relation(fields: [workStageId], references: [id])
+
+  clientId      String
+  client        Client       @relation(fields: [clientId], references: [id])
+}
+
+
+enum TicketStatus {
+  new
+  inProgress
+  scheduled
+  onHold
+  completed
+}
+
+model WorkStage {
+  id           String   @id @default(uuid())
+  stateName    String
+  adminName    String
+  clientName   String
+  siteName     String
+  quoteNo      String
+  dateReceived DateTime
+  quoteTaxable Float
+  quoteAmount  Float
+  workStatus   String
+  approval     String
+  poStatus     String
+  poNumber     String
+  jcrStatus    String
+  agentName    String
+
+  ticket Ticket? // This is the inverse side — no @relation here
+}

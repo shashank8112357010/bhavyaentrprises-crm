@@ -13,7 +13,7 @@ const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
-  title: 'RepairTrack - Maintenance Lead Tracker',
+  title: 'Bhavya Entrprises - Maintenance Lead Tracker',
   description: 'Banking and NBFC repair and maintenance lead tracker',
 };
 

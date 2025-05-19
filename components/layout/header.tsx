@@ -35,8 +35,8 @@ export default function Header() {
             <span className="sr-only">Toggle menu</span>
           </Button>
           <Link href="/" className="flex items-center gap-2">
-            <Wrench className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold tracking-tight">RepairTrack</span>
+            {/* <Wrench className="h-6 w-6 text-primary" /> */}
+            <span className="text-xl font-bold tracking-tight">Bhavya Entrprises</span>
           </Link>
         </div>
         <nav className="hidden md:flex items-center gap-5 text-sm">
