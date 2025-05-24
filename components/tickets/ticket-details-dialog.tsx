@@ -16,10 +16,9 @@ import {
   ArrowUpRight,
   Building,
   Calendar,
-  Clock,
+  
   FileText,
-  IndianRupee,
-  MessageSquare,
+  
   Receipt,
   User
 } from "lucide-react";

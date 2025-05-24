@@ -12,31 +12,9 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  Building,
-  Calendar,
-  Check,
-  CheckCircle,
-  Clock,
-  MessageSquare,
-  MoreHorizontal,
-  Pause,
-  Plus,
-  RotateCw,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { Calendar, Check, Pause, Plus, RotateCw } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
 
@@ -136,29 +114,27 @@ export default function KanbanBoard({
     });
     if (!fromColumn || !toColumn || !activeTicket) return;
 
-    if(fromColumn != toColumn) {
-    // TypeScript now knows fromColumn and toColumn are not null
-    setTickets((prev) => {
-      const newTickets = { ...prev };
+    if (fromColumn != toColumn) {
+      // TypeScript now knows fromColumn and toColumn are not null
+      setTickets((prev) => {
+        const newTickets = { ...prev };
 
-      newTickets[fromColumn!] = prev[fromColumn!].filter(
-        (ticket) => ticket.id !== activeTicketId
-      );
+        newTickets[fromColumn!] = prev[fromColumn!].filter(
+          (ticket) => ticket.id !== activeTicketId
+        );
 
-      newTickets[toColumn!] = [...prev[toColumn!], activeTicket!];
+        newTickets[toColumn!] = [...prev[toColumn!], activeTicket!];
 
-      return newTickets;
-    });
+        return newTickets;
+      });
 
-    setActiveId(null);
-    onDragEnd({
-      source: fromColumn,
-      destination: toColumn,
-      ticketId: activeTicketId,
-    });
-    }else return 
-
-
+      setActiveId(null);
+      onDragEnd({
+        source: fromColumn,
+        destination: toColumn,
+        ticketId: activeTicketId,
+      });
+    } else return;
   };
 
   const getColumnIcon = (status: string) => {
