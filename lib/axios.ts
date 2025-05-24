@@ -11,10 +11,9 @@ const axiosInstance = axios.create({
 // Request interceptor: logs current cookies before sending request
 axiosInstance.interceptors.request.use(
   (config) => {
- 
-    // If you want to add custom headers with cookie info:
-    // config.headers['X-Client-Cookies'] = document.cookie;
-
+    config.headers["Cache-Control"] = "no-cache";
+    config.headers["Pragma"] = "no-cache";
+    config.headers["Expires"] = "0";
     return config;
   },
   (error) => Promise.reject(error)

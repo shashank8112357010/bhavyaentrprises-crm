@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 
 import { createClientSchema } from "@/lib/validations/clientSchema";
 
-
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -27,10 +25,12 @@ export async function POST(req: Request) {
     return NextResponse.json(client, { status: 201 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
-
 
 export async function GET() {
   try {
@@ -59,17 +59,20 @@ export async function GET() {
       JSON.stringify({ clients: clientsWithTicketCount }),
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'Surrogate-Control': 'no-store',
+          "Content-Type": "application/json",
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+          "Surrogate-Control": "no-store",
         },
       }
     );
-    
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { 
   Calendar, 
   ClipboardList, 
+  IndianRupee, 
   LayoutDashboard, 
   ListTodo, 
   Mail, 
@@ -14,6 +15,7 @@ import {
   Phone, 
   Plus, 
   Settings, 
+  UserCheck2, 
   Users 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +46,11 @@ export default function Sidebar({ className }: SidebarProps) {
       icon: <Users className="h-5 w-5" />,
     },
     {
+      name: "Agents",
+      href: "/agents",
+      icon: <UserCheck2 className="h-5 w-5" />,
+    },
+    {
       name: "Calendar",
       href: "/calendar",
       icon: <Calendar className="h-5 w-5" />,
@@ -52,6 +59,11 @@ export default function Sidebar({ className }: SidebarProps) {
       name: "Tasks",
       href: "/tasks",
       icon: <ClipboardList className="h-5 w-5" />,
+    },
+    {
+      name: "Finances",
+      href: "/finances",
+      icon: <IndianRupee className="h-5 w-5" />,
     },
     {
       name: "Calls",

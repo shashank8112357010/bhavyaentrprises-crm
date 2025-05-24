@@ -40,7 +40,6 @@ model Client {
   tickets          Ticket[] // one-to-many relationship
 }
 
-
 model Ticket {
   id            String       @id @default(uuid())
   title         String
@@ -64,7 +63,6 @@ model Ticket {
   clientId      String
   client        Client       @relation(fields: [clientId], references: [id])
 }
-
 
 enum TicketStatus {
   new
@@ -91,5 +89,5 @@ model WorkStage {
   jcrStatus    String
   agentName    String
 
-  ticket Ticket? // This is the inverse side — no @relation here
+  ticket Ticket? 
 }

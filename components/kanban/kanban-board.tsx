@@ -36,14 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
 
@@ -143,6 +136,7 @@ export default function KanbanBoard({
     });
     if (!fromColumn || !toColumn || !activeTicket) return;
 
+    if(fromColumn != toColumn) {
     // TypeScript now knows fromColumn and toColumn are not null
     setTickets((prev) => {
       const newTickets = { ...prev };
@@ -162,6 +156,9 @@ export default function KanbanBoard({
       destination: toColumn,
       ticketId: activeTicketId,
     });
+    }else return 
+
+
   };
 
   const getColumnIcon = (status: string) => {
@@ -218,21 +215,20 @@ export default function KanbanBoard({
       </div>
 
       <DragOverlay>
-        {activeId ? (
-          <Card className="w-[280px] shadow-lg">
-            {tickets[activeId as keyof TicketsState].map((ticket) =>
-              ticket.id === activeId ? (
-                <SortableTicket key={ticket.id} ticket={ticket} />
-              ) : null
-            )}
-          </Card>
-        ) : null}
+        {activeId
+          ? (() => {
+              const activeTicket = Object.values(tickets)
+                .flat()
+                .find((ticket) => ticket.id === activeId);
+
+              return activeTicket ? (
+                <Card className="w-[280px] shadow-lg">
+                  <SortableTicket key={activeTicket.id} ticket={activeTicket} />
+                </Card>
+              ) : null;
+            })()
+          : null}
       </DragOverlay>
     </DndContext>
   );
 }
-
-
-
-
-
