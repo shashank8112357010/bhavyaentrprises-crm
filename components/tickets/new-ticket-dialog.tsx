@@ -1,7 +1,9 @@
+// components/tickets/new-ticket-dialog.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTicketStore } from "@/store/ticketStore";
 import {
   Dialog,
   DialogContent,
@@ -27,22 +29,60 @@ import { Plus } from "lucide-react";
 export function NewTicketDialog() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
-    client: "",
-    branch: "",
     title: "",
-    description: "",
+    branch: "",
     priority: "",
-    quoteNo: "",
-    quoteAmount: "",
-    workDetails: "",
+    description: "",
+    comments: 0,
+    holdReason: "",
+    clientId: "",
+    dueDate: "",
+    scheduledDate: "",
   });
 
   const router = useRouter();
+  const { createTicket } = useTicketStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically make an API call to create the ticket
-    console.log("Creating new ticket:", formData);
+
+    // Map clientId to client based on the selected value
+    const clientMap: Record<string, string> = {
+      hdfc: "HDFC Bank",
+      sbi: "SBI Bank",
+      icici: "ICICI Bank",
+      axis: "Axis Bank",
+      pnb: "Punjab National Bank",
+    };
+
+    const ticketData = {
+      ...formData,
+      client: clientMap[formData.clientId] || "", // Map clientId to client name
+      assignee: {
+        name: "Default Assignee", // Replace with actual assignee data
+        avatar: "",
+        initials: "",
+      },
+      workStage: {
+        stateName: "",
+        adminName: "",
+        clientName: "",
+        siteName: "",
+        quoteNo: "",
+        dateReceived: "",
+        quoteTaxable: 0,
+        quoteAmount: 0,
+        workStatus: "",
+        approval: "",
+        poStatus: "",
+        poNumber: "",
+        jcrStatus: "",
+        agentName: "",
+      },
+      createdAt: new Date().toISOString(), // Add createdAt with the current date and time
+    };
+
+    createTicket(ticketData);
     setOpen(false);
     router.refresh(); // Refresh the page to show the new ticket
   };
@@ -71,7 +111,7 @@ export function NewTicketDialog() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="client">Client</Label>
-                <Select onValueChange={(value) => handleChange("client", value)}>
+                <Select onValueChange={(value) => handleChange("clientId", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select client" />
                   </SelectTrigger>
@@ -86,8 +126,8 @@ export function NewTicketDialog() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="branch">Branch</Label>
-                <Input 
-                  id="branch" 
+                <Input
+                  id="branch"
                   placeholder="Enter branch location"
                   onChange={(e) => handleChange("branch", e.target.value)}
                 />
@@ -95,16 +135,16 @@ export function NewTicketDialog() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="title">Title</Label>
-              <Input 
-                id="title" 
+              <Input
+                id="title"
                 placeholder="Enter ticket title"
                 onChange={(e) => handleChange("title", e.target.value)}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea 
-                id="description" 
+              <Textarea
+                id="description"
                 placeholder="Enter ticket description"
                 onChange={(e) => handleChange("description", e.target.value)}
               />
@@ -124,31 +164,6 @@ export function NewTicketDialog() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="quoteNo">Quote No.</Label>
-                <Input 
-                  id="quoteNo" 
-                  placeholder="Enter quote number"
-                  onChange={(e) => handleChange("quoteNo", e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="quoteAmount">Quote Amount</Label>
-              <Input 
-                id="quoteAmount" 
-                type="number" 
-                placeholder="Enter quote amount"
-                onChange={(e) => handleChange("quoteAmount", e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="workDetails">Work Details</Label>
-              <Textarea 
-                id="workDetails" 
-                placeholder="Enter detailed work requirements"
-                onChange={(e) => handleChange("workDetails", e.target.value)}
-              />
             </div>
           </div>
           <DialogFooter>

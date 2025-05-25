@@ -2,10 +2,8 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { SortableTicket } from "./sortable-ticket";
-import type { Ticket } from "./types";
+import  { Ticket } from "@/components/kanban/types";
 
 interface KanbanColumnProps {
   id: string;

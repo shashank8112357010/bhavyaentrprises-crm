@@ -18,43 +18,7 @@ import { Card } from "@/components/ui/card";
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
 
-interface Assignee {
-  name: string;
-  avatar: string;
-  initials: string;
-}
-
-interface Ticket {
-  id: string;
-  title: string;
-  client: string;
-  branch: string;
-  priority: string;
-  assignee: Assignee;
-  dueDate?: string;
-  scheduledDate?: string;
-  completedDate?: string;
-  createdAt: string;
-  description: string;
-  comments: number;
-  holdReason?: string;
-  workStage: {
-    stateName: string;
-    adminName: string;
-    clientName: string;
-    siteName: string;
-    quoteNo: string;
-    dateReceived: string;
-    quoteTaxable: number;
-    quoteAmount: number;
-    workStatus: string;
-    approval: string;
-    poStatus: string;
-    poNumber: string;
-    jcrStatus: string;
-    agentName: string;
-  };
-}
+import type {Ticket } from "@/components/kanban/types"
 
 interface TicketsState {
   new: Ticket[];
