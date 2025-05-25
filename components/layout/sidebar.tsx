@@ -32,52 +32,52 @@ export default function Sidebar({ className }: SidebarProps) {
   const navItems = [
     {
       name: "Dashboard",
-      href: "/",
+      href: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
       name: "Kanban Board",
-      href: "/kanban",
+      href: "/dashboard/kanban",
       icon: <ListTodo className="h-5 w-5" />,
     },
     {
       name: "Clients",
-      href: "/clients",
+      href: "/dashboard/clients",
       icon: <Users className="h-5 w-5" />,
     },
     {
       name: "Agents",
-      href: "/agents",
+      href: "/dashboard/agents",
       icon: <UserCheck2 className="h-5 w-5" />,
     },
     {
       name: "Calendar",
-      href: "/calendar",
+      href: "/dashboard/calendar",
       icon: <Calendar className="h-5 w-5" />,
     },
     {
       name: "Tasks",
-      href: "/tasks",
+      href: "/dashboard/tasks",
       icon: <ClipboardList className="h-5 w-5" />,
     },
     {
       name: "Finances",
-      href: "/finances",
+      href: "/dashboard/finances",
       icon: <IndianRupee className="h-5 w-5" />,
     },
     {
       name: "Calls",
-      href: "/calls",
+      href: "/dashboard/calls",
       icon: <Phone className="h-5 w-5" />,
     },
     {
       name: "Email Templates",
-      href: "/emails",
+      href: "/dashboard/emails",
       icon: <Mail className="h-5 w-5" />,
     },
     {
       name: "Settings",
-      href: "/settings",
+      href: "/dashboard/settings",
       icon: <Settings className="h-5 w-5" />,
     },
   ];

@@ -12,6 +12,7 @@ async function main() {
     update: {},
     create: {
       name: 'Admin',
+      mobile : "9887766554",
       email: 'girish@praarabdh.com',
       password: hashedPassword,
       role: Role.ADMIN,

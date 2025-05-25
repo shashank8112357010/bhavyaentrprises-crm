@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "Client" ALTER COLUMN "contactEmail" DROP NOT NULL,
-ALTER COLUMN "avatar" DROP NOT NULL;
