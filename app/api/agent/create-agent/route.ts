@@ -34,13 +34,22 @@ export async function POST(req: NextRequest) {
 
   const { name, email, mobile, role: userRole } = validation.data;
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
+  const existingUserEmail = await prisma.user.findUnique({ where: { email } });
+  if (existingUserEmail) {
     return NextResponse.json(
       { message: "User with this email already exists" },
       { status: 409 }
     );
   }
+
+  const existingUserMobile = await prisma.user.findUnique({ where: { mobile } });
+  if (existingUserMobile) {
+    return NextResponse.json(
+      { message: "User with this phone no  already exists" },
+      { status: 409 }
+    );
+  }
+
 
   const rawPassword = "welcome@crm";
   const hashedPassword = await bcrypt.hash(rawPassword, 10);

@@ -22,3 +22,10 @@ export interface Agent {
     rating?: number; // Make optional
     completedTickets?: string; // Make optional
   }
+
+  export interface CreateAgentPayload {
+    name: string;
+    email: string;
+    mobile: string;
+    role: string;
+  }

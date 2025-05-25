@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Building2,
   MoreHorizontal,
@@ -33,6 +35,9 @@ import {
 import { useAgentStore } from "../../../store/agentStore";
 import { NewAgentDialog } from "@/components/agent/new-agent-dialog";
 import { AgentDetailModal } from "../../../components/agent/AgentDetailModal";
+import { EditAgentDialog } from "../../../components/agent/edit-agent-dialog";
+
+
 import {
   Dialog,
   DialogContent,
@@ -52,6 +57,8 @@ export default function AgentsPage() {
     useState<Agent | null>(null);
   const [selectedAgentForDeletion, setSelectedAgentForDeletion] =
     useState<Agent | null>(null);
+  const [selectedAgentForEdit, setSelectedAgentForEdit] = useState<Agent | null>(null);
+  const [Loading, setLoading] = useState<Boolean | false>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,30 +81,49 @@ export default function AgentsPage() {
     setSelectedAgentForDetails(null);
   };
 
+  const handleEdit = (agent: Agent) => {
+    setSelectedAgentForEdit(agent);
+  };
+
+  const handleCloseEditModal = () => {
+    setSelectedAgentForEdit(null);
+  };
+
   const handleConfirmDelete = async (agentId: string) => {
     if (!agentId) return;
     try {
+      setLoading(true);
       await deleteAgent(agentId);
       toast({ title: "Success", description: "Agent deleted successfully" });
       setSelectedAgentForDeletion(null);
+      setLoading(false);
     } catch (error: any) {
+      setLoading(false);
       toast({
         title: "Error",
         description: error.message || "Failed to delete agent.",
         variant: "destructive",
       });
-      console.error(error);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  useEffect(() => {
+    toast({
+      title: "Error",
+      description: error || "Failed to delete agent.",
+      variant: "destructive",
+    });
+  }, [error]);
 
   return (
     <div className="flex flex-col gap-6">
       <AgentDetailModal
         agent={selectedAgentForDetails}
         onClose={handleCloseDetailsModal}
+      />
+      <EditAgentDialog
+        agent={selectedAgentForEdit}
+        onClose={handleCloseEditModal}
       />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -278,7 +304,9 @@ export default function AgentsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem>Assign Ticket</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Edit Agent</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(agent)}>
+                          Edit Agent
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => setSelectedAgentForDeletion(agent)}
@@ -291,15 +319,18 @@ export default function AgentsPage() {
                 </TableRow>
               ))}
             </TableBody>
-            {filteredAgents.length === 0 && (
-              <TableBody className="text-center">
-                <TableRow>
-                  <TableCell colSpan={7} className="p-5 mt-4">
-                    No team members found matching your search.
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            )}
+            <TableBody className="text-center">
+              <TableRow>
+                <TableCell colSpan={7} className="p-5 mt-4">
+                  {loading ? (
+                    <Spinner size="6" />
+                  ) : (
+                    filteredAgents.length === 0 &&
+                    " No team members found matching your search."
+                  )}
+                </TableCell>
+              </TableRow>
+            </TableBody>
           </Table>
         </CardContent>
       </Card>
@@ -333,7 +364,7 @@ export default function AgentsPage() {
                 variant="destructive"
                 onClick={() => handleConfirmDelete(selectedAgentForDeletion.id)}
               >
-                Confirm Delete
+                {Loading ? <Spinner size="4" /> : " Confirm Delete"}
               </Button>
             </DialogFooter>
           </DialogContent>

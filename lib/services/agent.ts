@@ -1,12 +1,7 @@
 import axios from "@/lib/axios";
+import { Agent , CreateAgentPayload } from "@/components/agent/types";
 
-export interface CreateAgentPayload {
-  id?: string;
-  name: string;
-  email: string;
-  mobile: string;
-  role: string;
-}
+
 
 export async function createAgent(payload: CreateAgentPayload) {
   try {
@@ -67,3 +62,21 @@ export async function getAgentById(id: string) {
     throw new Error(message);
   }
 }
+
+export async function updateAgent(id: string , updatedAgent : Agent ) {
+  try {
+    const response = await axios.patch(`/agent/${id}`, updatedAgent , {
+      withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.error || "Failed to fetch agent.";
+    throw new Error(message);
+  }
+}
+
