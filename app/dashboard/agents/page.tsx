@@ -26,7 +26,6 @@ import {
   Building2,
   MoreHorizontal,
   Phone,
-  Plus,
   Mail,
   Search,
   UserCheck2,
@@ -44,33 +43,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-
-export interface Agent {
-  id: string;
-  name: string;
-  email: string;
-  mobile?: string; // Make optional
-  role: string;
-  userId: string;
-  department: string;
-  specialization?: string; // Make optional
-  status: "active" | "inactive" | "pending";
-  leads: {
-    assigned: number;
-    active: number;
-    closed: number;
-  };
-  conversionRate: number;
-  performanceTrend: "up" | "down" | "stable";
-  joinedDate: Date;
-  avatar?: string;
-  initials?: string;
-  activeTickets?: number;
-  rating?: number; // Make optional
-  completedTickets?: string; // Make optional
-}
-
-
+import { Agent } from "../../../components/agent/types";
 
 export default function AgentsPage() {
   const { agents, loading, error, fetchAgents, deleteAgent } = useAgentStore();
@@ -85,14 +58,13 @@ export default function AgentsPage() {
     fetchAgents();
   }, [fetchAgents]);
 
-  const filteredAgents = agents.filter((agent: Agent) =>
-    agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    agent.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (agent.specialization && agent.specialization.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredAgents = agents.filter(
+    (agent: Agent) =>
+      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      agent.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (agent.specialization &&
+        agent.specialization.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-  
-
-
 
   const handleViewDetails = (agent: Agent) => {
     setSelectedAgentForDetails(agent);
@@ -193,7 +165,7 @@ export default function AgentsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {agents.reduce(
-                (sum:any, agent:any) => sum + (agent.activeTickets || 0),
+                (sum: any, agent: any) => sum + (agent.activeTickets || 0),
                 0
               )}
             </div>
@@ -230,7 +202,7 @@ export default function AgentsPage() {
                         <AvatarFallback>
                           {agent.name
                             .split(" ")
-                            .map((n:any) => n[0])
+                            .map((n: any) => n[0])
                             .join("")}
                         </AvatarFallback>
                       </Avatar>
@@ -263,7 +235,7 @@ export default function AgentsPage() {
                         agent.activeTickets > 2 ? "destructive" : "secondary"
                       }
                     >
-                      {agent.activeTickets }
+                      {agent.activeTickets}
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
@@ -321,7 +293,7 @@ export default function AgentsPage() {
             </TableBody>
             {filteredAgents.length === 0 && (
               <TableBody className="text-center">
-                <TableRow >
+                <TableRow>
                   <TableCell colSpan={7} className="p-5 mt-4">
                     No team members found matching your search.
                   </TableCell>
