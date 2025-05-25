@@ -86,7 +86,7 @@ model Ticket {
   status     TicketStatus @default(new)
 
   workStageId String?    @unique
-  workStage   WorkStage? @relation(fields: [workStageId], references: [id])
+  workStage   WorkStage? @relation(name: "TicketToWorkStage", fields: [workStageId], references: [id])
 
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
@@ -117,5 +117,8 @@ model WorkStage {
   jcrStatus    String
   agentName    String
 
-  ticket Ticket?
+  ticketId String?
+  ticket   Ticket? @relation(name: "TicketToWorkStage")
+
+  @@unique([ticketId])
 }
