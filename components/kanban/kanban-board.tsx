@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -17,8 +16,8 @@ import { Calendar, Check, Pause, Plus, RotateCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
-
-import type {Ticket } from "@/components/kanban/types"
+import { Ticket } from "@/components/kanban/types";
+import { useState } from "react";
 
 interface TicketsState {
   new: Ticket[];
@@ -30,14 +29,14 @@ interface TicketsState {
 
 interface KanbanBoardProps {
   tickets: TicketsState;
-  onDragEnd: (result: any) => void;
+  onDragEnd: (result: {
+    source: keyof TicketsState;
+    destination: keyof TicketsState;
+    ticketId: string;
+  }) => void;
 }
 
-export default function KanbanBoard({
-  tickets: initialTickets,
-  onDragEnd,
-}: KanbanBoardProps) {
-  const [tickets, setTickets] = useState(initialTickets);
+export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -53,86 +52,70 @@ export default function KanbanBoard({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+   
+    setActiveId(null);
+    console.log(over , "over from kanban itself");
+    
 
     if (!over) return;
 
     const activeTicketId = active.id as string;
     const overTicketId = over.id as string;
 
-    // Find which column the ticket is moving from and to
     let fromColumn: keyof TicketsState | null = null;
     let toColumn: keyof TicketsState | null = null;
-    let activeTicket: Ticket | null = null;
-
+    
+    // Find source column
     Object.entries(tickets).forEach(([columnId, columnTickets]) => {
-      const foundTicket = columnTickets.find(
-        (ticket: any) => ticket.id === activeTicketId
-      );
-      if (foundTicket) {
+      if (columnTickets.some((ticket:any) => ticket.id === activeTicketId)) {
         fromColumn = columnId as keyof TicketsState;
-        activeTicket = foundTicket;
-      }
-      if (columnTickets.find((ticket: any) => ticket.id === overTicketId)) {
-        toColumn = columnId as keyof TicketsState;
       }
     });
-    if (!fromColumn || !toColumn || !activeTicket) return;
-
-    if (fromColumn != toColumn) {
-      // TypeScript now knows fromColumn and toColumn are not null
-      setTickets((prev) => {
-        const newTickets = { ...prev };
-
-        newTickets[fromColumn!] = prev[fromColumn!].filter(
-          (ticket) => ticket.id !== activeTicketId
-        );
-
-        newTickets[toColumn!] = [...prev[toColumn!], activeTicket!];
-
-        return newTickets;
+    
+    // Determine destination column (based on droppable ID, not just ticket ID)
+    if (
+      Object.keys(tickets).includes(overTicketId)
+    ) {
+      toColumn = overTicketId as keyof TicketsState;
+    } else {
+      // Maybe dropped on a ticket, not column
+      Object.entries(tickets).forEach(([columnId, columnTickets]) => {
+        if (columnTickets.some((ticket:any) => ticket.id === overTicketId)) {
+          toColumn = columnId as keyof TicketsState;
+        }
       });
+    }
+    
 
-      setActiveId(null);
+    if (fromColumn && toColumn && fromColumn !== toColumn) {
       onDragEnd({
         source: fromColumn,
         destination: toColumn,
         ticketId: activeTicketId,
       });
-    } else return;
-  };
-
-  const getColumnIcon = (status: string) => {
-    switch (status) {
-      case "new":
-        return <Plus className="h-4 w-4 text-blue-500" />;
-      case "inProgress":
-        return <RotateCw className="h-4 w-4 text-yellow-500" />;
-      case "scheduled":
-        return <Calendar className="h-4 w-4 text-purple-500" />;
-      case "onHold":
-        return <Pause className="h-4 w-4 text-orange-500" />;
-      case "completed":
-        return <Check className="h-4 w-4 text-green-500" />;
-      default:
-        return null;
     }
   };
 
-  const getColumnTitle = (status: string) => {
-    switch (status) {
-      case "new":
-        return "New";
-      case "inProgress":
-        return "In Progress";
-      case "scheduled":
-        return "Scheduled";
-      case "onHold":
-        return "On Hold";
-      case "completed":
-        return "Completed";
-      default:
-        return status;
-    }
+  const getColumnIcon = (status: keyof TicketsState) => {
+    const icons = {
+      new: <Plus className="h-4 w-4 text-blue-500" />,
+      inProgress: <RotateCw className="h-4 w-4 text-yellow-500" />,
+      scheduled: <Calendar className="h-4 w-4 text-purple-500" />,
+      onHold: <Pause className="h-4 w-4 text-orange-500" />,
+      completed: <Check className="h-4 w-4 text-green-500" />,
+    };
+    return icons[status] ?? null;
+  };
+
+  const getColumnTitle = (status: keyof TicketsState) => {
+    const titles = {
+      new: "New",
+      inProgress: "In Progress",
+      scheduled: "Scheduled",
+      onHold: "On Hold",
+      completed: "Completed",
+    };
+    return titles[status] ?? status;
   };
 
   return (
@@ -155,19 +138,14 @@ export default function KanbanBoard({
       </div>
 
       <DragOverlay>
-        {activeId
-          ? (() => {
-              const activeTicket = Object.values(tickets)
-                .flat()
-                .find((ticket) => ticket.id === activeId);
-
-              return activeTicket ? (
-                <Card className="w-[280px] shadow-lg">
-                  <SortableTicket key={activeTicket.id} ticket={activeTicket} />
-                </Card>
-              ) : null;
-            })()
-          : null}
+        {activeId && (() => {
+          const activeTicket = Object.values(tickets).flat().find((t) => t.id === activeId);
+          return activeTicket ? (
+            <Card className="w-[280px] shadow-lg">
+              <SortableTicket key={activeTicket.id} ticket={activeTicket} />
+            </Card>
+          ) : null;
+        })()}
       </DragOverlay>
     </DndContext>
   );

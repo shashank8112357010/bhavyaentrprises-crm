@@ -42,22 +42,27 @@ export interface Ticket {
     avatar: string;
     initials: string;
   };
-  workStage: {
+  workStage?: {
+    quoteNo: string;
+    quoteTaxable: number;
+    quoteAmount: number;
+    dateReceived: string;
+    agentName: string;
+
     stateName: string;
     adminName: string;
     clientName: string;
     siteName: string;
-    quoteNo: string;
-    dateReceived: string;
-    quoteTaxable: number;
-    quoteAmount: number;
-    workStatus: string;
+   
+    // biiling => shift 
+    // workStatus: string;
     approval: string;
     poStatus: string;
     poNumber: string;
     jcrStatus: string;
-    agentName: string;
+   
   };
+
   dueDate?: string;
   scheduledDate?: string;
   completedDate?: string;
@@ -67,3 +72,9 @@ export interface Ticket {
   holdReason?: string;
   status: TicketStatus;
 }
+
+// jcr status => red(N/A) , orange (hard copy) , green (soft copy)
+// removed scheduled 
+// after complete billing board 
+// quote form fix 
+

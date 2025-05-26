@@ -107,13 +107,13 @@ export default function AgentsPage() {
     }
   };
 
-  useEffect(() => {
-    toast({
-      title: "Error",
-      description: error || "Failed to delete agent.",
-      variant: "destructive",
-    });
-  }, [error]);
+  // useEffect(() => {
+  //   toast({
+  //     title: "Error",
+  //     description: error || "Failed to delete agent.",
+  //     variant: "destructive",
+  //   });
+  // }, [error]);
 
   return (
     <div className="flex flex-col gap-6">

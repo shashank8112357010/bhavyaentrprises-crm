@@ -175,7 +175,6 @@ export default function ClientsPage() {
             />
             <Select
               value={newClient.type}
-              
               onValueChange={(value) =>
                 setNewClient({ ...newClient, type: value })
               }
@@ -184,9 +183,8 @@ export default function ClientsPage() {
                 <SelectValue placeholder="Type" className="text-white" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Choose Bank" >Choose Bank</SelectItem>
+                <SelectItem value="Choose Bank">Choose Bank</SelectItem>
                 <SelectItem value="NBFC">NBFC</SelectItem>
-              
               </SelectContent>
             </Select>
             <Input

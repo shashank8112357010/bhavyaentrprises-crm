@@ -120,64 +120,64 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
               <div className="flex items-center">
                 <User className="mr-1 h-3 w-3" />
-                <span>Agent: {ticket.workStage?.agentName}</span>
+                <span>Agent: {ticket.workStage?.agentName || 'N/A'}</span>
               </div>
               
               <div className="flex items-center">
                 <Calendar className="mr-1 h-3 w-3" />
-                <span>{ticket.workStage?.dateReceived}</span>
+                <span>{ticket.workStage?.dateReceived || 'N/A'}</span>
               </div>
             </div>
           </TooltipProvider>
         </div>
         
         <div className="flex flex-wrap gap-2 mt-3">
-          <Badge variant="secondary" className="text-xs">
-            {ticket.workStage?.workStatus}
+          {/* <Badge variant="secondary" className="text-xs">
+            {ticket.workStage?.workStatus || 'N/A'}
+          </Badge> */}
+          <Badge variant="outline" className="text-xs">
+            {ticket.workStage?.poStatus || 'N/A' }
           </Badge>
           <Badge variant="outline" className="text-xs">
-            {ticket.workStage?.poStatus}
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            JCR: {ticket.workStage?.jcrStatus}
+            JCR: {ticket.workStage?.jcrStatus || 'N/A' }
           </Badge>
         </div>
 
         <div className="flex justify-between items-center mt-3">
           <div className="flex items-center">
             <Avatar className="h-6 w-6 mr-2">
-              <AvatarImage src={ticket.assignee.avatar} alt={ticket.assignee.name} />
-              <AvatarFallback>{ticket.assignee.initials}</AvatarFallback>
+              <AvatarImage src={ticket?.assignee?.avatar} alt={ticket?.assignee?.name} />
+              <AvatarFallback>{ticket?.assignee?.initials}</AvatarFallback>
             </Avatar>
-            <span className="text-xs text-muted-foreground">{ticket.assignee.name}</span>
+            <span className="text-xs text-muted-foreground">{ticket?.assignee?.name || 'N/A'}</span>
           </div>
           
           <div className="flex items-center gap-2">
             {ticket.comments > 0 && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <MessageSquare className="mr-1 h-3 w-3" />
-                <span>{ticket.comments}</span>
+                <span>{ticket.comments || 'N/A' }</span>
               </div>
             )}
             
             {ticket.dueDate && !ticket.completedDate && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Calendar className="mr-1 h-3 w-3" />
-                <span>Due: {ticket.dueDate}</span>
+                <span>Due: {ticket.dueDate || 'N/A'}</span>
               </div>
             )}
             
             {ticket.scheduledDate && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Clock className="mr-1 h-3 w-3" />
-                <span>{ticket.scheduledDate.split(',')[0]}</span>
+                <span>{ticket.scheduledDate.split(',')[0] || 'N/A' }</span>
               </div>
             )}
             
             {ticket.completedDate && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
-                <span>{ticket.completedDate}</span>
+                <span>{ticket.completedDate || 'N/A'}</span>
               </div>
             )}
           </div>

@@ -40,9 +40,42 @@ type Ticket = {
 
 type Status = 'new' | 'inProgress' | 'scheduled' | 'onHold' | 'completed';
 
-export async function createTicket(payload: Omit<Ticket, 'id' | 'status'>) {
+interface CreateTicketInput {
+  title: string;
+  clientId: string;
+  branch: string;
+  priority: string;
+  assigneeId: string;
+  dueDate?: string;
+  comments? : number;
+  scheduledDate?: string;
+  completedDate?: string;
+  description: string;
+  // comments: number;
+  holdReason?: string;
+  workStage?: {
+    create: {
+      stateName: string;
+      adminName: string;
+      clientName: string;
+      siteName: string;
+      quoteNo: string;
+      dateReceived: Date;
+      quoteTaxable: number;
+      quoteAmount: number;
+      workStatus: string;
+      approval: string;
+      poStatus: string;
+      poNumber: string;
+      jcrStatus: string;
+      agentName: string;
+    }
+  }
+}
+
+export async function createTicket(payload: CreateTicketInput) {
   try {
-    const response = await axios.post("/tickets/create-ticket", payload, {
+    const response = await axios.post("/ticket/create-ticket", payload, {
       withCredentials: true,
     });
     return response.data;
@@ -54,7 +87,7 @@ export async function createTicket(payload: Omit<Ticket, 'id' | 'status'>) {
 
 export async function getAllTickets() {
   try {
-    const response = await axios.get("/tickets", {
+    const response = await axios.get("/ticket", {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -64,14 +97,14 @@ export async function getAllTickets() {
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch tickets.";
+    const message = error.response?.data?.error || "Failed to fetch ticket.";
     throw new Error(message);
   }
 }
 
 export async function deleteTicket(id: string) {
   try {
-    const response = await axios.delete(`/tickets/${id}`, {
+    const response = await axios.delete(`/ticket/${id}`, {
       withCredentials: true,
     });
     return response.data;
@@ -83,7 +116,7 @@ export async function deleteTicket(id: string) {
 
 export async function getTicketById(id: string) {
   try {
-    const response = await axios.get(`/tickets/${id}`, {
+    const response = await axios.get(`/ticket/${id}`, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -100,7 +133,7 @@ export async function getTicketById(id: string) {
 
 export async function updateTicketStatus(id: string, status: Status) {
   try {
-    const response = await axios.patch(`/tickets/${id}/status`, { status }, {
+    const response = await axios.patch(`/ticket/${id}`, { status }, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -117,7 +150,7 @@ export async function updateTicketStatus(id: string, status: Status) {
 
 export async function updateTicket(id: string, updatedTicket: Ticket) {
   try {
-    const response = await axios.patch(`/tickets/${id}`, updatedTicket, {
+    const response = await axios.patch(`/ticket/${id}`, updatedTicket, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",

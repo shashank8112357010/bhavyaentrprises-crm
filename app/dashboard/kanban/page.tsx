@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import KanbanBoard from "@/components/kanban/kanban-board";
-import { NewTicketDialog } from "@/components/tickets/new-ticket-dialog";
+import  NewTicketDialog  from "@/components/tickets/new-ticket-dialog";
 
 type Ticket = {
   id: string;
@@ -31,7 +31,7 @@ type Ticket = {
     avatar: string;
     initials: string;
   };
-  workStage: {
+  workStage?: {
     stateName: string;
     adminName: string;
     clientName: string;
@@ -78,6 +78,8 @@ export default function KanbanPage() {
   }, [fetchTickets]);
 
   const handleDragEnd = (result: any) => {
+    console.log(result , "result");
+    
     const { source, destination, ticketId } = result;
 
     if (!source || !destination) return;
@@ -89,9 +91,9 @@ export default function KanbanPage() {
   const filteredTickets: TicketsState = Object.entries(tickets).reduce(
     (acc, [status, statusTickets]) => {
       if (['new', 'inProgress', 'scheduled', 'onHold', 'completed'].includes(status as Status)) {
-        acc[status as Status] = statusTickets.map(ticket => ({
+        acc[status as Status] = statusTickets.map((ticket:any) => ({
           ...ticket,
-          dueDate: ticket.dueDate || '', // Provide a default value if dueDate is undefined
+          dueDate: ticket.dueDate ? ticket.dueDate : 'null', // Provide a default value if dueDate is undefined
         })).filter((ticket) => {
           const matchesSearch =
             ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,6 +118,8 @@ export default function KanbanPage() {
     },
     {} as TicketsState
   );
+  
+  console.log(filteredTickets);
   
 
   return (

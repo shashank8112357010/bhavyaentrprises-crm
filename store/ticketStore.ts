@@ -19,7 +19,7 @@ type Ticket = {
     clientName: string;
     siteName: string;
     quoteNo: string;
-    dateReceived: string;
+    dateReceived: Date;
     quoteTaxable: number;
     quoteAmount: number;
     workStatus: string;
@@ -48,6 +48,39 @@ type TicketsState = {
 };
 
 type Status = 'new' | 'inProgress' | 'scheduled' | 'onHold' | 'completed';
+interface CreateTicketInput {
+  title: string;
+  clientId: string;
+  branch: string;
+  comments? : number;
+  priority: string;
+  assigneeId: string;
+  dueDate?: string;
+  scheduledDate?: string;
+  completedDate?: string;
+  description: string;
+
+  // comments: string;
+  holdReason?: string;
+  workStage?: {
+    create: {
+      stateName: string;
+      adminName: string;
+      clientName: string;
+      siteName: string;
+      quoteNo: string;
+      dateReceived: Date;
+      quoteTaxable: number;
+      quoteAmount: number;
+      workStatus: string;
+      approval: string;
+      poStatus: string;
+      poNumber: string;
+      jcrStatus: string;
+      agentName: string;
+    }
+  }
+}
 
 interface TicketState {
   tickets: TicketsState;
@@ -55,7 +88,7 @@ interface TicketState {
   error: string | null;
   fetchTickets: () => Promise<void>;
   updateTicketStatus: (id: string, status: Status) => Promise<void>;
-  createTicket: (ticketData: Omit<Ticket, 'id' | 'status'>) => Promise<void>;
+  createTicket: (ticketData: CreateTicketInput) => Promise<void>;
 }
 
 export const useTicketStore = create<TicketState>((set) => ({
@@ -132,19 +165,22 @@ export const useTicketStore = create<TicketState>((set) => ({
       set({ error: error.message, loading: false });
     }
   },
-  createTicket: async (ticketData: Omit<Ticket, 'id' | 'status'>) => {
+  createTicket: async (ticketData: CreateTicketInput) => {
     set({ loading: true, error: null });
     try {
       const newTicket = await createTicket(ticketData);
+      console.log(newTicket , "newTicket from store");
+      const {ticket} = newTicket
+      
       set((state) => ({
         tickets: {
           ...state.tickets,
-          new: [...state.tickets.new, { ...newTicket, status: 'new' }],
+          new: [...state.tickets.new, { ...ticket, status: 'new' }],
         },
         loading: false,
       }));
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
-  },
+  }
 }));
