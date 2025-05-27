@@ -116,11 +116,8 @@ export default function Sidebar({ className }: SidebarProps) {
 
       {/* Desktop sidebar */}
       <aside className={cn("hidden h-screen border-r md:flex md:w-52 md:flex-col md:p-4", className)}>
-        <Button className="mb-6 w-full" size="sm">
-          <Plus className="mr-2 h-4 w-4" />
-          New Ticket
-        </Button>
-        <nav className="flex flex-col gap-2">
+      
+        <nav className="flex flex-col gap-2 mt-6">
           {navItems.map((item) => (
             <Link
               key={item.href}

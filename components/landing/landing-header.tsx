@@ -28,16 +28,16 @@ export function LandingHeader() {
   return (
     <header
       className={cn(
-        "fixed top-0 w-full  z-50 px-10 transition-all duration-300",
+        "fixed top-0 w-full  z-50 px-20 text-center transition-all duration-300",
         scrolled
           ? "bg-background/90 backdrop-blur-md shadow-sm"
           : "bg-transparent"
       )}
     >
-      <div className="container flex h-16 items-center  justify-between">
+      <div className="container p-6 flex h-16 items-center  justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl">Praarabdh</span>
+            <span className="font-bold text-xl">Bhavya Enterprises</span>
           </Link>
        
         </div>

@@ -1,6 +1,5 @@
 "use client";
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,13 +13,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast"; // Using the toast from hooks
+import { useToast } from "@/hooks/use-toast";
 import { login } from "@/lib/services/auth";
+import { Eye, EyeOff } from "lucide-react"; // 👈 Lucide icons
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // 👈 Toggle state
   const router = useRouter();
   const { toast } = useToast();
 
@@ -38,11 +39,10 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // inside handleLogin
     try {
       await login({ email, password });
-      router.push('/dashboard')
-
+      router.push("/dashboard")
+      router.refresh()
       toast({ title: "Success", description: "Logged in successfully!" });
     } catch (error: any) {
       console.log(error);
@@ -58,7 +58,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="flex items-center justify-center min-h-screen">
       <div className="w-full max-w-md p-4">
         <Card>
           <CardHeader className="space-y-1">
@@ -90,27 +90,31 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col">
-            {/* <div className="text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </div> */}
-          </CardFooter>
+       
         </Card>
       </div>
     </div>

@@ -2,11 +2,11 @@ import Link from "next/link";
 
 export function LandingFooter() {
   return (
-    <footer id="contact" className="bg-muted py-12 px-10">
+    <footer id="contact" className="bg-muted py-12 px-20 text-center">
       <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Praarabdh CRM</h3>
+            <h3 className="text-lg font-semibold">Bhavya Enterprises</h3>
             <p className="text-muted-foreground">
               Powerful CRM designed specifically for financial advisory firms.
             </p>
@@ -78,7 +78,7 @@ export function LandingFooter() {
         
         <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-muted-foreground text-sm">
-            &copy; {new Date().getFullYear()} Praarabdh CRM. All rights reserved.
+            &copy; {new Date().getFullYear()} Bhavya Enterprises. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">

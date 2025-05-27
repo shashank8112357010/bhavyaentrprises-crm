@@ -15,11 +15,13 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Bell, Menu, Wrench } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter()
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,53 +41,7 @@ export default function Header() {
             <span className="text-xl font-bold tracking-tight">Bhavya Entrprises</span>
           </Link>
         </div>
-        <nav className="hidden md:flex items-center gap-5 text-sm">
-          <Link 
-            href="/" 
-            className={cn(
-              "transition-colors hover:text-primary", 
-              pathname === "/" ? "text-primary font-medium" : "text-muted-foreground"
-            )}
-          >
-            Dashboard
-          </Link>
-          <Link 
-            href="/kanban" 
-            className={cn(
-              "transition-colors hover:text-primary", 
-              pathname === "/kanban" ? "text-primary font-medium" : "text-muted-foreground"
-            )}
-          >
-            Kanban Board
-          </Link>
-          <Link 
-            href="/clients" 
-            className={cn(
-              "transition-colors hover:text-primary", 
-              pathname === "/clients" ? "text-primary font-medium" : "text-muted-foreground"
-            )}
-          >
-            Clients
-          </Link>
-          <Link 
-            href="/calendar" 
-            className={cn(
-              "transition-colors hover:text-primary", 
-              pathname === "/calendar" ? "text-primary font-medium" : "text-muted-foreground"
-            )}
-          >
-            Calendar
-          </Link>
-          <Link 
-            href="/reports" 
-            className={cn(
-              "transition-colors hover:text-primary", 
-              pathname === "/reports" ? "text-primary font-medium" : "text-muted-foreground"
-            )}
-          >
-            Reports
-          </Link>
-        </nav>
+       
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -119,7 +75,9 @@ export default function Header() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem className="text-red-400 hover:text-red-700" onClick={()=>{
+                router.push('/')
+              }}>
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

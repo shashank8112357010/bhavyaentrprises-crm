@@ -39,7 +39,7 @@ interface KanbanBoardProps {
 
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-console.log(tickets , "tickets");
+
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -56,7 +56,7 @@ console.log(tickets , "tickets");
     const { active, over } = event;
 
     setActiveId(null);
-    console.log(over, "over from kanban itself");
+   
 
     if (!over) return;
 

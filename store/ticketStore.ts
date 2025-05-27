@@ -1,6 +1,10 @@
 // store/ticketStore.ts
 import { create } from "zustand";
-import { getAllTickets, updateTicketStatus, createTicket } from "../lib/services/ticket";
+import {
+  getAllTickets,
+  updateTicketStatus,
+  createTicket,
+} from "../lib/services/ticket";
 
 type Ticket = {
   id: string;
@@ -44,17 +48,22 @@ type TicketsState = {
   inProgress: Ticket[];
   onHold: Ticket[];
   completed: Ticket[];
-  billing_pending :Ticket[];
-  billing_completed :Ticket[];
-
+  billing_pending: Ticket[];
+  billing_completed: Ticket[];
 };
 
-type Status = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
+type Status =
+  | "new"
+  | "inProgress"
+  | "onHold"
+  | "completed"
+  | "billing_pending"
+  | "billing_completed";
 interface CreateTicketInput {
   title: string;
   clientId: string;
   branch: string;
-  comments? : number;
+  comments?: number;
   priority: string;
   assigneeId: string;
   dueDate?: string;
@@ -80,8 +89,8 @@ interface CreateTicketInput {
       poNumber: string;
       jcrStatus: string;
       agentName: string;
-    }
-  }
+    };
+  };
 }
 
 interface TicketState {
@@ -91,6 +100,7 @@ interface TicketState {
   fetchTickets: () => Promise<void>;
   updateTicketStatus: (id: string, status: Status) => Promise<void>;
   createTicket: (ticketData: CreateTicketInput) => Promise<void>;
+  fetchTicketById: (id: string) => Ticket | undefined;
 }
 
 export const useTicketStore = create<TicketState>((set) => ({
@@ -99,8 +109,8 @@ export const useTicketStore = create<TicketState>((set) => ({
     inProgress: [],
     onHold: [],
     completed: [],
-    billing_pending:[],
-    billing_completed:[]
+    billing_pending: [],
+    billing_completed: [],
   },
   loading: false,
   error: null,
@@ -111,14 +121,24 @@ export const useTicketStore = create<TicketState>((set) => ({
       const { tickets } = response;
 
       // Organize tickets by status
-      const newTickets = tickets.filter((ticket: Ticket) => ticket.status === 'new');
-      const inProgressTickets = tickets.filter((ticket: Ticket) => ticket.status === 'inProgress');
-      const onHoldTickets = tickets.filter((ticket: Ticket) => ticket.status === 'onHold');
-      const completedTickets = tickets.filter((ticket: Ticket) => ticket.status === 'completed');
-      const billing_pending_Tickets = tickets.filter((ticket: Ticket) => ticket.status === 'billing_pending');
-      const billing_completed_Tickets = tickets.filter((ticket: Ticket) => ticket.status === 'billing_completed');
-
-
+      const newTickets = tickets.filter(
+        (ticket: Ticket) => ticket.status === "new"
+      );
+      const inProgressTickets = tickets.filter(
+        (ticket: Ticket) => ticket.status === "inProgress"
+      );
+      const onHoldTickets = tickets.filter(
+        (ticket: Ticket) => ticket.status === "onHold"
+      );
+      const completedTickets = tickets.filter(
+        (ticket: Ticket) => ticket.status === "completed"
+      );
+      const billing_pending_Tickets = tickets.filter(
+        (ticket: Ticket) => ticket.status === "billing_pending"
+      );
+      const billing_completed_Tickets = tickets.filter(
+        (ticket: Ticket) => ticket.status === "billing_completed"
+      );
 
       set({
         tickets: {
@@ -126,9 +146,8 @@ export const useTicketStore = create<TicketState>((set) => ({
           inProgress: inProgressTickets,
           onHold: onHoldTickets,
           completed: completedTickets,
-          billing_pending :billing_pending_Tickets,
-          billing_completed :billing_completed_Tickets
-
+          billing_pending: billing_pending_Tickets,
+          billing_completed: billing_completed_Tickets,
         },
         loading: false,
       });
@@ -143,7 +162,9 @@ export const useTicketStore = create<TicketState>((set) => ({
 
       set((state) => {
         const { tickets } = state;
-        const ticketIndex = Object.values(tickets).flat().findIndex((ticket) => ticket.id === id);
+        const ticketIndex = Object.values(tickets)
+          .flat()
+          .findIndex((ticket) => ticket.id === id);
 
         if (ticketIndex === -1) {
           return state;
@@ -154,7 +175,9 @@ export const useTicketStore = create<TicketState>((set) => ({
 
         // Remove the ticket from its current status array
         const currentStatus = ticket.status;
-        const currentStatusTickets = tickets[currentStatus].filter((t) => t.id !== id);
+        const currentStatusTickets = tickets[currentStatus].filter(
+          (t) => t.id !== id
+        );
 
         // Add the ticket to the new status array
         const newStatusTickets = [...tickets[status], updatedTicket];
@@ -177,18 +200,24 @@ export const useTicketStore = create<TicketState>((set) => ({
     set({ loading: true, error: null });
     try {
       const newTicket = await createTicket(ticketData);
-      console.log(newTicket , "newTicket from store");
-      const {ticket} = newTicket
-      
+      console.log(newTicket, "newTicket from store");
+      const { ticket } = newTicket;
+
       set((state) => ({
         tickets: {
           ...state.tickets,
-          new: [...state.tickets.new, { ...ticket, status: 'new' }],
+          new: [...state.tickets.new, { ...ticket, status: "new" }],
         },
         loading: false,
       }));
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
-  }
+  },
+  fetchTicketById: (id: string): Ticket | undefined => {
+    const ticket = useTicketStore.getState().tickets;
+    const allTickets = Object.values(ticket).flat();
+    const foundTicket = allTickets.find((t) => t.id === id);
+    return foundTicket;
+  },
 }));

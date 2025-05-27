@@ -19,10 +19,15 @@ import PriorityIssues from "@/components/dashboard/priority-issues";
 import OverviewMetrics from "@/components/dashboard/overview-metrics";
 import ExternalCallsList from "@/components/dashboard/external-calls-list";
 import UpcomingSchedule from "@/components/dashboard/upcoming-schedule";
+import { useTicketStore } from "@/store/ticketStore";
+import { useEffect } from "react";
 
 
 export default function Home() {
-
+  const {  fetchTickets } = useTicketStore();
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

@@ -12,7 +12,7 @@ export const createTicketSchema = z.object({
     message: "Invalid date format",
   }).optional(),
   description: z.string().min(1, "Description is required"),
-  comments: z.number().int().min(0),
+  comments: z.number().int().min(0).optional(),
   holdReason: z.string().optional(),
   assigneeId: z.string().min(1, "Assignee ID is required"),
   clientId: z.string().min(1, "Client ID is required"),

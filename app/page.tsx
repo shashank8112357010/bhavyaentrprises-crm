@@ -2,22 +2,25 @@
 import { useRouter } from "next/navigation";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import Image from "next/image";
 
 export default function Home() {
   const router = useRouter();
 
-
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col ">
       <LandingHeader />
-      <main className="flex-1 flex items-center justify-center p-12">
-        <div className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <main className="flex-1 mx-6 min-h-screen flex items-center justify-center mt-8">
+        <div className="max-w-7xl w-full grid grid-cols-1  md:grid-cols-2 gap-8 items-center">
           {/* Left Side Content */}
           <div className="space-y-6">
-            <h1 className="text-4xl font-bold text-gray-900">Welcome to Praarabdh CRM!</h1>
-            <p className="text-lg text-gray-600">
-              Your ultimate dashboard for managing your applications. Streamline, monitor,
-              and grow your digital experience all in one place.
+            <h1 className="text-4xl font-bold ">
+              Welcome to Bhavya Enterprises CRM!
+            </h1>
+            <p className="text-lg">
+              Your ultimate dashboard for managing your applications.
+              Streamline, monitor, and grow your digital experience all in one
+              place.
             </p>
             <button
               onClick={() => router.push("/login")}
@@ -29,10 +32,12 @@ export default function Home() {
 
           {/* Right Side Image */}
           <div className="flex justify-center">
-            <img
+            <Image
               src="/banner.jpg" // Replace with your actual image path (in public folder)
               alt="Dashboard Illustration"
               className="max-w-full h-auto rounded-xl shadow-lg"
+              width={700}
+              height={700}
             />
           </div>
         </div>

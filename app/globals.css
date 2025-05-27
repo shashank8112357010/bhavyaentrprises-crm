@@ -16,6 +16,22 @@
   }
 }
 
+@layer utilities {
+  .hide-date-icon::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    display: none;
+    -webkit-appearance: none;
+  }
+
+  .hide-date-icon::-moz-calendar-picker-indicator {
+    display: none;
+  }
+
+  .hide-date-icon {
+    position: relative;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

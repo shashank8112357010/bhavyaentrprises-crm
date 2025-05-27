@@ -78,7 +78,7 @@ model Ticket {
   completedDate DateTime?
   createdAt     DateTime  @default(now())
   description   String
-  comments      Int
+  comments      Int?
   holdReason    String?
 
   assigneeId String
@@ -87,7 +87,6 @@ model Ticket {
 
   workStageId String?    @unique
   workStage   WorkStage? @relation(name: "TicketToWorkStage", fields: [workStageId], references: [id])
-
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
 }

@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,10 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 import { useAgentStore } from "@/store/agentStore";
 import { useClientStore } from "@/store/clientStore";
 import { useTicketStore } from "@/store/ticketStore";
+
+const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
 export default function NewTicketDialog() {
   const [open, setOpen] = useState(false);
@@ -28,18 +32,22 @@ export default function NewTicketDialog() {
   const { clients, fetchClients } = useClientStore();
   const { createTicket } = useTicketStore();
 
+  const today = formatDate(new Date());
+  const nextWeek = formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+
   const [formData, setFormData] = useState({
     title: "",
     branch: "",
     priority: "",
-    dueDate: "",
-    scheduledDate: "",
+    dueDate: nextWeek,
+    scheduledDate: today,
     description: "",
-    comments: 0,
-    holdReason: "",
     assigneeId: "",
     clientId: "",
   });
+
+  const dueDateRef = useRef<HTMLInputElement>(null);
+  const scheduledDateRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAgents();
@@ -54,22 +62,18 @@ export default function NewTicketDialog() {
     try {
       const ticketData = {
         ...formData,
-        dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
-        scheduledDate: formData.scheduledDate ? new Date(formData.scheduledDate).toISOString() : undefined,
-        comments : Number(formData.comments)
+        dueDate: new Date(formData.dueDate).toISOString(),
+        scheduledDate: new Date(formData.scheduledDate).toISOString(),
       };
       await createTicket(ticketData);
-
       setOpen(false);
       setFormData({
         title: "",
         branch: "",
         priority: "",
-        dueDate: "",
-        scheduledDate: "",
+        dueDate: nextWeek,
+        scheduledDate: today,
         description: "",
-        comments: 0,
-        holdReason: "",
         assigneeId: "",
         clientId: "",
       });
@@ -95,6 +99,7 @@ export default function NewTicketDialog() {
             <Label htmlFor="title">Title</Label>
             <Input
               id="title"
+              placeholder="Enter Issue"
               value={formData.title}
               onChange={(e) => handleChange("title", e.target.value)}
             />
@@ -104,6 +109,7 @@ export default function NewTicketDialog() {
             <Label htmlFor="branch">Branch</Label>
             <Input
               id="branch"
+              placeholder="Enter Branch Name"
               value={formData.branch}
               onChange={(e) => handleChange("branch", e.target.value)}
             />
@@ -111,31 +117,59 @@ export default function NewTicketDialog() {
 
           <div className="grid gap-2">
             <Label htmlFor="priority">Priority</Label>
-            <Input
-              id="priority"
+            <Select
               value={formData.priority}
-              onChange={(e) => handleChange("priority", e.target.value)}
-            />
+              onValueChange={(val) => handleChange("priority", val)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Due Date Field with Custom Icon */}
           <div className="grid gap-2">
             <Label htmlFor="dueDate">Due Date</Label>
-            <Input
-              type="date"
-              id="dueDate"
-              value={formData.dueDate}
-              onChange={(e) => handleChange("dueDate", e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                type="date"
+                id="dueDate"
+                ref={dueDateRef}
+                value={formData.dueDate}
+                onChange={(e) => handleChange("dueDate", e.target.value)}
+                className="pr-10 hide-date-icon"
+              />
+              <Calendar
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
+                onClick={() => dueDateRef.current?.showPicker()}
+              />
+            </div>
           </div>
 
+          {/* Scheduled Date Field with Custom Icon */}
           <div className="grid gap-2">
             <Label htmlFor="scheduledDate">Scheduled Date</Label>
-            <Input
-              type="date"
-              id="scheduledDate"
-              value={formData.scheduledDate}
-              onChange={(e) => handleChange("scheduledDate", e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                type="date"
+                id="scheduledDate"
+                ref={scheduledDateRef}
+                value={formData.scheduledDate}
+                onChange={(e) =>
+                  handleChange("scheduledDate", e.target.value)
+                }
+                className="pr-10 hide-date-icon"
+              />
+              <Calendar
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
+                onClick={() => scheduledDateRef.current?.showPicker()}
+              />
+            </div>
           </div>
 
           <div className="grid gap-2 col-span-2">
@@ -143,22 +177,8 @@ export default function NewTicketDialog() {
             <Textarea
               id="description"
               value={formData.description}
+               placeholder="Enter Issue in detail ..."
               onChange={(e) => handleChange("description", e.target.value)}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="comments">Comments Count</Label>
-            <Input type="number" id="comments" value={formData.comments} onChange={(e) => handleChange("comments", (e.target.value))} />
-
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="holdReason">Hold Reason</Label>
-            <Input
-              id="holdReason"
-              value={formData.holdReason}
-              onChange={(e) => handleChange("holdReason", e.target.value)}
             />
           </div>
 
