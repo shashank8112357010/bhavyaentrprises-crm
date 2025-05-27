@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,12 +22,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { IndianRupee, Plus } from "lucide-react";
+import { useClientStore } from "@/store/clientStore";
+
 
 export function NewQuotationDialog() {
   const [open, setOpen] = useState(false);
+  const [clientId, setClientId] = useState<string>("");
+  const {clients , fetchClients} = useClientStore();
+
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const formData = {
+      date: new Date((e.target as any).date.value),
+      clientId,
+      amount: parseFloat((e.target as any).amount.value),
+      description: (e.target as any).description.value,
+      remarks: (e.target as any).remarks.value,
+    };
+
+    console.log("Submit Quotation:", formData);
+
     setOpen(false);
   };
 
@@ -50,24 +70,20 @@ export function NewQuotationDialog() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="quoteNo">Quote No.</Label>
-              <Input id="quoteNo" placeholder="Enter quote number" />
+              <Input id="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="client">Client</Label>
-              <Select>
+              <Select onValueChange={setClientId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hdfc">HDFC Bank</SelectItem>
-                  <SelectItem value="sbi">SBI Bank</SelectItem>
-                  <SelectItem value="icici">ICICI Bank</SelectItem>
-                  <SelectItem value="axis">Axis Bank</SelectItem>
-                  <SelectItem value="pnb">Punjab National Bank</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -75,12 +91,12 @@ export function NewQuotationDialog() {
               <Label htmlFor="amount">Amount</Label>
               <div className="relative">
                 <IndianRupee className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input id="amount" type="number" className="pl-8" placeholder="Enter amount" />
+                <Input id="amount" type="number" className="pl-8" required placeholder="Enter amount" />
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Work Details</Label>
-              <Textarea id="description" placeholder="Enter work details" />
+              <Textarea id="description" placeholder="Enter work details" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="remarks">Additional Remarks</Label>
