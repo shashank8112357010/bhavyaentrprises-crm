@@ -47,7 +47,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     transition,
     isDragging,
   } = useSortable({ id: ticket.id });
-  console.log(ticket ,'ticketticketticketticket');
+
   
 
   const style = {
@@ -89,10 +89,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem>View Details</DropdownMenuItem>
-              <DropdownMenuItem>Update Work Stage</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Change Status</DropdownMenuItem>
+              {/* <DropdownMenuItem>Update Work Stage</DropdownMenuItem> */}
+              {/* <DropdownMenuSeparator /> */}
+              {/* <DropdownMenuItem>Change Status</DropdownMenuItem> */}
               <DropdownMenuItem>Edit Ticket</DropdownMenuItem>
+              <DropdownMenuItem className="text-red-200">Delete</DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
