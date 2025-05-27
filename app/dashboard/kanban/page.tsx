@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTicketStore } from "@/store/ticketStore";
-import {
-  Building,
-  Search,
-  Sliders,
-  User,
-} from "lucide-react";
+import { Building, Search, Sliders, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import KanbanBoard from "@/components/kanban/kanban-board";
-import  NewTicketDialog  from "@/components/tickets/new-ticket-dialog";
+import NewTicketDialog from "@/components/tickets/new-ticket-dialog";
 
 type Ticket = {
   id: string;
@@ -60,12 +55,13 @@ type Ticket = {
 type TicketsState = {
   new: Ticket[];
   inProgress: Ticket[];
-  scheduled: Ticket[];
   onHold: Ticket[];
   completed: Ticket[];
+  billing_pending :Ticket[];
+  billing_completed : Ticket[];
 };
 
-type Status = 'new' | 'inProgress' | 'scheduled' | 'onHold' | 'completed';
+type Status = "new" | "inProgress" | "onHold" | "completed" | 'billing_pending' | 'billing_completed';
 
 export default function KanbanPage() {
   const { tickets, fetchTickets, updateTicketStatus } = useTicketStore();
@@ -78,8 +74,7 @@ export default function KanbanPage() {
   }, [fetchTickets]);
 
   const handleDragEnd = (result: any) => {
-    console.log(result , "result");
-    
+
     const { source, destination, ticketId } = result;
 
     if (!source || !destination) return;
@@ -90,37 +85,40 @@ export default function KanbanPage() {
 
   const filteredTickets: TicketsState = Object.entries(tickets).reduce(
     (acc, [status, statusTickets]) => {
-      if (['new', 'inProgress', 'scheduled', 'onHold', 'completed'].includes(status as Status)) {
-        acc[status as Status] = statusTickets.map((ticket:any) => ({
-          ...ticket,
-          dueDate: ticket.dueDate ? ticket.dueDate : 'null', // Provide a default value if dueDate is undefined
-        })).filter((ticket) => {
-          const matchesSearch =
-            ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ticket.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
-  
-          const matchesClient =
-            clientFilter === 'all' ||
-            ticket.client.toLowerCase().includes(clientFilter.toLowerCase());
-  
-          const matchesAssignee =
-            assigneeFilter === 'all' ||
-            ticket.assignee.name
-              .toLowerCase()
-              .includes(assigneeFilter.toLowerCase());
-  
-          return matchesSearch && matchesClient && matchesAssignee;
-        });
+      if (
+        ["new", "inProgress", "onHold" , "completed" , 'billing_pending' , 'billing_completed'].includes(status as Status)
+      ) {
+        acc[status as Status] = statusTickets
+          .map((ticket: any) => ({
+            ...ticket,
+            dueDate: ticket.dueDate ? ticket.dueDate : new Date(), // Provide a default value if dueDate is undefined
+          }))
+          .filter((ticket) => {
+            const matchesSearch =
+              ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              ticket.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
+
+            const matchesClient =
+              clientFilter === "all" ||
+              ticket.client.toLowerCase().includes(clientFilter.toLowerCase());
+
+            const matchesAssignee =
+              assigneeFilter === "all" ||
+              ticket.assignee.name
+                .toLowerCase()
+                .includes(assigneeFilter.toLowerCase());
+
+            return matchesSearch && matchesClient && matchesAssignee;
+          });
       }
-  
+
       return acc;
     },
     {} as TicketsState
   );
-  
-  console.log(filteredTickets);
-  
+
+
 
   return (
     <div className="flex flex-col gap-6">

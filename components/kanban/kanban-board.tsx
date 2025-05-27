@@ -12,7 +12,7 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Calendar, Check, Pause, Plus, RotateCw } from "lucide-react";
+import { Calendar, Check, IndianRupee, Pause, Plus, RotateCw, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
@@ -22,9 +22,10 @@ import { useState } from "react";
 interface TicketsState {
   new: Ticket[];
   inProgress: Ticket[];
-  scheduled: Ticket[];
   onHold: Ticket[];
   completed: Ticket[];
+  billing_pending: Ticket[];
+  billing_completed: Ticket[];
 }
 
 interface KanbanBoardProps {
@@ -52,10 +53,9 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-   
+
     setActiveId(null);
-    console.log(over , "over from kanban itself");
-    
+    console.log(over, "over from kanban itself");
 
     if (!over) return;
 
@@ -64,28 +64,25 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
 
     let fromColumn: keyof TicketsState | null = null;
     let toColumn: keyof TicketsState | null = null;
-    
+
     // Find source column
     Object.entries(tickets).forEach(([columnId, columnTickets]) => {
-      if (columnTickets.some((ticket:any) => ticket.id === activeTicketId)) {
+      if (columnTickets.some((ticket: any) => ticket.id === activeTicketId)) {
         fromColumn = columnId as keyof TicketsState;
       }
     });
-    
+
     // Determine destination column (based on droppable ID, not just ticket ID)
-    if (
-      Object.keys(tickets).includes(overTicketId)
-    ) {
+    if (Object.keys(tickets).includes(overTicketId)) {
       toColumn = overTicketId as keyof TicketsState;
     } else {
       // Maybe dropped on a ticket, not column
       Object.entries(tickets).forEach(([columnId, columnTickets]) => {
-        if (columnTickets.some((ticket:any) => ticket.id === overTicketId)) {
+        if (columnTickets.some((ticket: any) => ticket.id === overTicketId)) {
           toColumn = columnId as keyof TicketsState;
         }
       });
     }
-    
 
     if (fromColumn && toColumn && fromColumn !== toColumn) {
       onDragEnd({
@@ -100,9 +97,10 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     const icons = {
       new: <Plus className="h-4 w-4 text-blue-500" />,
       inProgress: <RotateCw className="h-4 w-4 text-yellow-500" />,
-      scheduled: <Calendar className="h-4 w-4 text-purple-500" />,
       onHold: <Pause className="h-4 w-4 text-orange-500" />,
       completed: <Check className="h-4 w-4 text-green-500" />,
+      billing_pending: <><IndianRupee className="h-4 w-4 text-green-500" /><X className="h-4 w-4 text-red-500" /></> ,
+      billing_completed: <><IndianRupee className="h-4 w-4 text-green-500" /><Check className="h-4 w-4 text-green-500" /></>  ,
     };
     return icons[status] ?? null;
   };
@@ -111,9 +109,10 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     const titles = {
       new: "New",
       inProgress: "In Progress",
-      scheduled: "Scheduled",
       onHold: "On Hold",
       completed: "Completed",
+      billing_pending: "Billing Pending",
+      billing_completed: "Billing Completed",
     };
     return titles[status] ?? status;
   };
@@ -138,14 +137,17 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       </div>
 
       <DragOverlay>
-        {activeId && (() => {
-          const activeTicket = Object.values(tickets).flat().find((t) => t.id === activeId);
-          return activeTicket ? (
-            <Card className="w-[280px] shadow-lg">
-              <SortableTicket key={activeTicket.id} ticket={activeTicket} />
-            </Card>
-          ) : null;
-        })()}
+        {activeId &&
+          (() => {
+            const activeTicket = Object.values(tickets)
+              .flat()
+              .find((t) => t.id === activeId);
+            return activeTicket ? (
+              <Card className="w-[280px] shadow-lg">
+                <SortableTicket key={activeTicket.id} ticket={activeTicket} />
+              </Card>
+            ) : null;
+          })()}
       </DragOverlay>
     </DndContext>
   );

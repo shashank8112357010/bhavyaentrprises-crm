@@ -38,7 +38,7 @@ type Ticket = {
     status: Status;
   };
 
-type Status = 'new' | 'inProgress' | 'scheduled' | 'onHold' | 'completed';
+type Status = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
 
 interface CreateTicketInput {
   title: string;

@@ -95,9 +95,10 @@ model Ticket {
 enum TicketStatus {
   new
   inProgress
-  scheduled
   onHold
   completed
+  billing_pending
+  billing_completed
 }
 
 model WorkStage {

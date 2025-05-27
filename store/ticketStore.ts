@@ -42,12 +42,14 @@ type Ticket = {
 type TicketsState = {
   new: Ticket[];
   inProgress: Ticket[];
-  scheduled: Ticket[];
   onHold: Ticket[];
   completed: Ticket[];
+  billing_pending :Ticket[];
+  billing_completed :Ticket[];
+
 };
 
-type Status = 'new' | 'inProgress' | 'scheduled' | 'onHold' | 'completed';
+type Status = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
 interface CreateTicketInput {
   title: string;
   clientId: string;
@@ -95,9 +97,12 @@ export const useTicketStore = create<TicketState>((set) => ({
   tickets: {
     new: [],
     inProgress: [],
-    scheduled: [],
+   
     onHold: [],
     completed: [],
+    billing_pending:[],
+    billing_completed:[]
+
   },
   loading: false,
   error: null,
@@ -110,17 +115,22 @@ export const useTicketStore = create<TicketState>((set) => ({
       // Organize tickets by status
       const newTickets = tickets.filter((ticket: Ticket) => ticket.status === 'new');
       const inProgressTickets = tickets.filter((ticket: Ticket) => ticket.status === 'inProgress');
-      const scheduledTickets = tickets.filter((ticket: Ticket) => ticket.status === 'scheduled');
       const onHoldTickets = tickets.filter((ticket: Ticket) => ticket.status === 'onHold');
       const completedTickets = tickets.filter((ticket: Ticket) => ticket.status === 'completed');
+      const billing_pending_Tickets = tickets.filter((ticket: Ticket) => ticket.status === 'billing_pending');
+      const billing_completed_Tickets = tickets.filter((ticket: Ticket) => ticket.status === 'billing_pending');
+
+
 
       set({
         tickets: {
           new: newTickets,
           inProgress: inProgressTickets,
-          scheduled: scheduledTickets,
           onHold: onHoldTickets,
           completed: completedTickets,
+          billing_pending :billing_pending_Tickets,
+          billing_completed :billing_completed_Tickets
+
         },
         loading: false,
       });

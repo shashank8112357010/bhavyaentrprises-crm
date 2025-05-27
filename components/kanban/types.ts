@@ -29,7 +29,7 @@ export type Agent = {
 
 export type CreateAgentPayload = Omit<Agent, 'id' | 'createdAt' | 'joinedDate' | 'leadsAssigned' | 'leadsActive' | 'leadsClosed' | 'conversionRate' | 'performanceTrend' | 'activeTickets' | 'rating' | 'completedTickets'>;
 // components/kanban/types.ts
-export type TicketStatus = 'new' | 'inProgress' | 'scheduled' | 'onHold' | 'completed';
+export type TicketStatus = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
 
 export interface Ticket {
   id: string;

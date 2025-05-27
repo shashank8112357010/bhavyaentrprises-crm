@@ -47,6 +47,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     transition,
     isDragging,
   } = useSortable({ id: ticket.id });
+  console.log(ticket ,'ticketticketticketticket');
+  
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -59,6 +61,11 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     ticket.priority === "High" ? "bg-orange-500" : 
     ticket.priority === "Medium" ? "bg-yellow-500" : "bg-blue-500";
 
+    const formatDateString = (date : string)=>{
+      
+      return date === 'N/A' ? new Date().toLocaleString().split(',')[0] :  new Date(date).toLocaleString().split(',')[0]
+    }
+
   return (
     <Card
       ref={setNodeRef}
@@ -70,7 +77,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       <CardContent className="p-3 pb-0">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{ticket.id}</Badge>
+            <Badge variant="outline">{ticket.id.slice(0,9)}</Badge>
             <div className={`h-2 w-2 rounded-full ${priorityColor}`} title={`Priority: ${ticket.priority}`}></div>
           </div>
           <DropdownMenu>
@@ -103,11 +110,11 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               <Tooltip>
                 <TooltipTrigger className="flex items-center">
                   <Receipt className="mr-1 h-3 w-3" />
-                  <span>Quote: #{ticket.workStage?.quoteNo}</span>
+                  <span>Quote:{ticket.workStage?.quoteNo || 'N/A'}</span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Amount: ₹{ticket.workStage?.quoteAmount}</p>
-                  <p>Taxable: ₹{ticket.workStage?.quoteTaxable}</p>
+                  <p>Amount: ₹{ticket.workStage?.quoteAmount || 'N/A'}</p>
+                  <p>Taxable: ₹{ticket.workStage?.quoteTaxable || 'N/A'}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -125,7 +132,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               
               <div className="flex items-center">
                 <Calendar className="mr-1 h-3 w-3" />
-                <span>{ticket.workStage?.dateReceived || 'N/A'}</span>
+                <span>{formatDateString(ticket.workStage?.dateReceived || new Date().toISOString() ) }</span>
               </div>
             </div>
           </TooltipProvider>
@@ -136,7 +143,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             {ticket.workStage?.workStatus || 'N/A'}
           </Badge> */}
           <Badge variant="outline" className="text-xs">
-            {ticket.workStage?.poStatus || 'N/A' }
+           PO: {ticket.workStage?.poStatus || 'N/A' }
           </Badge>
           <Badge variant="outline" className="text-xs">
             JCR: {ticket.workStage?.jcrStatus || 'N/A' }
@@ -163,21 +170,21 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             {ticket.dueDate && !ticket.completedDate && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Calendar className="mr-1 h-3 w-3" />
-                <span>Due: {ticket.dueDate || 'N/A'}</span>
+                <span>Due: {formatDateString(ticket.dueDate || new Date().toISOString())}</span>
               </div>
             )}
             
             {ticket.scheduledDate && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Clock className="mr-1 h-3 w-3" />
-                <span>{ticket.scheduledDate.split(',')[0] || 'N/A' }</span>
+                <span>{formatDateString(ticket.scheduledDate || new Date().toISOString()) }</span>
               </div>
             )}
             
-            {ticket.completedDate && (
+            {ticket.completedDate !='N/A' && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
-                <span>{ticket.completedDate || 'N/A'}</span>
+                <span>{formatDateString(ticket.completedDate || new Date().toISOString())}</span>
               </div>
             )}
           </div>
