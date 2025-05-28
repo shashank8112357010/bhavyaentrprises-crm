@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "1", 10);
-    const limit = 4; // Fixed to 5 records per page
+    const limit = parseInt(url.searchParams.get("limit") || "4", 10);
     const search = url.searchParams.get("search") || "";
 
     const skip = (page - 1) * limit;

@@ -23,32 +23,63 @@ import {
 } from "@/components/ui/select";
 import { IndianRupee, Plus } from "lucide-react";
 import { useClientStore } from "@/store/clientStore";
-
+import { getAllRateCards } from "@/lib/services/rate-card";
+import { createQuotation } from "@/lib/services/quotations";
 
 export function NewQuotationDialog() {
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState<string>("");
-  const {clients , fetchClients} = useClientStore();
-
+  const [rateCards, setRateCards] = useState<any[]>([]);
+  const [selectedRates, setSelectedRates] = useState<{ id: string; qty: number }[]>([]);
+  const { clients, fetchClients } = useClientStore();
 
   useEffect(() => {
     fetchClients();
+    fetchRateCards();
   }, [fetchClients]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchRateCards = async () => {
+    try {
+      const data = await getAllRateCards({ limit: 100 });
+      setRateCards(data?.data || []);
+    } catch (error) {
+      console.error("Failed to fetch rate cards", error);
+    }
+  };
+
+  const handleRateCardQtyChange = (id: string, qty: number) => {
+    setSelectedRates((prev) => {
+      const existing = prev.find((r) => r.id === id);
+      if (existing) {
+        return prev.map((r) => (r.id === id ? { ...r, qty } : r));
+      } else {
+        return [...prev, { id, qty }];
+      }
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const formData = {
-      date: new Date((e.target as any).date.value),
-      clientId,
-      amount: parseFloat((e.target as any).amount.value),
-      description: (e.target as any).description.value,
-      remarks: (e.target as any).remarks.value,
-    };
+    const name = (e.target as any).description.value;
+    const rateCardIds: string[] = [];
+    selectedRates.forEach(({ id, qty }) => {
+      for (let i = 0; i < qty; i++) {
+        rateCardIds.push(id);
+      }
+    });
 
-    console.log("Submit Quotation:", formData);
-
-    setOpen(false);
+    try {
+      const result = await createQuotation({
+        name,
+        clientId,
+        rateCardIds,
+      });
+      console.log("Quotation created:", result);
+      setOpen(false);
+    } catch (error) {
+      console.error("Failed to create quotation", error);
+    }
   };
 
   return (
@@ -59,12 +90,10 @@ export function NewQuotationDialog() {
           New Quotation
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] overflow-y-auto max-h-screen">
         <DialogHeader>
           <DialogTitle>Create New Quotation</DialogTitle>
-          <DialogDescription>
-            Create a new quotation for a client.
-          </DialogDescription>
+          <DialogDescription>Create a new quotation for a client.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
@@ -88,15 +117,27 @@ export function NewQuotationDialog() {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="amount">Amount</Label>
-              <div className="relative">
-                <IndianRupee className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input id="amount" type="number" className="pl-8" required placeholder="Enter amount" />
-              </div>
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="description">Work Details</Label>
               <Textarea id="description" placeholder="Enter work details" required />
+            </div>
+            <div className="grid gap-2">
+              <Label>Rate Card Items</Label>
+              <div className="grid gap-2 max-h-[200px] overflow-y-auto">
+                {rateCards.map((rc) => (
+                  <div key={rc.id} className="flex items-center justify-between gap-2">
+                    <div className="text-sm flex-1">
+                      {rc.srNo}. {rc.description} - ₹{rc.rate}
+                    </div>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Qty"
+                      className="w-20"
+                      onChange={(e) => handleRateCardQtyChange(rc.id, Number(e.target.value))}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="remarks">Additional Remarks</Label>

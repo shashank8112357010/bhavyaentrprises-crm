@@ -101,16 +101,22 @@ model RateCard {
 }
 
 model Quotation {
-  id        String    @id @default(uuid())
-  name      String
-  pdfUrl    String // Stored file path or external URL
-  clientId  String
-  client    Client    @relation(fields: [clientId], references: [id])
-  createdAt DateTime  @default(now())
-  expenses  Expense[] // relation to expenses
-  ticketId  String? // optional link to a ticket
-  ticket    Ticket?   @relation(fields: [ticketId], references: [id])
+  id         String      @id @default(uuid())
+  name       String
+  pdfUrl     String
+  clientId   String
+  client     Client      @relation(fields: [clientId], references: [id])
+  createdAt  DateTime    @default(now())
+  expenses   Expense[]
+  ticketId   String?
+  ticket     Ticket?     @relation(fields: [ticketId], references: [id])
+
+  subtotal   Float
+  gst        Float
+  grandTotal Float
+
 }
+
 
 model Ticket {
   id            String    @id @default(uuid())
