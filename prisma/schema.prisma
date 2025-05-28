@@ -64,8 +64,52 @@ model Client {
   lastServiceDate DateTime
   avatar          String? // logo path or URL
   initials        String
+  gstn            String? // <-- New field
 
-  tickets Ticket[] // one-to-many relationship
+  tickets   Ticket[] // one-to-many relationship
+  Quotation Quotation[]
+}
+
+enum ExpenseCategory {
+  LABOR
+  TRANSPORT
+  MATERIAL
+  OTHER
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  amount      Float
+  description String
+  category    ExpenseCategory
+  quotationId String?
+  quotation   Quotation?      @relation(fields: [quotationId], references: [id])
+  ticketId    String?
+  ticket      Ticket?         @relation(fields: [ticketId], references: [id])
+  createdAt   DateTime        @default(now())
+}
+
+model RateCard {
+  id          String   @id @default(uuid())
+  srNo        Int
+  description String
+  unit        String
+  rate        Float
+  bankName    String
+  bankRcNo    String
+  uploadedAt  DateTime @default(now())
+}
+
+model Quotation {
+  id        String    @id @default(uuid())
+  name      String
+  pdfUrl    String // Stored file path or external URL
+  clientId  String
+  client    Client    @relation(fields: [clientId], references: [id])
+  createdAt DateTime  @default(now())
+  expenses  Expense[] // relation to expenses
+  ticketId  String? // optional link to a ticket
+  ticket    Ticket?   @relation(fields: [ticketId], references: [id])
 }
 
 model Ticket {
@@ -85,10 +129,12 @@ model Ticket {
   assignee   User         @relation(fields: [assigneeId], references: [id])
   status     TicketStatus @default(new)
 
-  workStageId String?    @unique
-  workStage   WorkStage? @relation(name: "TicketToWorkStage", fields: [workStageId], references: [id])
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id])
+  workStageId String?     @unique
+  workStage   WorkStage?  @relation(name: "TicketToWorkStage", fields: [workStageId], references: [id])
+  clientId    String
+  client      Client      @relation(fields: [clientId], references: [id])
+  expenses    Expense[] // <-- opposite side of Expense.ticket
+  Quotation   Quotation[]
 }
 
 enum TicketStatus {
@@ -122,8 +168,3 @@ model WorkStage {
 
   @@unique([ticketId])
 }
-
-
-
-
-

@@ -36,10 +36,10 @@ export default function Home() {
           <p className="text-muted-foreground">Monitor repairs, track progress, and manage client requests</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button>
+          {/* <Button>
             <Plus className="mr-2 h-4 w-4" />
             New Ticket
-          </Button>
+          </Button> */}
         </div>
       </div>
 

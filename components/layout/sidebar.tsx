@@ -12,6 +12,7 @@ import {
   ListTodo, 
   Mail, 
   Menu,
+  NotebookTabsIcon,
   Phone, 
   Plus, 
   Settings, 
@@ -64,6 +65,11 @@ export default function Sidebar({ className }: SidebarProps) {
       name: "Finances",
       href: "/dashboard/finances",
       icon: <IndianRupee className="h-5 w-5" />,
+    },
+    {
+      name: "Rate Card",
+      href: "/dashboard/rate-card",
+      icon: <NotebookTabsIcon className="h-5 w-5" />,
     },
     {
       name: "Calls",

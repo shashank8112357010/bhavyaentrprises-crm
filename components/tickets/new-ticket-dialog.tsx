@@ -23,6 +23,7 @@ import { Calendar, Plus } from "lucide-react";
 import { useAgentStore } from "@/store/agentStore";
 import { useClientStore } from "@/store/clientStore";
 import { useTicketStore } from "@/store/ticketStore";
+import { useToast } from "@/hooks/use-toast";
 
 const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
@@ -31,6 +32,7 @@ export default function NewTicketDialog() {
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
   const { createTicket } = useTicketStore();
+  const { toast } = useToast();
 
   const today = formatDate(new Date());
   const nextWeek = formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
@@ -46,6 +48,8 @@ export default function NewTicketDialog() {
     clientId: "",
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const dueDateRef = useRef<HTMLInputElement>(null);
   const scheduledDateRef = useRef<HTMLInputElement>(null);
 
@@ -59,6 +63,7 @@ export default function NewTicketDialog() {
   };
 
   const handleSubmit = async () => {
+    setIsLoading(true);
     try {
       const ticketData = {
         ...formData,
@@ -77,8 +82,16 @@ export default function NewTicketDialog() {
         assigneeId: "",
         clientId: "",
       });
+      toast({ title: "Success", description: "Ticket created successfully!" });
     } catch (error) {
       console.error("Failed to create ticket:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create ticket. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -102,6 +115,7 @@ export default function NewTicketDialog() {
               placeholder="Enter Issue"
               value={formData.title}
               onChange={(e) => handleChange("title", e.target.value)}
+              required
             />
           </div>
 
@@ -112,6 +126,7 @@ export default function NewTicketDialog() {
               placeholder="Enter Branch Name"
               value={formData.branch}
               onChange={(e) => handleChange("branch", e.target.value)}
+              required
             />
           </div>
 
@@ -120,6 +135,7 @@ export default function NewTicketDialog() {
             <Select
               value={formData.priority}
               onValueChange={(val) => handleChange("priority", val)}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Priority" />
@@ -143,6 +159,7 @@ export default function NewTicketDialog() {
                 value={formData.dueDate}
                 onChange={(e) => handleChange("dueDate", e.target.value)}
                 className="pr-10 hide-date-icon"
+                required
               />
               <Calendar
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
@@ -164,6 +181,7 @@ export default function NewTicketDialog() {
                   handleChange("scheduledDate", e.target.value)
                 }
                 className="pr-10 hide-date-icon"
+                required
               />
               <Calendar
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
@@ -177,8 +195,9 @@ export default function NewTicketDialog() {
             <Textarea
               id="description"
               value={formData.description}
-               placeholder="Enter Issue in detail ..."
+              placeholder="Enter Issue in detail ..."
               onChange={(e) => handleChange("description", e.target.value)}
+              required
             />
           </div>
 
@@ -187,6 +206,7 @@ export default function NewTicketDialog() {
             <Select
               value={formData.clientId}
               onValueChange={(val) => handleChange("clientId", val)}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Client" />
@@ -208,6 +228,7 @@ export default function NewTicketDialog() {
             <Select
               value={formData.assigneeId}
               onValueChange={(val) => handleChange("assigneeId", val)}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Assignee" />
@@ -226,10 +247,12 @@ export default function NewTicketDialog() {
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Create</Button>
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

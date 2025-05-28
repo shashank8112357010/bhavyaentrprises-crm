@@ -15,13 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { login } from "@/lib/services/auth";
-import { Eye, EyeOff } from "lucide-react"; // 👈 Lucide icons
+import { Eye, EyeOff } from "lucide-react";
+import { Loader2 } from "lucide-react"; // Import a loading spinner icon
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // 👈 Toggle state
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -41,8 +42,8 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      router.push("/dashboard")
-      router.refresh()
+      router.push("/dashboard");
+
       toast({ title: "Success", description: "Logged in successfully!" });
     } catch (error: any) {
       console.log(error);
@@ -98,23 +99,31 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="pr-10"
+                    aria-label="Password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
                     tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
               </Button>
             </form>
           </CardContent>
-       
         </Card>
       </div>
     </div>

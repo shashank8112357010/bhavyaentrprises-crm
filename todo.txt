@@ -24,3 +24,11 @@ model Expense {
   description   String?
   createdAt     DateTime @default(now())
 }
+
+
+Rate Card Upload with  => BE Sr no , discription , Unit , rate , Bank Name , Bank RC No, 
+
+
+
+npx prisma format
+npx prisma migrate dev --name add-expense-relation-to-ticket

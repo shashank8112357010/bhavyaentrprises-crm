@@ -72,7 +72,7 @@ export function NewExpenseDialog() {
                 <SelectContent>
                   <SelectItem value="materials">Materials</SelectItem>
                   <SelectItem value="labor">Labor</SelectItem>
-                  <SelectItem value="transport">Transport</SelectItem>
+                  <SelectItem value="transport">Labor</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
