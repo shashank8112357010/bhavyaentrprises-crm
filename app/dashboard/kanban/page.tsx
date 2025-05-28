@@ -165,7 +165,7 @@ export default function KanbanPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-2  w-full md:w-auto">
           {/* Client Filter */}
           <Select value={clientFilter} onValueChange={setClientFilter}>
             <SelectTrigger className="w-full md:w-[180px]">

@@ -4,8 +4,10 @@ import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import Image from "next/image";
 
+
 export default function Home() {
   const router = useRouter();
+  // resetUserTicketStats()
 
   return (
     <div className="flex min-h-screen flex-col ">

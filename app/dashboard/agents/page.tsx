@@ -115,6 +115,9 @@ export default function AgentsPage() {
   //   });
   // }, [error]);
 
+  console.log(agents);
+  
+
   return (
     <div className="flex flex-col gap-6">
       <AgentDetailModal
@@ -166,7 +169,7 @@ export default function AgentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {agents.filter((a) => a.status === "active").length}
+              {agents.filter((a:any) => a.status === "ACTIVE").length}
             </div>
           </CardContent>
         </Card>
@@ -208,7 +211,7 @@ export default function AgentsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Agent</TableHead>
-                <TableHead>Specialization</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Active Tickets</TableHead>
                 <TableHead className="hidden md:table-cell">Contact</TableHead>
@@ -241,15 +244,15 @@ export default function AgentsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{agent.specialization}</div>
-                    <div className="text-xs text-muted-foreground">
+                    {/* <div className="font-medium">{agent.specialization}</div> */}
+                    <div className="text-medium">
                       {agent.role}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant={
-                        agent.status === "active" ? "default" : "secondary"
+                        agent.status === "ACTIVE" ? "default" : "secondary"
                       }
                     >
                       {agent.status || "N/A"}

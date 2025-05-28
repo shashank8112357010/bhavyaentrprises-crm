@@ -15,8 +15,9 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,7 +38,7 @@ export default function Header() {
             <span className="sr-only">Toggle menu</span>
           </Button>
           <Link href="/" className="flex items-center gap-2">
-            {/* <Wrench className="h-6 w-6 text-primary" /> */}
+            <Image className=" text-primary" alt="logo" src={'/bhavyalogo.png'} height={40} width={40} />
             <span className="text-xl font-bold tracking-tight">Bhavya Entrprises</span>
           </Link>
         </div>

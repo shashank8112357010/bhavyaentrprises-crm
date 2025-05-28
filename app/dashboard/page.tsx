@@ -25,8 +25,11 @@ import { useEffect } from "react";
 
 export default function Home() {
   const {  fetchTickets } = useTicketStore();
+ 
+
   useEffect(() => {
     fetchTickets();
+    
   }, [fetchTickets]);
   return (
     <div className="flex flex-col gap-6">

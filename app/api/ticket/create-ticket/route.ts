@@ -1,7 +1,7 @@
 // pages/api/tickets/create.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/prisma";
-import { createTicketSchema } from "../../../../lib/validations/ticketSchema";
+import { createTicketSchema } from "@/lib/validations/ticketSchema";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,8 +12,19 @@ export async function POST(req: NextRequest) {
       data: validatedData,
     });
 
+    // Increment counters on the assignee (agent)
+    if (ticket.assigneeId) {
+      await prisma.user.update({
+        where: { id: ticket.assigneeId },
+        data: {
+          activeTickets: { increment: 1 },
+          leadsAssigned: { increment: 1 },
+        },
+      });
+    }
+
     return NextResponse.json({ ticket });
-  } catch (error:any) {
+  } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to create ticket", error: error.message },
       { status: 400 }

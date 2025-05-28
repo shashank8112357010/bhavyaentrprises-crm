@@ -56,11 +56,11 @@ export default function Sidebar({ className }: SidebarProps) {
       href: "/dashboard/calendar",
       icon: <Calendar className="h-5 w-5" />,
     },
-    {
-      name: "Tasks",
-      href: "/dashboard/tasks",
-      icon: <ClipboardList className="h-5 w-5" />,
-    },
+    // {
+    //   name: "Tasks",
+    //   href: "/dashboard/tasks",
+    //   icon: <ClipboardList className="h-5 w-5" />,
+    // },
     {
       name: "Finances",
       href: "/dashboard/finances",

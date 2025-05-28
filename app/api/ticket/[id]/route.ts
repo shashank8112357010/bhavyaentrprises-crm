@@ -9,6 +9,7 @@ import {
   createWorkStageSchema,
   updateTicketStatusSchema,
 } from "../../../../lib/validations/ticketSchema";
+import { TicketStatus } from "@prisma/client";
 
 export async function PATCH(
   req: NextRequest,
@@ -17,13 +18,42 @@ export async function PATCH(
   try {
     const body = await req.json();
 
-    // Check if the request is for updating the ticket status
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
+
+      const existingTicket = await prisma.ticket.findUnique({
+        where: { id: params.id },
+        select: { status: true, assigneeId: true },
+      });
+
+      if (!existingTicket) {
+        return NextResponse.json(
+          { message: "Ticket not found" },
+          { status: 404 }
+        );
+      }
+
       const ticket = await prisma.ticket.update({
         where: { id: params.id },
         data: { status: validatedData.status },
       });
+
+      const wasCompleted = existingTicket.status === TicketStatus.completed;
+      const nowCompleted = validatedData.status === TicketStatus.completed;
+
+      if (existingTicket.assigneeId && wasCompleted !== nowCompleted) {
+        await prisma.user.update({
+          where: { id: existingTicket.assigneeId },
+          data: {
+            completedTickets: nowCompleted
+              ? { increment: 1 }
+              : { decrement: 1 },
+            activeTickets: nowCompleted ? { decrement: 1 } : { increment: 1 },
+          },
+        });
+      }
+      
+
       return NextResponse.json({ ticket });
     }
 
@@ -55,23 +85,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    await prisma.ticket.delete({
-      where: { id: params.id },
-    });
 
-    return NextResponse.json({ message: "Ticket deleted successfully" });
-  } catch (error: any) {
-    return NextResponse.json(
-      { message: "Failed to delete ticket", error: error.message },
-      { status: 400 }
-    );
-  }
-}
 
 export async function POST(
   req: NextRequest,
@@ -105,6 +119,54 @@ export async function POST(
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to add quotation", error: error.message },
+      { status: 400 }
+    );
+  }
+}
+
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: params.id },
+      select: { assigneeId: true, status: true },
+    });
+
+    if (!ticket) {
+      return NextResponse.json(
+        { message: "Ticket not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete the ticket
+    await prisma.ticket.delete({
+      where: { id: params.id },
+    });
+
+    // Update user stats
+    if (ticket.assigneeId) {
+      const updates: any = {
+        activeTickets: { decrement: 1 },
+      };
+
+      if (ticket.status === TicketStatus.completed) {
+        updates.completedTickets = { decrement: 1 };
+      }
+
+      await prisma.user.update({
+        where: { id: ticket.assigneeId },
+        data: updates,
+      });
+    }
+
+    return NextResponse.json({ message: "Ticket deleted successfully" });
+  } catch (error: any) {
+    return NextResponse.json(
+      { message: "Failed to delete ticket", error: error.message },
       { status: 400 }
     );
   }

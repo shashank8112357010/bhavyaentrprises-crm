@@ -13,6 +13,9 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   title: "Bhavya Enterprises CRM",
   description: "CRM for financial advisory firms",
+  icons:{
+    icon : "/bhavyalogo.png"
+  }
 };
 
 export default function RootLayout({
