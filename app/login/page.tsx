@@ -42,9 +42,13 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      router.push("/dashboard");
-
       toast({ title: "Success", description: "Logged in successfully!" });
+      setTimeout(()=>{
+        window.location.href = "/dashboard";
+      },300)
+     
+
+ 
     } catch (error: any) {
       console.log(error);
 
