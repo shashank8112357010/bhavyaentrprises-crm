@@ -43,12 +43,9 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       toast({ title: "Success", description: "Logged in successfully!" });
-      setTimeout(()=>{
+      setTimeout(() => {
         window.location.href = "/dashboard";
-      },300)
-     
-
- 
+      }, 300);
     } catch (error: any) {
       console.log(error);
 
@@ -110,7 +107,9 @@ export default function LoginPage() {
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
                     tabIndex={-1}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>

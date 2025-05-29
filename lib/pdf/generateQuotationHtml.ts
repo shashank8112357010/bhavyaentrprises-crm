@@ -22,16 +22,29 @@ interface QuotationPdfParams {
   grandTotal: number;
 }
 
-export async function generateQuotationPdf(params: QuotationPdfParams): Promise<Buffer> {
-  const templatePath = path.join(process.cwd(), "lib", "pdf", "templates", "quotation.ejs");
+export async function generateQuotationPdf(
+  params: QuotationPdfParams
+): Promise<Buffer> {
+  const templatePath = path.join(
+    process.cwd(),
+    "lib",
+    "pdf",
+    "templates",
+    "quotation.ejs"
+  );
 
   const html = await ejs.renderFile(templatePath, {
     ...params,
     date: new Date().toLocaleDateString("en-GB"),
-    validUntil: new Date(Date.now() + 60 * 60 * 24 * 60 * 1000).toLocaleDateString("en-GB"),
+    validUntil: new Date(
+      Date.now() + 60 * 60 * 24 * 60 * 1000
+    ).toLocaleDateString("en-GB"),
   });
 
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"], // 🚨 THIS FIXES THE CRASH
+  });
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
 
@@ -40,4 +53,3 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
 
   return Buffer.from(pdfUint8Array); // ✅ Convert Uint8Array to Buffer
 }
-

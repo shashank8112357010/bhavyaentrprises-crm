@@ -7,7 +7,9 @@ const data = [
   { name: "In Progress", value: 11, color: "#eab308" },
   { name: "Scheduled", value: 8, color: "#8b5cf6" },
   { name: "On Hold", value: 5, color: "#ef4444" },
-  { name: "Completed", value: 23, color: "#22c55e" }
+  { name: "Completed", value: 23, color: "#22c55e" },
+  { name: "Billing", value: 23, color: "#22c55e" }
+
 ];
 
 export default function StatusSummary() {
