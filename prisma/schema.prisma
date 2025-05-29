@@ -77,16 +77,26 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum PaymentType {
+  VCASH
+  ONLINE
+  REST
+}
+
 model Expense {
   id          String          @id @default(uuid())
+  customId    String          @unique
   amount      Float
   description String
   category    ExpenseCategory
+  requester   String          // NEW
+  paymentType PaymentType     // NEW
   quotationId String?
   quotation   Quotation?      @relation(fields: [quotationId], references: [id])
   ticketId    String?
   ticket      Ticket?         @relation(fields: [ticketId], references: [id])
   createdAt   DateTime        @default(now())
+  pdfUrl      String?
 }
 
 model RateCard {

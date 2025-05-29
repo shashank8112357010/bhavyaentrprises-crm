@@ -12,6 +12,9 @@ async function resetStats() {
         completedTickets: 0,
       },
     });
+    await prisma.expense.deleteMany({});
+    await prisma.quotation.deleteMany({});
+
     console.log("✅ Reset ticket stats for all users.");
   } catch (error) {
     console.error("❌ Failed to reset ticket stats:", error);

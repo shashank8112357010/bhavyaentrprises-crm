@@ -95,6 +95,7 @@ interface CreateTicketInput {
 
 interface TicketState {
   tickets: TicketsState;
+  all_tickets : [];
   loading: boolean;
   error: string | null;
   fetchTickets: () => Promise<void>;
@@ -112,6 +113,7 @@ export const useTicketStore = create<TicketState>((set) => ({
     billing_pending: [],
     billing_completed: [],
   },
+  all_tickets : [],
   loading: false,
   error: null,
   fetchTickets: async () => {
@@ -141,6 +143,7 @@ export const useTicketStore = create<TicketState>((set) => ({
       );
 
       set({
+        all_tickets: tickets,
         tickets: {
           new: newTickets,
           inProgress: inProgressTickets,
