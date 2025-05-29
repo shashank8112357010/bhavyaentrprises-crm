@@ -28,6 +28,7 @@ import { createQuotation } from "@/lib/services/quotations";
 import { useTicketStore } from "@/store/ticketStore";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Spinner } from "../ui/spinner";
 
 interface NewQuotationDialogProps {
   onSuccess?: () => void;
@@ -47,6 +48,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -95,6 +97,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     const form = e.target as typeof e.target & {
       description: { value: string };
@@ -104,6 +107,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
     const name = form.description.value;
 
     if (!clientId) {
+      setLoading(false);
       toast({
         title: "Error",
         description: "Please select a client",
@@ -113,6 +117,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
     }
 
     if (selectedRates.length === 0) {
+      setLoading(false);
       toast({
         title: "Error",
         description: "Please select at least one rate card item with quantity",
@@ -145,7 +150,9 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
       setSelectedRates([]);
       setSearchTerm("");
       onSuccess?.();
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
       console.error("Failed to create quotation", error);
       toast({
         title: "Error",
@@ -300,7 +307,9 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">Create Quotation</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Spinner size="4" /> : "Add Quotation"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

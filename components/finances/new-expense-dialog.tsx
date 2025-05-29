@@ -25,6 +25,7 @@ import { IndianRupee, Plus } from "lucide-react";
 import { createExpense } from "@/lib/services/expense";
 import { getAllQuotations } from "@/lib/services/quotations";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "../ui/spinner";
 
 type PaymentType = "VCASH" | "REST" | "ONLINE";
 
@@ -34,16 +35,23 @@ interface NewExpenseDialogProps {
 
 export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
   const [open, setOpen] = useState(false);
-  const [quotations, setQuotations] = useState<{ id: string; name: string }[]>([]);
-  const [selectedQuotation, setSelectedQuotation] = useState<string | undefined>(undefined);
+  const [quotations, setQuotations] = useState<{ id: string; name: string }[]>(
+    []
+  );
+  const [selectedQuotation, setSelectedQuotation] = useState<
+    string | undefined
+  >(undefined);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [requester, setRequester] = useState("");
-  const [paymentType, setPaymentType] = useState<PaymentType | undefined>(undefined);
+  const [paymentType, setPaymentType] = useState<PaymentType | undefined>(
+    undefined
+  );
   const [remarks, setRemarks] = useState("");
   const { toast } = useToast(); // ✅
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchQuotations() {
@@ -68,7 +76,9 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    setLoading(true); // Start loading
     if (!selectedQuotation) {
+      setLoading(false);
       toast({
         title: "Error",
         description: "Please select a quotation",
@@ -77,6 +87,7 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
       return;
     }
     if (!amount || isNaN(Number(amount))) {
+      setLoading(false);
       toast({
         title: "Error",
         description: "Please enter a valid amount",
@@ -85,6 +96,7 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
       return;
     }
     if (!category) {
+      setLoading(false);
       toast({
         title: "Error",
         description: "Please select a category",
@@ -93,6 +105,7 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
       return;
     }
     if (!file) {
+      setLoading(false);
       toast({
         title: "Error",
         description: "Please upload a PDF file",
@@ -101,6 +114,7 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
       return;
     }
     if (!requester) {
+      setLoading(false);
       toast({
         title: "Error",
         description: "Please enter requester name",
@@ -121,7 +135,11 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
       await createExpense({
         amount: Number(amount),
         description: description || remarks,
-        category: category.toUpperCase() as "LABOR" | "TRANSPORT" | "MATERIAL" | "OTHER",
+        category: category.toUpperCase() as
+          | "LABOR"
+          | "TRANSPORT"
+          | "MATERIAL"
+          | "OTHER",
         quotationId: selectedQuotation,
         requester,
         paymentType,
@@ -142,9 +160,11 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
       setRequester("");
       setPaymentType(undefined);
       setRemarks("");
+      setLoading(false);
 
       onSuccess?.(); // ✅ trigger callback if provided
     } catch (error: any) {
+      setLoading(false);
       toast({
         title: "Error",
         description: error.message || "Failed to create expense",
@@ -164,14 +184,19 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Expense</DialogTitle>
-          <DialogDescription>Record a new expense with all relevant details.</DialogDescription>
+          <DialogDescription>
+            Record a new expense with all relevant details.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {/* Quotation */}
             <div className="grid gap-2">
               <Label htmlFor="quotation">Select Quotation</Label>
-              <Select onValueChange={setSelectedQuotation} value={selectedQuotation}>
+              <Select
+                onValueChange={setSelectedQuotation}
+                value={selectedQuotation}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a quotation" />
                 </SelectTrigger>
@@ -243,7 +268,10 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
             {/* Payment Type */}
             <div className="grid gap-2">
               <Label htmlFor="paymentType">Payment Type</Label>
-              <Select onValueChange={(val) => setPaymentType(val as PaymentType)} value={paymentType}>
+              <Select
+                onValueChange={(val) => setPaymentType(val as PaymentType)}
+                value={paymentType}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment type" />
                 </SelectTrigger>
@@ -267,7 +295,9 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">Add Expense</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Spinner size="4" /> : "Add Expense"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
