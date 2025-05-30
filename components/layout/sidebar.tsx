@@ -1,26 +1,25 @@
+// components/Sidebar.tsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  Calendar, 
-  ClipboardList, 
-  IndianRupee, 
-  LayoutDashboard, 
-  ListTodo, 
-  Mail, 
-  Menu,
+import {
+  LayoutDashboard,
+  ListTodo,
+  Users,
+  UserCheck2,
+  IndianRupee,
   NotebookTabsIcon,
-  Phone, 
-  Plus, 
-  Settings, 
-  UserCheck2, 
-  Users 
+  Phone,
+  Mail,
+  Settings,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Role, navRoleAccess } from "@/constants/roleAccessConfig";
 
 interface SidebarProps {
   className?: string;
@@ -30,7 +29,9 @@ export default function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const navItems = [
+  const role = localStorage.getItem('role') as Role | null;
+
+  const allNavItems = [
     {
       name: "Dashboard",
       href: "/dashboard",
@@ -51,16 +52,6 @@ export default function Sidebar({ className }: SidebarProps) {
       href: "/dashboard/agents",
       icon: <UserCheck2 className="h-5 w-5" />,
     },
-    // {
-    //   name: "Calendar",
-    //   href: "/dashboard/calendar",
-    //   icon: <Calendar className="h-5 w-5" />,
-    // },
-    // {
-    //   name: "Tasks",
-    //   href: "/dashboard/tasks",
-    //   icon: <ClipboardList className="h-5 w-5" />,
-    // },
     {
       name: "Finances",
       href: "/dashboard/finances",
@@ -88,9 +79,10 @@ export default function Sidebar({ className }: SidebarProps) {
     },
   ];
 
+  const navItems = role ? allNavItems.filter((item) => navRoleAccess[role]?.includes(item.name)) : [];
+
   return (
     <>
-      {/* Mobile sidebar */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="md:hidden">
@@ -120,9 +112,7 @@ export default function Sidebar({ className }: SidebarProps) {
         </SheetContent>
       </Sheet>
 
-      {/* Desktop sidebar */}
       <aside className={cn("hidden h-screen border-r md:flex md:w-52 md:flex-col md:p-4", className)}>
-      
         <nav className="flex flex-col gap-2 mt-6">
           {navItems.map((item) => (
             <Link

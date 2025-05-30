@@ -21,10 +21,13 @@ import ExternalCallsList from "@/components/dashboard/external-calls-list";
 import UpcomingSchedule from "@/components/dashboard/upcoming-schedule";
 import { useTicketStore } from "@/store/ticketStore";
 import { useEffect } from "react";
+import { useUserStore } from "@/store/crmStore";
 
 
 export default function Home() {
   const {  fetchTickets } = useTicketStore();
+  const { user } = useUserStore();
+ console.log(user);
  
 
   useEffect(() => {
