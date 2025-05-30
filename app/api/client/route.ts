@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 import { createClientSchema } from "@/lib/validations/clientSchema";
-
+const ITEMS_PER_PAGE = 10;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -32,47 +32,60 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+
+export async function GET(request: NextRequest) {
   try {
-    const clients = await prisma.client.findMany({
+    const ITEMS_PER_PAGE = 5
+    const { searchParams } = new URL(request.url);
+
+    const pageParam = searchParams.get("page") || "1";
+    const search = searchParams.get("search") || "";
+    const type = searchParams.get("type") || "all";
+
+    const pageNum = parseInt(pageParam, 10) || 1;
+
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { id: { contains: search, mode: "insensitive" } },
+        { name: { contains: search, mode: "insensitive" } },
+        { contactPerson: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (type !== "all") {
+      where.type = type;
+    }
+
+    const totalCount = await prisma.client.count({ where });
+
+    const clientsWithTickets = await prisma.client.findMany({
+      where,
+      skip: (pageNum - 1) * ITEMS_PER_PAGE,
+      take: ITEMS_PER_PAGE,
+      orderBy: {
+        name: "asc",
+      },
       include: {
         tickets: {
-          where: {
-            status: {
-              not: "completed",
-            },
-          },
           select: {
-            id: true, // just to count, minimal data
+            id: true,
           },
         },
       },
     });
 
-    // Add activeTickets count to each client
-    const clientsWithTicketCount = clients.map((client) => ({
+    // Map to attach ticket IDs as string array
+    const clients = clientsWithTickets.map((client) => ({
       ...client,
-      activeTickets: client.tickets.length,
+      // ticketIds: client.tickets.map((ticket) => ticket.id),
+      // tickets: undefined, // optionally remove full ticket objects
     }));
 
-    return new NextResponse(
-      JSON.stringify({ clients: clientsWithTicketCount }),
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control":
-            "no-store, no-cache, must-revalidate, proxy-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-          "Surrogate-Control": "no-store",
-        },
-      }
-    );
+    return NextResponse.json({ clients, totalCount });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error("GET /api/clients error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

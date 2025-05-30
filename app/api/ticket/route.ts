@@ -29,26 +29,51 @@ export async function GET(req: NextRequest) {
             jcrStatus: true,
           },
         },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            contactPerson: true,
+          },
+        },
+        expenses: {
+          select: {
+            id: true,
+            amount: true,
+            category: true,
+            createdAt: true,
+            pdfUrl: true,
+          },
+        },
+        Quotation: {
+          select: {
+            id: true,
+            pdfUrl: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
-    const transformedTickets = tickets.map((ticket) => ({
+    const transformedTickets = tickets.map((ticket: any) => ({
       id: ticket.id,
       title: ticket.title || "N/A",
-      client: ticket.clientId || "N/A",
+      client: {
+        id: ticket.client.id,
+        name: ticket.client.name,
+        type: ticket.client.type,
+        contactPerson: ticket.client.contactPerson,
+      },
       branch: ticket.branch || "N/A",
       priority: ticket.priority || "N/A",
       assignee: ticket.assignee
         ? {
-            name: ticket.assignee.name || "N/A",
-            avatar: ticket.assignee.avatar || "N/A",
-            initials: ticket.assignee.initials || "N/A",
+            name: ticket.assignee.name,
+            avatar: ticket.assignee.avatar,
+            initials: ticket.assignee.initials,
           }
-        : {
-            name: "N/A",
-            avatar: "N/A",
-            initials: "N/A",
-          },
+        : { name: "N/A", avatar: "N/A", initials: "N/A" },
       workStage: ticket.workStage
         ? {
             quoteNo: ticket.workStage.quoteNo || "N/A",
@@ -74,10 +99,28 @@ export async function GET(req: NextRequest) {
       comments: ticket.comments ?? 0,
       holdReason: ticket.holdReason || "N/A",
       status: ticket.status || "N/A",
+      expenses: ticket.expenses.length
+      ? ticket.expenses.map((expense: any) => ({
+          id: expense.id,
+          amount: expense.amount,
+          category: expense.category,
+          createdAt: expense.createdAt,
+          attachmentUrl: expense.attachmentUrl,
+        }))
+      : [],
+      due : ticket.due,
+      paid : ticket.paid,
+      quotations: ticket.Quotation.map((q:any) => ({
+        id: q.id,
+        fileUrl: q.fileUrl,
+        createdAt: q.createdAt,
+        version: q.version,
+      })),
     }));
 
     return NextResponse.json({ tickets: transformedTickets });
   } catch (error: any) {
+    console.error("Error fetching tickets:", error);
     return NextResponse.json(
       { message: "Failed to fetch tickets", error: error.message },
       { status: 400 }

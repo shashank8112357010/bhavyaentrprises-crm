@@ -1,34 +1,14 @@
-Add GSTIN in client tble 
-
-
-model Quotation {
-  id          String    @id @default(cuid())
-  date        DateTime
-  client      Client    @relation(fields: [clientId], references: [id])
-  clientId    String
-  amount      Float
-  description String
-  remarks     String?
-  quoteNo     String    @unique @default(dbgenerated("QUO_" || to_char(now(), 'YYYYMMDDHH24MISS')))
-  expenses    Expense[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Expense {
-  id            String   @id @default(cuid())
-  quotation     Quotation @relation(fields: [quotationId], references: [id])
-  quotationId   String
-  title         String
-  cost          Float
-  description   String?
-  createdAt     DateTime @default(now())
-}
-
-
-Rate Card Upload with  => BE Sr no , discription , Unit , rate , Bank Name , Bank RC No, 
-
-
-
 npx prisma format
 npx prisma migrate dev --name add-expense-relation-to-ticket
+
+
+todos today 
+
+RBA 
+LOGIN FORM 
+Zustang Login 
+role integtaion 
+moddleware setup 
+route protection 
+client will have gst nukber 
+expense will have gst number 

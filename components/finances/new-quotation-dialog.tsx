@@ -265,7 +265,8 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
               )}
 
               <Input
-                type="text"
+                type="search"
+                
                 placeholder="Search rate card..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

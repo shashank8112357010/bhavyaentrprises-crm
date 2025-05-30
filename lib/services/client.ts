@@ -1,97 +1,131 @@
 import axios from "@/lib/axios";
-import {Client} from "@/components/clients/types"
+import { Client } from "@/components/clients/types";
 
 export interface CreateClientPayload {
-    id?: string;
-    name: string;
-    type: string;
-    totalBranches: number;
-    contactPerson: string;
-    contactEmail: string;
-    contactPhone: string;
-    contractStatus: string;
-    lastServiceDate: string;
-    avatar?: string;
-    initials: string;
-    activeTickets?: number;
-  };
-
-
+  id?: string;
+  name: string;
+  type: string;
+  totalBranches: number;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  contractStatus: string;
+  lastServiceDate: string;
+  avatar?: string;
+  initials: string;
+  activeTickets?: number;
+}
 
 export async function createClient(payload: CreateClientPayload) {
-    try {
-      const response = await axios.post("/client", payload, {
-        withCredentials: true,
-      });
-      return response.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.error || "Failed to create lead.";
-      throw new Error(message);
-    }
+  try {
+    const response = await axios.post("/client", payload, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.error || "Failed to create lead.";
+    throw new Error(message);
   }
+}
 
 // ------------ 2. Get All Lead --------------
-export async function getAllClients() {
-    try {
-      const response = await axios.get("/client", {
-        withCredentials: true,
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.error || "Failed to fetch clients.";
-      throw new Error(message);
-    }
-  }
-  
+interface GetAllClientsParams {
+  page?: number;
+  limit?: number;
+  searchQuery?: string;
+  type?: string;
+}
 
-  export async function updateClient(id: string , updatedAgent : Client ) {
-    try {
-      const response = await axios.patch(`/agent/${id}`, updatedAgent , {
-        withCredentials: true,
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      const message = error.response?.data?.error || "Failed to fetch agent.";
-      throw new Error(message);
-    }
-  }
-  export async function deleteClient(id: string) {
-    try {
-      const response = await axios.delete(`/agent/${id}`, {
-        withCredentials: true,
-      });
-      return response.data;
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Failed to delete agent.";
-      throw new Error(message);
-    }
-  }
+export async function getAllClients(params: GetAllClientsParams = {}) {
+  try {
+    const { page = 1, limit = 10, searchQuery = "" } = params;
 
-  export async function getClientById(id: string) {
-    try {
-      const response = await axios.get(`/agent/${id}`, {
-        withCredentials: true,
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      const message = error.response?.data?.error || "Failed to fetch agent.";
-      throw new Error(message);
-    }
+    const response = await axios.get("/client", {
+      withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+      params: {
+        page,
+        limit,
+        search: searchQuery,
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.error || "Failed to fetch clients.";
+    throw new Error(message);
   }
+}
+
+export async function updateClient(id: string, updatedAgent: Client) {
+  try {
+    const response = await axios.patch(`/agent/${id}`, updatedAgent, {
+      withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.error || "Failed to fetch agent.";
+    throw new Error(message);
+  }
+}
+export async function deleteClient(id: string) {
+  try {
+    const response = await axios.delete(`/agent/${id}`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to delete agent.";
+    throw new Error(message);
+  }
+}
+
+export async function getClientById(id: string) {
+  try {
+    const response = await axios.get(`/agent/${id}`, {
+      withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.error || "Failed to fetch agent.";
+    throw new Error(message);
+  }
+}
+
+// ------------ 6. Export Clients as Excel --------------
+export async function exportClientsToExcel() {
+  try {
+    const response = await axios.get("/client/export", {
+      withCredentials: true,
+      responseType: "blob", // Important for downloading binary file
+    });
+
+    // Trigger file download
+    const url = window.URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "clients.xlsx");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    return true;
+  } catch (error: any) {
+    const message = error.response?.data?.error || "Failed to export clients.";
+    throw new Error(message);
+  }
+}

@@ -16,12 +16,21 @@ import {
 } from "@/components/ui/select";
 import KanbanBoard from "@/components/kanban/kanban-board";
 import NewTicketDialog from "@/components/tickets/new-ticket-dialog";
+import { useToast } from "@/hooks/use-toast";
+
+// assignee: {
+// id: string;
+// name: string;
+// type: string;
+// contactPerson: string;
+// };
 type Ticket = {
   id: string;
   title: string;
-  client: string;
+
   branch: string;
   priority: string;
+
   assignee: {
     name: string;
     avatar: string;
@@ -38,10 +47,27 @@ type Ticket = {
     quoteAmount: number;
     workStatus: string;
     approval: string;
-    poStatus: string;
+    poStatus: Boolean;
     poNumber: string;
-    jcrStatus: string;
+    jcrStatus: Boolean;
     agentName: string;
+  };
+  expenses: [
+    {
+      id: string;
+      amount: string;
+      category: string;
+      createdAt: string;
+      pdfUrl: string;
+    }
+  ];
+  due?: number; 
+  paid?: Boolean; 
+  client: {
+    id: string;
+    name: string;
+    type: string;
+    contactPerson: string;
   };
   dueDate: string | undefined;
   scheduledDate?: string;
@@ -58,16 +84,24 @@ type TicketsState = {
   inProgress: Ticket[];
   onHold: Ticket[];
   completed: Ticket[];
-  billing_pending :Ticket[];
-  billing_completed : Ticket[];
+  billing_pending: Ticket[];
+  billing_completed: Ticket[];
 };
 
-type Status = "new" | "inProgress" | "onHold" | "completed" | 'billing_pending' | 'billing_completed';
+type Status =
+  | "new"
+  | "inProgress"
+  | "onHold"
+  | "completed"
+  | "billing_pending"
+  | "billing_completed";
 
 export default function KanbanPage() {
-  const { tickets, fetchTickets, updateTicketStatus , fetchTicketById} = useTicketStore();
+  const { tickets, fetchTickets, updateTicketStatus, fetchTicketById } =
+    useTicketStore();
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
+  const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [clientFilter, setClientFilter] = useState("all");
@@ -79,43 +113,109 @@ export default function KanbanPage() {
     fetchClients();
   }, [fetchTickets, fetchAgents, fetchClients]);
 
-  const handleDragEnd = async(result: any) => {
+  const handleDragEnd = async (result: any) => {
     const { source, destination, ticketId } = result;
-    console.log(source , 'source');
-    console.log(destination , 'destination');
-    // console.log(fetchTicketById(ticketId));
-    if (!source || !destination) return;
-    if (source !== destination) {
-      if (destination === 'inProgress') {
-        const ticket = await fetchTicketById(ticketId);
-        console.log(ticket);
-      
-        if (!ticket?.workStage || ticket.workStage.quoteNo === 'N/A') {
-          alert("Need to add a quotation for this ticket.");
+
+    if (!source || !destination || source === destination) return;
+
+    const ticket: Ticket | undefined = await fetchTicketById(ticketId);
+    if (!ticket) return;
+
+    const { workStage } = ticket;
+
+    switch (destination) {
+      case "inProgress":
+        if (!workStage || workStage.quoteNo === "N/A") {
+          toast({
+            title: "Missing Quotation",
+            description: "Please attach a quotation before proceeding.",
+            variant: "destructive",
+          });
           return;
         }
-      }
-      
-      updateTicketStatus(ticketId, destination as Status);
+        break;
+
+      case "onHold":
+        toast({
+          title: "Hold Reason Required",
+          description:
+            "Please specify a reason for putting this ticket on hold.",
+          variant: "destructive",
+        });
+        return;
+
+      case "completed":
+        if (!workStage || workStage.quoteNo === "N/A") {
+          toast({
+            title: "Order Violation",
+            description:
+              "Please attach a quotation and move to In Progress first.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!workStage.poStatus || !workStage.jcrStatus) {
+          toast({
+            title: "Pending Work",
+            description: "PO and JCR must be completed before marking as done.",
+            variant: "destructive",
+          });
+          return;
+        }
+        break;
+
+      case "billing_pending":
+        if (ticket.status !== "completed") {
+          toast({
+            title: "Invalid Stage Transition",
+            description: "You can only bill after completion.",
+            variant: "destructive",
+          });
+          return;
+        }
+        break;
+
+      case "billing_completed":
+        if (ticket.status !== "billing_pending") {
+          toast({
+            title: "Invalid Billing Status",
+            description: "Move to billing_pending before completing billing.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const dueAmount = ticket?.due ?? 0; // number
+        const isPaid = ticket?.paid ?? false; // boolean
+        
+        if (!isPaid && dueAmount > 0) {
+          toast({
+            title: "Incomplete Payment",
+            description: `Payment is pending. Due amount: ₹${dueAmount}. Please clear the full amount before completing billing.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        break;
+
+      default:
+        break;
     }
-    // updateTicketStatus(ticketId, destination as Status);
 
-    // if (!source || !destination) return;
-
-    // if(source === 'new' && destination==='inProgress'){
-    //   console.log(fetchTicketById(ticketId));
-      
-    //  }else{
-    //    updateTicketStatus(ticketId, destination as Status);
-    //  }
+    updateTicketStatus(ticketId, destination as Status);
   };
 
   const filteredTickets: TicketsState = Object.entries(tickets).reduce(
     (acc, [status, statusTickets]) => {
       if (
-        ["new", "inProgress", "onHold", "completed", "billing_pending", "billing_completed"].includes(
-          status as Status
-        )
+        [
+          "new",
+          "inProgress",
+          "onHold",
+          "completed",
+          "billing_pending",
+          "billing_completed",
+        ].includes(status as Status)
       ) {
         acc[status as Status] = statusTickets
           .map((ticket: any) => ({
@@ -131,7 +231,8 @@ export default function KanbanPage() {
               clientFilter === "all" || ticket.clientId === clientFilter;
 
             const matchesAssignee =
-              assigneeFilter === "all" || ticket.assignee?.id === assigneeFilter;
+              assigneeFilter === "all" ||
+              ticket.assignee?.id === assigneeFilter;
 
             return matchesSearch && matchesClient && matchesAssignee;
           });
@@ -147,7 +248,9 @@ export default function KanbanPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Kanban Board</h1>
-          <p className="text-muted-foreground">Manage and track maintenance requests</p>
+          <p className="text-muted-foreground">
+            Manage and track maintenance requests
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <NewTicketDialog />
@@ -195,14 +298,16 @@ export default function KanbanPage() {
             <SelectContent>
               <SelectItem value="all">All Assignees</SelectItem>
               {agents.map((agent: any) => (
-                <SelectItem key={agent.id} value={agent.id}>
+                <SelectItem
+                  className="capitalize"
+                  key={agent.id}
+                  value={agent.id}
+                >
                   {agent.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-
-        
         </div>
       </div>
 

@@ -31,10 +31,11 @@ export type CreateAgentPayload = Omit<Agent, 'id' | 'createdAt' | 'joinedDate' |
 // components/kanban/types.ts
 export type TicketStatus = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
 
-export interface Ticket {
+
+export interface Ticket  {
   id: string;
   title: string;
-  client: string;
+ 
   branch: string;
   priority: string;
   assignee: {
@@ -43,27 +44,38 @@ export interface Ticket {
     initials: string;
   };
   workStage?: {
-    quoteNo: string;
-    quoteTaxable: number;
-    quoteAmount: number;
-    dateReceived: string;
-    agentName: string;
-
     stateName: string;
     adminName: string;
     clientName: string;
     siteName: string;
-   
-    // biiling => shift 
-    // workStatus: string;
+    quoteNo: string;
+    dateReceived: string;
+    quoteTaxable: number;
+    quoteAmount: number;
+    workStatus: string;
     approval: string;
-    poStatus: string;
+    poStatus: Boolean;
     poNumber: string;
-    jcrStatus: string;
-   
-  };
+    jcrStatus: Boolean;
+    agentName: string;
 
-  dueDate?: string;
+  };
+  due?: number; 
+  paid?: Boolean; 
+  client:{
+    id: string;
+    name: string;
+    type: string;
+    contactPerson: string;
+  }
+  expenses :[ {
+    id: string,
+    amount: string,
+    category: string,
+    createdAt: string,
+    pdfUrl: string,
+  }]
+  dueDate: string | undefined;
   scheduledDate?: string;
   completedDate?: string;
   createdAt: string;
@@ -71,7 +83,7 @@ export interface Ticket {
   comments: number;
   holdReason?: string;
   status: TicketStatus;
-}
+};
 
 // jcr status => red(N/A) , orange (hard copy) , green (soft copy)
 // removed scheduled 

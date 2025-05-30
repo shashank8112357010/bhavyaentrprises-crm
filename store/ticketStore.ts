@@ -9,31 +9,49 @@ import {
 type Ticket = {
   id: string;
   title: string;
-  client: string;
+
   branch: string;
   priority: string;
+
   assignee: {
     name: string;
     avatar: string;
     initials: string;
   };
-  workStage: {
+  workStage?: {
     stateName: string;
     adminName: string;
     clientName: string;
     siteName: string;
     quoteNo: string;
-    dateReceived: Date;
+    dateReceived: string;
     quoteTaxable: number;
     quoteAmount: number;
     workStatus: string;
     approval: string;
-    poStatus: string;
+    poStatus: Boolean;
     poNumber: string;
-    jcrStatus: string;
+    jcrStatus: Boolean;
     agentName: string;
   };
-  dueDate: string;
+  expenses: [
+    {
+      id: string;
+      amount: string;
+      category: string;
+      createdAt: string;
+      pdfUrl: string;
+    }
+  ];
+  due?: number; 
+  paid?: Boolean; 
+  client: {
+    id: string;
+    name: string;
+    type: string;
+    contactPerson: string;
+  };
+  dueDate: string | undefined;
   scheduledDate?: string;
   completedDate?: string;
   createdAt: string;
@@ -42,7 +60,6 @@ type Ticket = {
   holdReason?: string;
   status: Status;
 };
-
 type TicketsState = {
   new: Ticket[];
   inProgress: Ticket[];

@@ -189,6 +189,7 @@ export default function FinancesPage() {
         <div className="relative w-full md:w-auto">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
+          type="search"
             placeholder="Search transactions..."
             className="w-full md:w-[300px] pl-8"
             value={searchQuery}

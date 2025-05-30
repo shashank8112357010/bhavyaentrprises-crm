@@ -1,15 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Building,
-  Download,
-  Filter,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Sliders,
-} from "lucide-react";
+import ReactPaginate from "react-paginate";
+import { Building, Download, MoreHorizontal, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,18 +45,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-
-import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-import { createClient, getAllClients } from "@/lib/services/client";
+import { Calendar } from "@/components/ui/calendar";
+import { useToast } from "@/hooks/use-toast";
+import {
+  createClient,
+  exportClientsToExcel,
+  getAllClients,
+} from "@/lib/services/client";
+import { Spinner } from "@/components/ui/spinner";
+import { Label } from "@radix-ui/react-select";
 
 type Client = {
   id?: string;
@@ -78,12 +75,37 @@ type Client = {
   avatar: string;
   initials: string;
   activeTickets?: number;
+  gstn?: string;
 };
+
+type GetClient = {
+  id?: string;
+  name: string;
+  type: string;
+  totalBranches: number;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  contractStatus: string;
+  lastServiceDate: string;
+  avatar: string;
+  initials: string;
+  activeTickets?: number;
+  gstn?: string;
+  tickets : [];
+};
+
+const ITEMS_PER_PAGE = 5;
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [clientType, setClientType] = useState("all");
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<GetClient[]>([]);
+  const { toast } = useToast();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const [newClient, setNewClient] = useState<Client>({
     name: "",
     type: "Choose Bank",
@@ -95,28 +117,33 @@ export default function ClientsPage() {
     lastServiceDate: "",
     avatar: "",
     initials: "",
+    gstn: "",
   });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     async function fetchClients() {
       try {
+        setLoading(true);
         const data = await getAllClients();
-        console.log(data);
-
+        setLoading(false);
         setClients(data?.clients || []);
       } catch (err) {
+        setLoading(false);
         console.error("Failed to fetch clients:", err);
       }
     }
-
     fetchClients();
   }, []);
 
-  const filteredClients = clients.filter((client: any) => {
+  // Filtered clients by search and type
+  const filteredClients = clients.filter((client: Client) => {
     const matchesSearch =
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.id.toLowerCase().includes(searchQuery.toLowerCase());
+      (client.id?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
     const matchesType =
       clientType === "all" ||
@@ -125,16 +152,142 @@ export default function ClientsPage() {
     return matchesSearch && matchesType;
   });
 
+  // Pagination calculation: slice filteredClients for current page
+  const pageCount = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
+  const paginatedClients = filteredClients.slice(
+    currentPage * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE
+  );
+
+  // Reset to first page when filters/search change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchQuery, clientType, clients]);
+
   async function handleCreateClient(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setIsSubmitting(true);
+
+    const {
+      name,
+      type,
+      totalBranches,
+      contactPerson,
+      contactPhone,
+      lastServiceDate,
+      initials,
+    } = newClient;
+
+    if (!name) {
+      toast({
+        title: "Missing Name",
+        description: "Client name is required.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!type || type === "Choose Bank") {
+      toast({
+        title: "Missing Type",
+        description: "Please select a valid client type.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!totalBranches || totalBranches <= 0) {
+      toast({
+        title: "Invalid Branch Count",
+        description: "Total branches must be a positive number.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!contactPerson) {
+      toast({
+        title: "Missing Contact Person",
+        description: "Contact person name is required.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!contactPhone) {
+      toast({
+        title: "Missing Contact Phone",
+        description: "Contact phone number is required.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!lastServiceDate) {
+      toast({
+        title: "Missing Last Service Date",
+        description: "Please select the last service date.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!initials) {
+      toast({
+        title: "Missing Initials",
+        description: "Client initials are required.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const createdClient = await createClient(newClient);
-      setClients((prev) => [...prev, createdClient]); // Assuming API returns the new client with `id`
-      // Optionally reset form here
-    } catch (err) {
+      setClients((prev) => [...prev, createdClient]);
+
+      toast({
+        title: "Success",
+        description: "Client created successfully.",
+      });
+
+      // Reset form
+      setNewClient({
+        name: "",
+        type: "Choose Bank",
+        totalBranches: 1,
+        contactPerson: "",
+        contactEmail: "",
+        contactPhone: "",
+        contractStatus: "Active",
+        lastServiceDate: "",
+        avatar: "",
+        initials: "",
+        gstn: "",
+      });
+    } catch (err: any) {
       console.error("Error creating client", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to create client.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   }
+
+  // Handle page change from ReactPaginate
+  function handlePageClick(selectedItem: { selected: number }) {
+    setCurrentPage(selectedItem.selected);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Dialog>
@@ -153,7 +306,7 @@ export default function ClientsPage() {
                 Add Client
               </Button>
             </DialogTrigger>
-            <Button variant="outline">
+            <Button variant="outline" onClick={exportClientsToExcel}>
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
@@ -171,7 +324,6 @@ export default function ClientsPage() {
               onChange={(e) =>
                 setNewClient({ ...newClient, name: e.target.value })
               }
-              required
             />
             <Select
               value={newClient.type}
@@ -185,6 +337,7 @@ export default function ClientsPage() {
               <SelectContent>
                 <SelectItem value="Choose Bank">Choose Bank</SelectItem>
                 <SelectItem value="NBFC">NBFC</SelectItem>
+                <SelectItem value="bank">Bank</SelectItem>
               </SelectContent>
             </Select>
             <Input
@@ -194,10 +347,10 @@ export default function ClientsPage() {
               onChange={(e) =>
                 setNewClient({
                   ...newClient,
-                  totalBranches: parseInt(e.target.value),
+                  totalBranches: Number(e.target.value),
                 })
               }
-              required
+              min={1}
             />
             <Input
               placeholder="Contact Person"
@@ -205,15 +358,14 @@ export default function ClientsPage() {
               onChange={(e) =>
                 setNewClient({ ...newClient, contactPerson: e.target.value })
               }
-              required
             />
             <Input
-              type="email"
               placeholder="Contact Email"
               value={newClient.contactEmail}
               onChange={(e) =>
                 setNewClient({ ...newClient, contactEmail: e.target.value })
               }
+              type="email"
             />
             <Input
               placeholder="Contact Phone"
@@ -221,24 +373,42 @@ export default function ClientsPage() {
               onChange={(e) =>
                 setNewClient({ ...newClient, contactPhone: e.target.value })
               }
-              required
+              type="tel"
             />
+            <Input
+              placeholder="GSTN"
+              value={newClient.gstn}
+              onChange={(e) =>
+                setNewClient({ ...newClient, gstn: e.target.value })
+              }
+            />
+            <Select
+              value={newClient.contractStatus}
+              onValueChange={(value) =>
+                setNewClient({ ...newClient, contractStatus: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Contract Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={`w-full justify-start text-left font-normal ${
-                    newClient.lastServiceDate
-                      ? "text-white"
-                      : "text-muted-foreground"
-                  }`}
+                  className="w-full justify-start text-left"
                 >
                   {newClient.lastServiceDate
                     ? format(new Date(newClient.lastServiceDate), "PPP")
-                    : "Select Last Service Date"}
+                    : "Last Service Date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={
@@ -246,181 +416,187 @@ export default function ClientsPage() {
                       ? new Date(newClient.lastServiceDate)
                       : undefined
                   }
-                  onSelect={(date) =>
-                    date &&
-                    setNewClient({
-                      ...newClient,
-                      lastServiceDate: date.toISOString(),
-                    })
-                  }
+                  onSelect={(date) => {
+                    if (date) {
+                      setNewClient({
+                        ...newClient,
+                        lastServiceDate: date.toISOString(),
+                      });
+                    }
+                  }}
+                  disabled={(date) => date > new Date()}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
+
             <Input
               placeholder="Initials"
               value={newClient.initials}
               onChange={(e) =>
                 setNewClient({ ...newClient, initials: e.target.value })
               }
-              required
+              maxLength={3}
             />
-            <Input
-              placeholder="Avatar URL"
-              value={newClient.avatar}
-              onChange={(e) =>
-                setNewClient({ ...newClient, avatar: e.target.value })
-              }
-            />
+
             <DialogFooter>
-              <DialogClose asChild>
-                <Button type="submit">Create Client</Button>
-              </DialogClose>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Client"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-auto">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search clients..."
-            className="w-full md:w-[300px] pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <Input
+          placeholder="Search by ID, Name or Contact Person"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-xs"
+          type="search"
+        />
+
+        <div className="max-w-xs ">
+       
+
           <Select
-            defaultValue="all"
             value={clientType}
             onValueChange={setClientType}
+            // className="max-w-xs"
           >
-            <SelectTrigger className="w-full md:w-[180px]">
-              <div className="flex items-center">
-                <Building className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Client type" />
-              </div>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by Client Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="bank">Banks</SelectItem>
-              <SelectItem value="nbfc">NBFCs</SelectItem>
+              <SelectItem value="bank">Bank</SelectItem>
+              <SelectItem value="nbfc">NBFC</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon">
-            <Sliders className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="list" className="w-full">
+      <Tabs defaultValue="table">
         <TabsList>
-          <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="table">Table View</TabsTrigger>
           <TabsTrigger value="grid">Grid View</TabsTrigger>
         </TabsList>
-        <TabsContent value="list" className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Contact Person</TableHead>
-                <TableHead className="hidden md:table-cell">
-                  Contact Info
-                </TableHead>
-                <TableHead className="hidden lg:table-cell">Branches</TableHead>
-                <TableHead>Active Tickets</TableHead>
-                <TableHead className="hidden lg:table-cell">
-                  Last Service
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredClients.map((client: any) => (
-                <TableRow key={client.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={client.avatar} alt={client.name} />
-                        <AvatarFallback>{client.initials}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{client.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {client.id}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{client.type}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>{client.contactPerson}</div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="text-sm">
-                      <div>{client.contactEmail}</div>
-                      <div className="text-muted-foreground">
-                        {client.contactPhone}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {client.totalBranches}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        client.activeTickets > 10
-                          ? "destructive"
-                          : client.activeTickets > 5
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {client.activeTickets}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {client.lastServiceDate
-                      .split("T")[0]
-                      .split("-")
-                      .reverse()
-                      .join("-")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Client</DropdownMenuItem>
-                        <DropdownMenuItem>View Tickets</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>Edit Client</DropdownMenuItem>
-                        <DropdownMenuItem>Generate Report</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+
+        <TabsContent value="table" className="space-y-4">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Spinner size="7" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Total Branches</TableHead>
+                  <TableHead>Contact Person</TableHead>
+                  <TableHead>Contact Email</TableHead>
+                  <TableHead>Contact Phone</TableHead>
+                  <TableHead>Contract Status</TableHead>
+                  <TableHead>Last Service Date</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedClients.length > 0 ? (
+                  paginatedClients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell className="flex items-center gap-2">
+                        {client.avatar ? (
+                          <Avatar>
+                            <AvatarImage
+                              src={client.avatar}
+                              alt={client.name}
+                            />
+                            <AvatarFallback>{client.initials}</AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <Avatar>
+                            <AvatarFallback>{client.initials}</AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div className="flex flex-col">
+                          <p className="font-medium">{client.name}</p>
+                          <p className="text-muted-foreground text-sm">
+                            {client.id}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{client.type}</TableCell>
+                      <TableCell>{client.totalBranches}</TableCell>
+                      <TableCell>{client.contactPerson}</TableCell>
+                      <TableCell className="hover:underline cursor-pointer">{client.contactEmail}</TableCell>
+                      <TableCell>{client.contactPhone}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            client.contractStatus.toLowerCase() === "active"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {client.contractStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {client.lastServiceDate
+                          ? format(new Date(client.lastServiceDate), "PPP")
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-6 text-muted-foreground"
+                    >
+                      No clients found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+
+          {/* Pagination: only show if more than 5 records */}
+          {filteredClients.length > ITEMS_PER_PAGE && (
+            <div className="flex justify-end mt-4">
+              <ReactPaginate
+                previousLabel={"← Previous"}
+                nextLabel={"Next →"}
+                breakLabel={"..."}
+                pageCount={pageCount}
+                marginPagesDisplayed={1}
+                pageRangeDisplayed={3}
+                onPageChange={handlePageClick}
+                containerClassName="flex space-x-1 text-sm select-none"
+                pageClassName="px-3 py-1 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"
+                activeClassName="bg-blue-600 text-white border-blue-600"
+                previousClassName="px-3 py-1 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100"
+                nextClassName="px-3 py-1 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100"
+                disabledClassName="opacity-50 cursor-not-allowed"
+                forcePage={currentPage}
+              />
+            </div>
+          )}
         </TabsContent>
-        <TabsContent value="grid">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredClients.map((client: any) => (
+
+        <TabsContent
+          value="grid"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
+          {loading ? (
+            <div className="col-span-full flex justify-center py-10">
+              <Spinner size="6" />
+            </div>
+          ) : paginatedClients.length > 0 ? (
+            paginatedClients.map((client) => (
               <Card key={client.id} className="overflow-hidden">
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between">
@@ -439,11 +615,11 @@ export default function ClientsPage() {
                 </CardHeader>
                 <CardContent className="p-4 pt-2">
                   <div className="space-y-2">
-                    <div>
+                    <div className="flex items-center gap-3">
                       <div className="text-sm font-medium">Contact Person</div>
                       <div className="text-sm">{client.contactPerson}</div>
                     </div>
-                    <div>
+                    <div  className="flex items-center gap-3">
                       <div className="text-sm font-medium">Contact Info</div>
                       <div className="text-sm">{client.contactEmail}</div>
                       <div className="text-sm text-muted-foreground">
@@ -462,14 +638,14 @@ export default function ClientsPage() {
                         <div className="text-center">
                           <Badge
                             variant={
-                              client.activeTickets > 10
+                              client?.tickets.length > 1
                                 ? "destructive"
-                                : client.activeTickets > 5
+                                : client.tickets.length > 5
                                 ? "default"
                                 : "secondary"
                             }
                           >
-                            {client.activeTickets}
+                            {client.tickets.length}
                           </Badge>
                         </div>
                       </div>
@@ -483,14 +659,36 @@ export default function ClientsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center text-muted-foreground py-10">
+              No clients found.
+            </div>
+          )}
+
+          {/* Pagination in grid view */}
+          {filteredClients.length > ITEMS_PER_PAGE && (
+            <div className="col-span-full flex justify-end mt-4">
+              <ReactPaginate
+                previousLabel={"← Previous"}
+                nextLabel={"Next →"}
+                breakLabel={"..."}
+                pageCount={pageCount}
+                marginPagesDisplayed={1}
+                pageRangeDisplayed={3}
+                onPageChange={handlePageClick}
+                containerClassName="flex space-x-1 text-sm select-none"
+                pageClassName="px-3 py-1 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"
+                activeClassName="bg-blue-600 text-white border-blue-600"
+                previousClassName="px-3 py-1 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100"
+                nextClassName="px-3 py-1 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100"
+                disabledClassName="opacity-50 cursor-not-allowed"
+                forcePage={currentPage}
+              />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-
-
-

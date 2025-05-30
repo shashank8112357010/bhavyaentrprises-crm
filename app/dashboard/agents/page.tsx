@@ -148,6 +148,7 @@ export default function AgentsPage() {
           <Input
             placeholder="Search agents..."
             className="w-full md:w-[300px] pl-8"
+            type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -230,7 +231,7 @@ export default function AgentsPage() {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={agent.avatar} alt={agent.name} />
-                        <AvatarFallback>
+                        <AvatarFallback className="capitalize">
                           {agent.name
                             .split(" ")
                             .map((n: any) => n[0])
@@ -238,7 +239,7 @@ export default function AgentsPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{agent.name}</div>
+                        <div className="font-medium capitalize">{agent.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {agent.id}
                         </div>
