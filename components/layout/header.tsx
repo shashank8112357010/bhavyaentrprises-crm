@@ -6,31 +6,32 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Bell, Menu, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { logout } from "@/lib/services/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter()
+  const { toast } = useToast();
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -38,11 +39,19 @@ export default function Header() {
             <span className="sr-only">Toggle menu</span>
           </Button>
           <Link href="/" className="flex items-center gap-2">
-            <Image className=" text-primary" alt="logo" src={'/bhavyalogo.png'} height={40} width={40} />
-            <span className="text-xl font-bold tracking-tight">Bhavya Entrprises</span>
+            <Image
+              className=" text-primary"
+              alt="logo"
+              src={"/bhavyalogo.png"}
+              height={40}
+              width={40}
+            />
+            <span className="text-xl font-bold tracking-tight">
+              Bhavya Entrprises
+            </span>
           </Link>
         </div>
-       
+
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -69,16 +78,21 @@ export default function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                Settings
-              </DropdownMenuItem>
+              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-400 hover:text-red-700" onClick={()=>{
-                router.push('/')
-              }}>
+              <DropdownMenuItem
+                className="text-red-400 hover:text-red-700"
+                onClick={async () => {
+                  
+                  toast({
+                    title: "Sign Out",
+                    description: "user logged out successfully",
+                   
+                  });
+                  await logout();
+                }}
+              >
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

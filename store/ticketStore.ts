@@ -4,6 +4,7 @@ import {
   getAllTickets,
   updateTicketStatus,
   createTicket,
+  updateTicket,
 } from "../lib/services/ticket";
 
 type Ticket = {
@@ -119,6 +120,7 @@ interface TicketState {
   updateTicketStatus: (id: string, status: Status) => Promise<void>;
   createTicket: (ticketData: CreateTicketInput) => Promise<void>;
   fetchTicketById: (id: string) => Ticket | undefined;
+  updateTicket: (updatedTicket: any) => Promise<void>;  // <-- Add this here
 }
 
 
@@ -231,5 +233,51 @@ export const useTicketStore = create<TicketState>((set) => ({
     const allTickets = Object.values(ticket).flat();
     const foundTicket = allTickets.find((t) => t.id === id);
     return foundTicket;
+  },
+  updateTicket: async ( updatedTicket: Ticket) => {
+    set({ loading: true, error: null });
+    try {
+      const ticketFromServer = await updateTicket(updatedTicket);
+
+      set((state) => {
+        const { tickets, all_tickets } = state;
+
+        // Update all_tickets list
+        const updatedAllTickets = all_tickets.map((t) =>
+          t.id === ticketFromServer.id ? ticketFromServer : t
+        );
+
+        // Find current ticket status group to update in that array
+        let foundStatus: Status | null = null;
+        for (const statusKey of Object.keys(tickets) as Status[]) {
+          if (tickets[statusKey].some((t) => t.id === ticketFromServer.id)) {
+            foundStatus = statusKey;
+            break;
+          }
+        }
+
+        if (!foundStatus) {
+          // Ticket not found in any group, just return state without changes
+          return { ...state, loading: false };
+        }
+
+        // Update the ticket in the appropriate status array
+        const updatedStatusTickets = tickets[foundStatus].map((t) =>
+          t.id === ticketFromServer.id ? ticketFromServer : t
+        );
+
+        return {
+          ...state,
+          all_tickets: updatedAllTickets,
+          tickets: {
+            ...tickets,
+            [foundStatus]: updatedStatusTickets,
+          },
+          loading: false,
+        };
+      });
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+    }
   },
 }));

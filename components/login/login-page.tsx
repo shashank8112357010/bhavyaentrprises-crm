@@ -8,7 +8,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { login } from "@/lib/services/auth";
 import { Eye, EyeOff } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import a loading spinner icon
+import { useUserStore } from "@/store/crmStore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const {setUser} = useUserStore()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +42,23 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
+     const response = await login({ email, password });
+     console.log(response);
+     
+     const {token , user } =  response.data
+    
+
+      if (token) {
+        setUser(user)
+        
+        localStorage.setItem("role", user.role);
+       
+        
+      }
       toast({ title: "Success", description: "Logged in successfully!" });
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 300);
+      }, 200);
     } catch (error: any) {
       console.log(error);
 

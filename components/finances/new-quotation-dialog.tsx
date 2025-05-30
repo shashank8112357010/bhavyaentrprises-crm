@@ -49,10 +49,11 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [loading, setLoading] = useState(false);
-
+  const startDate = "1970-01-01";
+  const endDate = "2100-12-31";
   useEffect(() => {
     fetchClients();
-    fetchTickets();
+    fetchTickets({startDate , endDate });
   }, [fetchClients, fetchTickets]);
 
   useEffect(() => {

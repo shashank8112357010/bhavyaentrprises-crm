@@ -96,7 +96,7 @@ type Status =
   | "billing_completed";
 
 export default function KanbanPage() {
-  const { tickets, fetchTickets, updateTicketStatus, fetchTicketById } =
+  const { tickets, fetchTickets, updateTicketStatus, updateTicket ,fetchTicketById } =
     useTicketStore();
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
@@ -114,6 +114,9 @@ export default function KanbanPage() {
 
   const [startDateTicket, setStartDateTicket] = useState<string>(today);
   const [endDateTicket, setEndDateTicket] = useState<string>(today);
+  const [holdReasonModalOpen, setHoldReasonModalOpen] = useState(false);
+  const [holdReasonText, setHoldReasonText] = useState("");
+  const [ticketToHold, setTicketToHold] = useState<any | null>(null);
 
   useEffect(() => {
     fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
@@ -152,13 +155,11 @@ export default function KanbanPage() {
         break;
 
       case "onHold":
-        toast({
-          title: "Hold Reason Required",
-          description:
-            "Please specify a reason for putting this ticket on hold.",
-          variant: "destructive",
-        });
-        return;
+        // Open modal instead of toast
+        setTicketToHold(ticket);
+        setHoldReasonText(ticket.holdReason || "");
+        setHoldReasonModalOpen(true);
+        return; // prevent immediate update
 
       case "completed":
         if (!workStage || workStage.quoteNo === "N/A") {
@@ -217,6 +218,48 @@ export default function KanbanPage() {
     }
 
     updateTicketStatus(ticketId, destination as Status);
+  };
+
+  const handleConfirmHold = async () => {
+    if (!holdReasonText.trim()) {
+      toast({
+        title: "Hold Reason Required",
+        description: "Please enter a reason to put the ticket on hold.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!ticketToHold) return;
+
+    try {
+      // Call updateTicket with holdReason and new status
+      await updateTicket({
+        ...ticketToHold,
+        holdReason: holdReasonText.trim(),
+        status: "onHold",
+      });
+      updateTicketStatus(ticketToHold.id, "onHold");
+
+      toast({
+        title: "Ticket Put On Hold",
+        description: "Ticket status updated successfully.",
+      });
+      setHoldReasonModalOpen(false);
+      setTicketToHold(null);
+      setHoldReasonText("");
+    } catch (err: any) {
+      toast({
+        title: "Failed to Update Ticket",
+        description: err.message || "Unknown error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelHold = () => {
+    setHoldReasonModalOpen(false);
+    setTicketToHold(null);
+    setHoldReasonText("");
   };
 
   const filteredTickets: TicketsState = Object.entries(tickets).reduce(

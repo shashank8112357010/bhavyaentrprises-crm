@@ -188,9 +188,9 @@ export async function updateTicketStatus(id: string, status: Status) {
   }
 }
 
-export async function updateTicket(id: string, updatedTicket: Ticket) {
+export async function updateTicket( updatedTicket: any) {
   try {
-    const response = await axios.patch(`/ticket/${id}`, updatedTicket, {
+    const response = await axios.patch(`/ticket/${updatedTicket.id}`, updatedTicket, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",

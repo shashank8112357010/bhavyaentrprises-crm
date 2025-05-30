@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { SignJWT } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,13 +24,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    const initials = user.name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
 
-    const response = NextResponse.json({ success: true , token  : token});
+    // 🧾 Create JWT using jose
+    const token = await new SignJWT({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      initials,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1d') // 1 day
+      .sign(JWT_SECRET);
+
+    // 🥠 Set cookie and return response
+    const response = NextResponse.json({
+      success: true,
+      token,
+      user: {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        initials,
+      },
+    });
 
     response.cookies.set('token', token, {
       httpOnly: true,

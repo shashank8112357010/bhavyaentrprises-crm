@@ -51,11 +51,11 @@ export default function Sidebar({ className }: SidebarProps) {
       href: "/dashboard/agents",
       icon: <UserCheck2 className="h-5 w-5" />,
     },
-    {
-      name: "Calendar",
-      href: "/dashboard/calendar",
-      icon: <Calendar className="h-5 w-5" />,
-    },
+    // {
+    //   name: "Calendar",
+    //   href: "/dashboard/calendar",
+    //   icon: <Calendar className="h-5 w-5" />,
+    // },
     // {
     //   name: "Tasks",
     //   href: "/dashboard/tasks",
@@ -78,7 +78,7 @@ export default function Sidebar({ className }: SidebarProps) {
     },
     {
       name: "Email Templates",
-      href: "/dashboard/emails",
+      href: "/dashboard/email-template",
       icon: <Mail className="h-5 w-5" />,
     },
     {

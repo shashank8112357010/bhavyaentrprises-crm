@@ -20,10 +20,31 @@ export async function login(payload: LoginPayload) {
       }
     }
 
-    return { success: true };
+    return response;
   } catch (error: any) {
     const message =
       error.response?.data?.message || "Login failed. Please try again.";
     throw new Error(message);
+  }
+}
+
+
+export async function logout() {
+  try {
+    await axios.get("/logout", {
+      withCredentials: true,  // Required to clear HttpOnly cookie
+    });
+
+    // Optional: Clear any localStorage/sessionStorage
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = "/"; // Or wherever you want to redirect
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Logout failed:", error);
+    throw new Error("Logout failed. Please try again.");
   }
 }
