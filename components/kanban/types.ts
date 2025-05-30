@@ -30,7 +30,13 @@ export type Agent = {
 export type CreateAgentPayload = Omit<Agent, 'id' | 'createdAt' | 'joinedDate' | 'leadsAssigned' | 'leadsActive' | 'leadsClosed' | 'conversionRate' | 'performanceTrend' | 'activeTickets' | 'rating' | 'completedTickets'>;
 // components/kanban/types.ts
 export type TicketStatus = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
-
+export interface Expense {
+  id: string;
+  amount: string;
+  category: string;
+  createdAt: string;
+  pdfUrl: string;
+}
 
 export interface Ticket  {
   id: string;
@@ -68,13 +74,7 @@ export interface Ticket  {
     type: string;
     contactPerson: string;
   }
-  expenses :[ {
-    id: string,
-    amount: string,
-    category: string,
-    createdAt: string,
-    pdfUrl: string,
-  }]
+  expenses: Expense[];  
   dueDate: string | undefined;
   scheduledDate?: string;
   completedDate?: string;

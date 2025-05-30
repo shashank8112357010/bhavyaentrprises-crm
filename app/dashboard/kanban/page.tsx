@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useTicketStore } from "@/store/ticketStore";
 import { useAgentStore } from "@/store/agentStore";
 import { useClientStore } from "@/store/clientStore";
-import { Building, Search, Sliders, User } from "lucide-react";
+import { Building, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,23 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import KanbanBoard from "@/components/kanban/kanban-board";
 import NewTicketDialog from "@/components/tickets/new-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { exportTicketsToExcel } from "@/lib/services/ticket";
+import { Label } from "@radix-ui/react-label";
 
-// assignee: {
-// id: string;
-// name: string;
-// type: string;
-// contactPerson: string;
-// };
+// Types
 type Ticket = {
   id: string;
   title: string;
-
   branch: string;
   priority: string;
-
   assignee: {
     name: string;
     avatar: string;
@@ -47,22 +48,20 @@ type Ticket = {
     quoteAmount: number;
     workStatus: string;
     approval: string;
-    poStatus: Boolean;
+    poStatus: boolean;
     poNumber: string;
-    jcrStatus: Boolean;
+    jcrStatus: boolean;
     agentName: string;
   };
-  expenses: [
-    {
-      id: string;
-      amount: string;
-      category: string;
-      createdAt: string;
-      pdfUrl: string;
-    }
-  ];
-  due?: number; 
-  paid?: Boolean; 
+  expenses: {
+    id: string;
+    amount: string;
+    category: string;
+    createdAt: string;
+    pdfUrl: string;
+  }[];
+  due?: number;
+  paid?: boolean;
   client: {
     id: string;
     name: string;
@@ -107,18 +106,35 @@ export default function KanbanPage() {
   const [clientFilter, setClientFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
 
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+  const [startDateTicket, setStartDateTicket] = useState<string>(today);
+  const [endDateTicket, setEndDateTicket] = useState<string>(today);
+
   useEffect(() => {
-    fetchTickets();
+    fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
     fetchAgents();
     fetchClients();
-  }, [fetchTickets, fetchAgents, fetchClients]);
+  }, [
+    fetchTickets,
+    fetchAgents,
+    fetchClients,
+    startDateTicket,
+    startDate,
+    endDate,
+    endDateTicket,
+  ]);
 
   const handleDragEnd = async (result: any) => {
     const { source, destination, ticketId } = result;
 
     if (!source || !destination || source === destination) return;
 
-    const ticket: Ticket | undefined = await fetchTicketById(ticketId);
+    const ticket = await fetchTicketById(ticketId);
     if (!ticket) return;
 
     const { workStage } = ticket;
@@ -184,10 +200,8 @@ export default function KanbanPage() {
           });
           return;
         }
-
-        const dueAmount = ticket?.due ?? 0; // number
-        const isPaid = ticket?.paid ?? false; // boolean
-        
+        const dueAmount = ticket?.due ?? 0;
+        const isPaid = ticket?.paid ?? false;
         if (!isPaid && dueAmount > 0) {
           toast({
             title: "Incomplete Payment",
@@ -228,7 +242,7 @@ export default function KanbanPage() {
               ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
 
             const matchesClient =
-              clientFilter === "all" || ticket.clientId === clientFilter;
+              clientFilter === "all" || ticket.client?.id === clientFilter;
 
             const matchesAssignee =
               assigneeFilter === "all" ||
@@ -243,6 +257,15 @@ export default function KanbanPage() {
     {} as TicketsState
   );
 
+  const ticketStatuses: Status[] = [
+    "new",
+    "inProgress",
+    "onHold",
+    "completed",
+    "billing_pending",
+    "billing_completed",
+  ];
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -252,9 +275,7 @@ export default function KanbanPage() {
             Manage and track maintenance requests
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <NewTicketDialog />
-        </div>
+        <NewTicketDialog />
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -268,8 +289,7 @@ export default function KanbanPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2  w-full md:w-auto">
-          {/* Client Filter */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <Select value={clientFilter} onValueChange={setClientFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
               <div className="flex items-center">
@@ -287,10 +307,9 @@ export default function KanbanPage() {
             </SelectContent>
           </Select>
 
-          {/* Assignee Filter */}
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <Select value={assigneeFilter}   onValueChange={setAssigneeFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
-              <div className="flex items-center">
+              <div className="flex items-center capitalize">
                 <User className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by assignee" />
               </div>
@@ -311,7 +330,85 @@ export default function KanbanPage() {
         </div>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Label className="text-muted-foreground">From:</Label>
+          <Input
+            type="date"
+            className="cursor-pointer"
+            value={startDateTicket}
+            onChange={(e) => setStartDateTicket(e.target.value)}
+          />
+          <Label className="text-muted-foreground">To:</Label>
+          <Input
+            className="cursor-pointer"
+            type="date"
+            value={endDateTicket}
+            onChange={(e) => setEndDateTicket(e.target.value)}
+          />
+
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setStartDateTicket(today);
+              setEndDateTicket(today);
+              setSearchQuery("");
+              setClientFilter("all");
+              setAssigneeFilter("all");
+            }}
+          >
+            Clear Filters
+          </Button>
+        </div>
+
+        <Button variant="secondary" onClick={() => setExportModalOpen(true)}>
+          Export Tickets
+        </Button>
+      </div>
+
       <KanbanBoard tickets={filteredTickets} onDragEnd={handleDragEnd} />
+
+      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Export Tickets</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            {ticketStatuses.map((status) => (
+              <Button
+                key={status}
+                variant="outline"
+                onClick={async () => {
+                  if (!startDateTicket || !endDateTicket) {
+                    toast({
+                      title: "Select Date Range",
+                      description: "Please select start and end dates.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  try {
+                    await exportTicketsToExcel({
+                      status,
+                      startDate: startDateTicket,
+                      endDate: endDateTicket,
+                    });
+                    setExportModalOpen(false);
+                  } catch (err) {
+                    toast({
+                      title: "Export Failed",
+                      description: (err as Error).message,
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                Export {status.replaceAll("_", " ")}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

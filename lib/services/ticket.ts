@@ -85,9 +85,15 @@ export async function createTicket(payload: CreateTicketInput) {
   }
 }
 
-export async function getAllTickets() {
+export async function getAllTickets(filters?: { status?: Status; startDate?: string; endDate?: string }) {
   try {
-    const response = await axios.get("/ticket", {
+    const params = new URLSearchParams();
+
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.startDate) params.append("startDate", filters.startDate);
+    if (filters?.endDate) params.append("endDate", filters.endDate);
+
+    const response = await axios.get(`/ticket?${params.toString()}`, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -95,12 +101,46 @@ export async function getAllTickets() {
         Expires: "0",
       },
     });
+
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch ticket.";
+    const message = error.response?.data?.error || "Failed to fetch tickets.";
     throw new Error(message);
   }
 }
+
+
+export async function exportTicketsToExcel(filters: { status?: Status; startDate: string; endDate: string }) {
+  try {
+    const params = new URLSearchParams();
+    if (filters.status) params.append("status", filters.status);
+    params.append("startDate", filters.startDate);
+    params.append("endDate", filters.endDate);
+
+    const response = await axios.get(`/ticket/export?${params.toString()}`, {
+      withCredentials: true,
+      responseType: "blob",
+    });
+
+    const blob = new Blob([response.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+
+    const fileName = `tickets_${filters.status || "all"}_${filters.startDate}_${filters.endDate}.xlsx`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to export tickets.";
+    throw new Error(message);
+  }
+}
+
 
 export async function deleteTicket(id: string) {
   try {

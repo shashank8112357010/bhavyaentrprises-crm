@@ -3,14 +3,49 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
+    const url = new URL(req.url);
+    const startDateStr = url.searchParams.get("startDate");
+    const endDateStr = url.searchParams.get("endDate");
+    const statusFilter = url.searchParams.get("status"); // optional status filter
+
+    // Default to today's date range (00:00 to 23:59)
+    const today = new Date();
+    const startDate = startDateStr ? new Date(startDateStr) : new Date(today.setHours(0, 0, 0, 0));
+    const endDate = endDateStr ? new Date(endDateStr) : new Date(today.setHours(23, 59, 59, 999));
+
+    // Fetch tickets where scheduledDate or dueDate falls within the range
+    // Add status filter if provided
+
+    const whereConditions: any = {
+      AND: [
+        {
+          OR: [
+            {
+              scheduledDate: {
+                gte: startDate,
+                lte: endDate,
+              },
+            },
+            {
+              dueDate: {
+                gte: startDate,
+                lte: endDate,
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    if (statusFilter) {
+      whereConditions.AND.push({ status: statusFilter });
+    }
+
     const tickets = await prisma.ticket.findMany({
+      where: whereConditions,
       include: {
         assignee: {
-          select: {
-            name: true,
-            avatar: true,
-            initials: true,
-          },
+          select: { name: true, avatar: true, initials: true },
         },
         workStage: {
           select: {
@@ -55,6 +90,10 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+
+    // (Your existing transform logic here)
+
+    // ... transform tickets code ...
 
     const transformedTickets = tickets.map((ticket: any) => ({
       id: ticket.id,
@@ -117,13 +156,11 @@ export async function GET(req: NextRequest) {
         version: q.version,
       })),
     }));
-
+    
+    return NextResponse.json({ tickets: transformedTickets });
     return NextResponse.json({ tickets: transformedTickets });
   } catch (error: any) {
     console.error("Error fetching tickets:", error);
-    return NextResponse.json(
-      { message: "Failed to fetch tickets", error: error.message },
-      { status: 400 }
-    );
+    return NextResponse.json({ message: "Failed to fetch tickets", error: error.message }, { status: 400 });
   }
 }

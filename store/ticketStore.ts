@@ -112,14 +112,15 @@ interface CreateTicketInput {
 
 interface TicketState {
   tickets: TicketsState;
-  all_tickets : [];
+  all_tickets: Ticket[];
   loading: boolean;
   error: string | null;
-  fetchTickets: () => Promise<void>;
+  fetchTickets: (filters?: { status?: Status; startDate?: string; endDate?: string }) => Promise<void>;
   updateTicketStatus: (id: string, status: Status) => Promise<void>;
   createTicket: (ticketData: CreateTicketInput) => Promise<void>;
   fetchTicketById: (id: string) => Ticket | undefined;
 }
+
 
 export const useTicketStore = create<TicketState>((set) => ({
   tickets: {
@@ -133,48 +134,39 @@ export const useTicketStore = create<TicketState>((set) => ({
   all_tickets : [],
   loading: false,
   error: null,
-  fetchTickets: async () => {
+  fetchTickets: async (filters?: { status?: Status; startDate?: string; endDate?: string }) => {
     set({ loading: true, error: null });
     try {
-      const response = await getAllTickets();
+      const response = await getAllTickets(filters); // pass filters
       const { tickets } = response;
-
-      // Organize tickets by status
-      const newTickets = tickets.filter(
-        (ticket: Ticket) => ticket.status === "new"
-      );
-      const inProgressTickets = tickets.filter(
-        (ticket: Ticket) => ticket.status === "inProgress"
-      );
-      const onHoldTickets = tickets.filter(
-        (ticket: Ticket) => ticket.status === "onHold"
-      );
-      const completedTickets = tickets.filter(
-        (ticket: Ticket) => ticket.status === "completed"
-      );
-      const billing_pending_Tickets = tickets.filter(
-        (ticket: Ticket) => ticket.status === "billing_pending"
-      );
-      const billing_completed_Tickets = tickets.filter(
-        (ticket: Ticket) => ticket.status === "billing_completed"
-      );
-
+  
+      const statusGroups = {
+        new: [] as Ticket[],
+        inProgress: [] as Ticket[],
+        onHold: [] as Ticket[],
+        completed: [] as Ticket[],
+        billing_pending: [] as Ticket[],
+        billing_completed: [] as Ticket[],
+      };
+  
+      for (const ticket of tickets) {
+        const status = ticket.status as Status;
+        if (status in statusGroups) {
+          statusGroups[status].push(ticket);
+        }
+      }
+  
       set({
         all_tickets: tickets,
-        tickets: {
-          new: newTickets,
-          inProgress: inProgressTickets,
-          onHold: onHoldTickets,
-          completed: completedTickets,
-          billing_pending: billing_pending_Tickets,
-          billing_completed: billing_completed_Tickets,
-        },
+        tickets: statusGroups,
         loading: false,
       });
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
   },
+  
+  
   updateTicketStatus: async (id: string, status: Status) => {
     set({ loading: true, error: null });
     try {
