@@ -172,9 +172,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         </div>
 
         <div className="flex flex-wrap gap-2 mt-3">
-          {/* <Badge variant="default" className="text-xs">
-            PO: {ticket.workStage?.poStatus ? "Done" : "Pending"}
-          </Badge> */}
+      
           <Badge variant="outline" className="text-xs">
             JCR: {ticket.workStage?.jcrStatus ? "Done" : "Pending"}
           </Badge>

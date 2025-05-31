@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const {setUser} = useUserStore()
+  const { setUser } = useUserStore();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,18 +42,14 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-     const response = await login({ email, password });
-     console.log(response);
-     
-     const {token , user } =  response.data
-    
+      const response = await login({ email, password });
+      console.log(response);
+
+      const { token, user } = response.data;
 
       if (token) {
-        setUser(user)
-        
+        setUser(user);
         localStorage.setItem("role", user.role);
-       
-        
       }
       toast({ title: "Success", description: "Logged in successfully!" });
       setTimeout(() => {

@@ -1,7 +1,6 @@
-// components/Sidebar.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -28,61 +27,30 @@ interface SidebarProps {
 export default function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<Role | null>(null);
 
-  const role = localStorage.getItem('role') as Role | null;
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role") as Role | null;
+    setRole(storedRole);
+  }, []);
 
   const allNavItems = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-    },
-    {
-      name: "Kanban Board",
-      href: "/dashboard/kanban",
-      icon: <ListTodo className="h-5 w-5" />,
-    },
-    {
-      name: "Clients",
-      href: "/dashboard/clients",
-      icon: <Users className="h-5 w-5" />,
-    },
-    {
-      name: "Agents",
-      href: "/dashboard/agents",
-      icon: <UserCheck2 className="h-5 w-5" />,
-    },
-    {
-      name: "Finances",
-      href: "/dashboard/finances",
-      icon: <IndianRupee className="h-5 w-5" />,
-    },
-    {
-      name: "Rate Card",
-      href: "/dashboard/rate-card",
-      icon: <NotebookTabsIcon className="h-5 w-5" />,
-    },
-    {
-      name: "Calls",
-      href: "/dashboard/calls",
-      icon: <Phone className="h-5 w-5" />,
-    },
-    {
-      name: "Email Templates",
-      href: "/dashboard/email-template",
-      icon: <Mail className="h-5 w-5" />,
-    },
-    {
-      name: "Settings",
-      href: "/dashboard/settings",
-      icon: <Settings className="h-5 w-5" />,
-    },
+    { name: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { name: "Kanban Board", href: "/dashboard/kanban", icon: <ListTodo className="h-5 w-5" /> },
+    { name: "Clients", href: "/dashboard/clients", icon: <Users className="h-5 w-5" /> },
+    { name: "Agents", href: "/dashboard/agents", icon: <UserCheck2 className="h-5 w-5" /> },
+    { name: "Finances", href: "/dashboard/finances", icon: <IndianRupee className="h-5 w-5" /> },
+    { name: "Rate Card", href: "/dashboard/rate-card", icon: <NotebookTabsIcon className="h-5 w-5" /> },
+    { name: "Calls", href: "/dashboard/calls", icon: <Phone className="h-5 w-5" /> },
+    { name: "Email Templates", href: "/dashboard/email-template", icon: <Mail className="h-5 w-5" /> },
+    { name: "Settings", href: "/dashboard/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
-  const navItems = role ? allNavItems.filter((item) => navRoleAccess[role]?.includes(item.name)) : [];
+  const navItems = role ? allNavItems.filter(item => navRoleAccess[role]?.includes(item.name)) : [];
 
   return (
     <>
+      {/* Mobile Sidebar */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="md:hidden">
@@ -92,7 +60,7 @@ export default function Sidebar({ className }: SidebarProps) {
         </SheetTrigger>
         <SheetContent side="left" className="w-64 pt-10">
           <nav className="flex flex-col gap-2">
-            {navItems.map((item) => (
+            {navItems.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -112,9 +80,10 @@ export default function Sidebar({ className }: SidebarProps) {
         </SheetContent>
       </Sheet>
 
+      {/* Desktop Sidebar */}
       <aside className={cn("hidden h-screen border-r md:flex md:w-52 md:flex-col md:p-4", className)}>
         <nav className="flex flex-col gap-2 mt-6">
-          {navItems.map((item) => (
+          {navItems.map(item => (
             <Link
               key={item.href}
               href={item.href}

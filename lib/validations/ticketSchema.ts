@@ -61,9 +61,9 @@ export const updateWorkStageSchema = z.object({
     quoteAmount: z.number().min(0).optional(),
     workStatus: z.string().min(1, "Work status is required").optional(),
     approval: z.string().min(1, "Approval is required").optional(),
-    poStatus: z.string().min(1, "PO status is required").optional(),
+    poStatus: z.boolean(),
     poNumber: z.string().min(1, "PO number is required").optional(),
-    jcrStatus: z.string().min(1, "JCR status is required").optional(),
+    jcrStatus: z.boolean(),
     agentName: z.string().min(1, "Agent name is required").optional(),
   });
 
@@ -80,8 +80,8 @@ export const updateWorkStageSchema = z.object({
     quoteAmount: z.number().min(0),
     workStatus: z.string().min(1, "Work status is required"),
     approval: z.string().min(1, "Approval is required"),
-    poStatus: z.string().min(1, "PO status is required"),
+    poStatus: z.boolean(),
     poNumber: z.string().min(1, "PO number is required"),
-    jcrStatus: z.string().min(1, "JCR status is required"),
+    jcrStatus: z.boolean(),
     agentName: z.string().min(1, "Agent name is required"),
   });

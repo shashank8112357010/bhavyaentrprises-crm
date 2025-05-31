@@ -10,8 +10,12 @@ export async function GET(req: NextRequest) {
 
     // Default to today's date range (00:00 to 23:59)
     const today = new Date();
-    const startDate = startDateStr ? new Date(startDateStr) : new Date(today.setHours(0, 0, 0, 0));
-    const endDate = endDateStr ? new Date(endDateStr) : new Date(today.setHours(23, 59, 59, 999));
+    const startDate = startDateStr
+      ? new Date(startDateStr)
+      : new Date(today.setHours(0, 0, 0, 0));
+    const endDate = endDateStr
+      ? new Date(endDateStr)
+      : new Date(today.setHours(23, 59, 59, 999));
 
     // Fetch tickets where scheduledDate or dueDate falls within the range
     // Add status filter if provided
@@ -125,9 +129,9 @@ export async function GET(req: NextRequest) {
             clientName: ticket.workStage.clientName || "N/A",
             siteName: ticket.workStage.siteName || "N/A",
             approval: ticket.workStage.approval || "N/A",
-            poStatus: ticket.workStage.poStatus || "N/A",
+            poStatus: ticket.workStage.poStatus || false,
             poNumber: ticket.workStage.poNumber || "N/A",
-            jcrStatus: ticket.workStage.jcrStatus || "N/A",
+            jcrStatus: ticket.workStage.jcrStatus || false,
           }
         : undefined,
       dueDate: ticket.dueDate ?? "N/A",
@@ -139,28 +143,31 @@ export async function GET(req: NextRequest) {
       holdReason: ticket.holdReason || "N/A",
       status: ticket.status || "N/A",
       expenses: ticket.expenses.length
-      ? ticket.expenses.map((expense: any) => ({
-          id: expense.id,
-          amount: expense.amount,
-          category: expense.category,
-          createdAt: expense.createdAt,
-          attachmentUrl: expense.attachmentUrl,
-        }))
-      : [],
-      due : ticket.due,
-      paid : ticket.paid,
-      quotations: ticket.Quotation.map((q:any) => ({
+        ? ticket.expenses.map((expense: any) => ({
+            id: expense.id,
+            amount: expense.amount,
+            category: expense.category,
+            createdAt: expense.createdAt,
+            attachmentUrl: expense.attachmentUrl,
+          }))
+        : [],
+      due: ticket.due,
+      paid: ticket.paid,
+      quotations: ticket.Quotation.map((q: any) => ({
         id: q.id,
         fileUrl: q.fileUrl,
         createdAt: q.createdAt,
         version: q.version,
       })),
     }));
-    
+
     return NextResponse.json({ tickets: transformedTickets });
     return NextResponse.json({ tickets: transformedTickets });
   } catch (error: any) {
     console.error("Error fetching tickets:", error);
-    return NextResponse.json({ message: "Failed to fetch tickets", error: error.message }, { status: 400 });
+    return NextResponse.json(
+      { message: "Failed to fetch tickets", error: error.message },
+      { status: 400 }
+    );
   }
 }

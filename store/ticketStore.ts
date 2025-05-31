@@ -103,9 +103,9 @@ interface CreateTicketInput {
       quoteAmount: number;
       workStatus: string;
       approval: string;
-      poStatus: string;
+      poStatus: Boolean;
       poNumber: string;
-      jcrStatus: string;
+      jcrStatus: Boolean;
       agentName: string;
     };
   };
