@@ -12,8 +12,15 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Calendar, Check, IndianRupee, Pause, Plus, RotateCw, X } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import {
+  Calendar,
+  Check,
+  IndianRupee,
+  Pause,
+  Plus,
+  RotateCw,
+  X,
+} from "lucide-react";
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
 import { Ticket } from "@/components/kanban/types";
@@ -40,7 +47,6 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
-
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -54,9 +60,7 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     setActiveId(null);
-   
 
     if (!over) return;
 
@@ -66,18 +70,15 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     let fromColumn: keyof TicketsState | null = null;
     let toColumn: keyof TicketsState | null = null;
 
-    // Find source column
     Object.entries(tickets).forEach(([columnId, columnTickets]) => {
       if (columnTickets.some((ticket: any) => ticket.id === activeTicketId)) {
         fromColumn = columnId as keyof TicketsState;
       }
     });
 
-    // Determine destination column (based on droppable ID, not just ticket ID)
     if (Object.keys(tickets).includes(overTicketId)) {
       toColumn = overTicketId as keyof TicketsState;
     } else {
-      // Maybe dropped on a ticket, not column
       Object.entries(tickets).forEach(([columnId, columnTickets]) => {
         if (columnTickets.some((ticket: any) => ticket.id === overTicketId)) {
           toColumn = columnId as keyof TicketsState;
@@ -100,8 +101,18 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       inProgress: <RotateCw className="h-4 w-4 text-yellow-500" />,
       onHold: <Pause className="h-4 w-4 text-orange-500" />,
       completed: <Check className="h-4 w-4 text-green-500" />,
-      billing_pending: <><IndianRupee className="h-4 w-4 text-green-500" /><X className="h-4 w-4 text-red-500" /></> ,
-      billing_completed: <><IndianRupee className="h-4 w-4 text-green-500" /><Check className="h-4 w-4 text-green-500" /></>  ,
+      billing_pending: (
+        <>
+          <IndianRupee className="h-4 w-4 text-green-500" />
+          <X className="h-4 w-4 text-red-500" />
+        </>
+      ),
+      billing_completed: (
+        <>
+          <IndianRupee className="h-4 w-4 text-green-500" />
+          <Check className="h-4 w-4 text-green-500" />
+        </>
+      ),
     };
     return icons[status] ?? null;
   };
@@ -125,7 +136,7 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6   gap-x-[273px] mt-2 pb-10 overflow-x-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-2 pb-10 overflow-x-auto">
         {(Object.keys(tickets) as Array<keyof TicketsState>).map((status) => (
           <KanbanColumn
             key={status}
@@ -137,16 +148,14 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
         ))}
       </div>
 
-      <DragOverlay>
+      <DragOverlay >
         {activeId &&
           (() => {
             const activeTicket = Object.values(tickets)
               .flat()
               .find((t) => t.id === activeId);
             return activeTicket ? (
-              <Card className="w-[280px] shadow-lg">
-                <SortableTicket key={activeTicket.id} ticket={activeTicket} />
-              </Card>
+              <SortableTicket key={activeTicket.id} ticket={activeTicket} />
             ) : null;
           })()}
       </DragOverlay>

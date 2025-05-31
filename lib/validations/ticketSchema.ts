@@ -37,7 +37,7 @@ export const updateTicketSchema = z.object({
 
 export const updateTicketStatusSchema = z.object({
   status: z.enum(["new", "inProgress", "onHold", "completed" , 'billing_pending' , 'billing_completed']),
-});
+}); 
 
 export const addQuotationSchema = z.object({
   quoteNo: z.string().min(1, "Quote number is required"),

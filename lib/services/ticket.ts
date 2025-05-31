@@ -1,7 +1,7 @@
 // lib/services/ticket.ts
 import axios from "../axios";
 
-type Ticket = {
+export type Ticket = {
     id: string;
     title: string;
     client: string;

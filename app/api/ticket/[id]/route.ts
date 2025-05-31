@@ -4,8 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import {
   updateTicketSchema,
-  addQuotationSchema,
-  updateWorkStageSchema,
   createWorkStageSchema,
   updateTicketStatusSchema,
 } from "../../../../lib/validations/ticketSchema";
@@ -32,6 +30,12 @@ export async function PATCH(
           { status: 404 }
         );
       }
+      if(body.holdReason){
+       await prisma.ticket.update({
+          where: { id: params.id },
+          data: { holdReason: body.holdReason },
+        });
+      }
 
       const ticket = await prisma.ticket.update({
         where: { id: params.id },
@@ -52,10 +56,10 @@ export async function PATCH(
           },
         });
       }
-      
 
       return NextResponse.json({ ticket });
     }
+    console.log(body);
 
     // Otherwise, handle it as a general ticket update
     const validatedData = updateTicketSchema.safeParse(body);
@@ -71,6 +75,8 @@ export async function PATCH(
         { status: 400 }
       );
     }
+    console.log(validatedData);
+    
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
       data: validatedData.data,
@@ -84,8 +90,6 @@ export async function PATCH(
     );
   }
 }
-
-
 
 export async function POST(
   req: NextRequest,
@@ -123,7 +127,6 @@ export async function POST(
     );
   }
 }
-
 
 export async function DELETE(
   req: NextRequest,

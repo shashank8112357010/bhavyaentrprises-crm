@@ -19,12 +19,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import KanbanBoard from "@/components/kanban/kanban-board";
 import NewTicketDialog from "@/components/tickets/new-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { exportTicketsToExcel } from "@/lib/services/ticket";
 import { Label } from "@radix-ui/react-label";
+import { Textarea } from "@/components/ui/textarea";
+import { Role } from "@/constants/roleAccessConfig";
 
 // Types
 type Ticket = {
@@ -48,9 +51,9 @@ type Ticket = {
     quoteAmount: number;
     workStatus: string;
     approval: string;
-    poStatus: boolean;
+    poStatus: Boolean;
     poNumber: string;
-    jcrStatus: boolean;
+    jcrStatus: Boolean;
     agentName: string;
   };
   expenses: {
@@ -61,7 +64,7 @@ type Ticket = {
     pdfUrl: string;
   }[];
   due?: number;
-  paid?: boolean;
+  paid?: Boolean;
   client: {
     id: string;
     name: string;
@@ -96,7 +99,7 @@ type Status =
   | "billing_completed";
 
 export default function KanbanPage() {
-  const { tickets, fetchTickets, updateTicketStatus, updateTicket ,fetchTicketById } =
+  const { tickets, fetchTickets, updateTicketStatus, updateTicket, fetchTicketById } =
     useTicketStore();
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
@@ -116,21 +119,23 @@ export default function KanbanPage() {
   const [endDateTicket, setEndDateTicket] = useState<string>(today);
   const [holdReasonModalOpen, setHoldReasonModalOpen] = useState(false);
   const [holdReasonText, setHoldReasonText] = useState("");
-  const [ticketToHold, setTicketToHold] = useState<any | null>(null);
+  const [ticketToHold, setTicketToHold] = useState<Ticket | null>(null);
+  const [isLoadingHold, setLoadingHold] = useState(false);
+
+  // Assume you have a way to get the current user's role, e.g., from a context or store
+  const [userRole, setUserRole] = useState<Role | null>(null); // Default role, replace with actual logic to get the user's role
+
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role") as Role | null;
+    setUserRole(storedRole);
+  }, []);
 
   useEffect(() => {
     fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
     fetchAgents();
     fetchClients();
-  }, [
-    fetchTickets,
-    fetchAgents,
-    fetchClients,
-    startDateTicket,
-    startDate,
-    endDate,
-    endDateTicket,
-  ]);
+  }, [fetchTickets, fetchAgents, fetchClients, startDateTicket, startDate, endDate, endDateTicket]);
 
   const handleDragEnd = async (result: any) => {
     const { source, destination, ticketId } = result;
@@ -155,18 +160,16 @@ export default function KanbanPage() {
         break;
 
       case "onHold":
-        // Open modal instead of toast
         setTicketToHold(ticket);
         setHoldReasonText(ticket.holdReason || "");
         setHoldReasonModalOpen(true);
-        return; // prevent immediate update
+        return;
 
       case "completed":
         if (!workStage || workStage.quoteNo === "N/A") {
           toast({
             title: "Order Violation",
-            description:
-              "Please attach a quotation and move to In Progress first.",
+            description: "Please attach a quotation and move to In Progress first.",
             variant: "destructive",
           });
           return;
@@ -174,7 +177,7 @@ export default function KanbanPage() {
         if (!workStage.poStatus || !workStage.jcrStatus) {
           toast({
             title: "Pending Work",
-            description: "PO and JCR must be completed before marking as done.",
+            description: "PO and JCR must be completed before marking as completed.",
             variant: "destructive",
           });
           return;
@@ -221,7 +224,9 @@ export default function KanbanPage() {
   };
 
   const handleConfirmHold = async () => {
+    setLoadingHold(true);
     if (!holdReasonText.trim()) {
+      setLoadingHold(false);
       toast({
         title: "Hold Reason Required",
         description: "Please enter a reason to put the ticket on hold.",
@@ -232,7 +237,6 @@ export default function KanbanPage() {
     if (!ticketToHold) return;
 
     try {
-      // Call updateTicket with holdReason and new status
       await updateTicket({
         ...ticketToHold,
         holdReason: holdReasonText.trim(),
@@ -244,10 +248,12 @@ export default function KanbanPage() {
         title: "Ticket Put On Hold",
         description: "Ticket status updated successfully.",
       });
+      setLoadingHold(false);
       setHoldReasonModalOpen(false);
       setTicketToHold(null);
       setHoldReasonText("");
     } catch (err: any) {
+      setLoadingHold(false);
       toast({
         title: "Failed to Update Ticket",
         description: err.message || "Unknown error occurred.",
@@ -264,16 +270,12 @@ export default function KanbanPage() {
 
   const filteredTickets: TicketsState = Object.entries(tickets).reduce(
     (acc, [status, statusTickets]) => {
-      if (
-        [
-          "new",
-          "inProgress",
-          "onHold",
-          "completed",
-          "billing_pending",
-          "billing_completed",
-        ].includes(status as Status)
-      ) {
+      const allowedStatuses = ["new", "inProgress", "onHold", "completed"];
+      if (userRole === "ADMIN" || userRole === "ACCOUNTS") {
+        allowedStatuses.push("billing_pending", "billing_completed");
+      }
+
+      if (allowedStatuses.includes(status as Status)) {
         acc[status as Status] = statusTickets
           .map((ticket: any) => ({
             ...ticket,
@@ -305,9 +307,11 @@ export default function KanbanPage() {
     "inProgress",
     "onHold",
     "completed",
-    "billing_pending",
-    "billing_completed",
+    ...(userRole === "ADMIN" || userRole === "ACCOUNTS"
+      ? (["billing_pending", "billing_completed"] as const)
+      : []),
   ];
+  
 
   return (
     <div className="flex flex-col gap-8">
@@ -350,7 +354,7 @@ export default function KanbanPage() {
             </SelectContent>
           </Select>
 
-          <Select value={assigneeFilter}   onValueChange={setAssigneeFilter}>
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
               <div className="flex items-center capitalize">
                 <User className="mr-2 h-4 w-4" />
@@ -450,6 +454,34 @@ export default function KanbanPage() {
               </Button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={holdReasonModalOpen} onOpenChange={setHoldReasonModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Put Ticket On Hold</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="holdReason">Reason for Hold</Label>
+              <Textarea
+                id="holdReason"
+                value={holdReasonText}
+                onChange={(e) => setHoldReasonText(e.target.value)}
+                placeholder="Enter the reason for putting this ticket on hold"
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelHold}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmHold}>
+              {isLoadingHold ? "Holding..." : "Confirm Hold"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
