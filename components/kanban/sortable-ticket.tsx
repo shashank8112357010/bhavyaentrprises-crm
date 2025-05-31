@@ -178,19 +178,16 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           <Badge variant="outline" className="text-xs">
             JCR: {ticket.workStage?.jcrStatus ? "Done" : "Pending"}
           </Badge>
-          {ticket.workStage?.quoteAmount && (
             <Badge variant="secondary" className="text-xs">
-              Quotation: ₹{ticket.workStage.quoteAmount.toLocaleString()}
+              Quotation: ₹{ticket?.workStage?.quoteAmount.toLocaleString() || 0}
             </Badge>
-          )}
-          {ticket.expenses && ticket.expenses.length > 0 && (
+         
             <Badge variant="secondary" className="text-xs">
               Expense: ₹
-              {ticket.expenses
-                .reduce((total, exp) => total + (Number(exp.amount) || 0), 0)
+              {ticket?.expenses?.reduce((total:any, exp:any) => total + (Number(exp.amount) || 0), 0)
                 .toLocaleString()}
             </Badge>
-          )}
+        
         </div>
 
         <div className="flex justify-between items-center mt-3">
