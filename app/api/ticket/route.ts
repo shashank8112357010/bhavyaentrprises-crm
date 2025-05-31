@@ -85,13 +85,7 @@ export async function GET(req: NextRequest) {
             pdfUrl: true,
           },
         },
-        Quotation: {
-          select: {
-            id: true,
-            pdfUrl: true,
-            createdAt: true,
-          },
-        },
+        Quotation: true, // ✅ All fields from Quotation
       },
     });
 
@@ -153,15 +147,9 @@ export async function GET(req: NextRequest) {
         : [],
       due: ticket.due,
       paid: ticket.paid,
-      quotations: ticket.Quotation.map((q: any) => ({
-        id: q.id,
-        fileUrl: q.fileUrl,
-        createdAt: q.createdAt,
-        version: q.version,
-      })),
+      quotations: ticket.Quotation,
     }));
 
-    return NextResponse.json({ tickets: transformedTickets });
     return NextResponse.json({ tickets: transformedTickets });
   } catch (error: any) {
     console.error("Error fetching tickets:", error);

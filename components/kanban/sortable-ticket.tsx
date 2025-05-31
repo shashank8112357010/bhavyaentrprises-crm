@@ -39,6 +39,8 @@ interface SortableTicketProps {
 }
 
 export function SortableTicket({ ticket }: SortableTicketProps) {
+  console.log(ticket);
+  
   const {
     attributes,
     listeners,
@@ -74,12 +76,16 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       ref={setNodeRef}
       style={style}
       className={`mb-3 cursor-grab transition-all duration-200
-    ${
+    ${(
       ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) <
-      (ticket.workStage?.quoteAmount || 0)
+        ticket?.quotations
+          ?.reduce(
+            (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
+            0
+          )
+          .toLocaleString()
         ? "border-[0.25px] border-green-500"
-        : "border-[0.25px] border-red-500"
-    }
+        : "border-[0.25px] border-red-500")}
   `}
       {...attributes}
       {...listeners}
@@ -137,16 +143,15 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               </Tooltip>
 
               <div className="flex items-center">
-                {/* <FileText className="mr-1 h-3 w-3" /> */}
                 <span
                   className={`px-2 ml-[-4px] py-0.4 rounded-full text-xs font-medium ${
-                    ticket.workStage?.poNumber === "N/A"
+                    !ticket.workStage || ticket.workStage.poNumber === "N/A"
                       ? "bg-yellow-400 text-black"
                       : "bg-green-500 text-white"
                   }`}
                 >
                   PO:{" "}
-                  {ticket.workStage?.poNumber === "N/A"
+                  {!ticket.workStage || ticket.workStage.poNumber === "N/A"
                     ? "Pending"
                     : "Approved"}
                 </span>
@@ -172,20 +177,28 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         </div>
 
         <div className="flex flex-wrap gap-2 mt-3">
-      
           <Badge variant="outline" className="text-xs">
             JCR: {ticket.workStage?.jcrStatus ? "Done" : "Pending"}
           </Badge>
-            <Badge variant="secondary" className="text-xs">
-              Quotation: ₹{ticket?.workStage?.quoteAmount.toLocaleString() || 0}
-            </Badge>
-         
-            <Badge variant="secondary" className="text-xs">
-              Expense: ₹
-              {ticket?.expenses?.reduce((total:any, exp:any) => total + (Number(exp.amount) || 0), 0)
-                .toLocaleString()}
-            </Badge>
-        
+          <Badge variant="secondary" className="text-xs">
+            Quotation: ₹
+            {ticket?.quotations
+              ?.reduce(
+                (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
+                0
+              )
+              .toLocaleString()}
+          </Badge>
+
+          <Badge variant="secondary" className="text-xs">
+            Expense: ₹
+            {ticket?.expenses
+              ?.reduce(
+                (total: any, exp: any) => total + (Number(exp.amount) || 0),
+                0
+              )
+              .toLocaleString()}
+          </Badge>
         </div>
 
         <div className="flex justify-between items-center mt-3">

@@ -38,6 +38,17 @@ export interface Expense {
   pdfUrl: string;
 }
 
+export interface Quotation {
+  id: string;
+  name: string;
+  pdfUrl: string;
+  clientId: string;
+  ticketId: string;
+  createdAt: string;
+  subtotal: number;
+  gst: number;
+  grandTotal: number;
+}
 export interface Ticket  {
   id: string;
   title: string;
@@ -83,6 +94,7 @@ export interface Ticket  {
   comments: number;
   holdReason?: string;
   status: TicketStatus;
+  quotations?: Quotation[];  
 };
 
 // jcr status => red(N/A) , orange (hard copy) , green (soft copy)

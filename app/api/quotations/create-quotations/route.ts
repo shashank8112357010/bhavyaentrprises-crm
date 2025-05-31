@@ -73,6 +73,57 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    if (ticketId) {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { workStageId: true },
+      });
+    
+      if (ticket?.workStageId) {
+        // Update existing workStage
+        await prisma.workStage.update({
+          where: { id: ticket.workStageId },
+          data: {
+            quoteNo: newId,
+            quoteTaxable: subtotal,
+            quoteAmount: grandTotal,
+          },
+        });
+      } else {
+        // Create new workStage and link to ticket
+        const newWorkStage = await prisma.workStage.create({
+          data: {
+            ticket: {
+              connect: { id: ticketId },
+            },
+            stateName: "N/A",
+            adminName: "N/A",
+            clientName: "N/A",
+            siteName: "N/A",
+            quoteNo: newId,
+            dateReceived: new Date(),
+            quoteTaxable: subtotal,
+            quoteAmount: grandTotal,
+            workStatus: "N/A",
+            approval: "N/A",
+            poStatus: false,
+            poNumber: "N/A",
+            jcrStatus: false,
+            agentName: "N/A",
+          },
+        });
+    
+        // Link the new WorkStage to the ticket
+        await prisma.ticket.update({
+          where: { id: ticketId },
+          data: {
+            workStageId: newWorkStage.id,
+          },
+        });
+      }
+    }
+    
+
     return NextResponse.json({ message: "Quotation created", quotation });
   } catch (error) {
     console.error(error);
