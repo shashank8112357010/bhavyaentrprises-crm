@@ -33,6 +33,7 @@ import { Role } from "@/constants/roleAccessConfig";
 type Ticket = {
   id: string;
   title: string;
+  ticketId : string;
   branch: string;
   priority: string;
   assignee: {

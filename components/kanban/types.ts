@@ -5,6 +5,7 @@ export type PerformanceTrend = 'UP' | 'DOWN' | 'STABLE';
 
 export type Agent = {
   id: string;
+ 
   name: string;
   email: string;
   password: string;
@@ -52,6 +53,7 @@ export interface Quotation {
 export interface Ticket  {
   id: string;
   title: string;
+  ticketId : string;
  
   branch: string;
   priority: string;

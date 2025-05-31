@@ -34,14 +34,18 @@ interface NewQuotationDialogProps {
   onSuccess?: () => void;
 }
 
+interface RateCardDetail {
+  rateCardId: string;
+  quantity: number;
+  gstType: number;
+}
+
 export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState<string>("");
   const [rateCards, setRateCards] = useState<any[]>([]);
   const [rateCardsBackup, setRateCardsBackup] = useState<any[]>([]);
-  const [selectedRates, setSelectedRates] = useState<
-    { id: string; qty: number }[]
-  >([]);
+  const [selectedRates, setSelectedRates] = useState<RateCardDetail[]>([]);
   const { clients, fetchClients } = useClientStore();
   const [ticketId, setTicketId] = useState<string>("");
   const { all_tickets, fetchTickets } = useTicketStore();
@@ -51,9 +55,10 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
   const [loading, setLoading] = useState(false);
   const startDate = "1970-01-01";
   const endDate = "2100-12-31";
+
   useEffect(() => {
     fetchClients();
-    fetchTickets({startDate , endDate });
+    fetchTickets({ startDate, endDate });
   }, [fetchClients, fetchTickets]);
 
   useEffect(() => {
@@ -83,17 +88,23 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
     }
   };
 
-  const handleRateCardQtyChange = (id: string, qty: number) => {
+  const handleRateCardQtyChange = (rateCardId: string, quantity: number) => {
     setSelectedRates((prev) => {
-      const existing = prev.find((r) => r.id === id);
+      const existing = prev.find((r) => r.rateCardId === rateCardId);
       if (existing) {
-        return qty > 0
-          ? prev.map((r) => (r.id === id ? { ...r, qty } : r))
-          : prev.filter((r) => r.id !== id);
+        return quantity > 0
+          ? prev.map((r) => (r.rateCardId === rateCardId ? { ...r, quantity } : r))
+          : prev.filter((r) => r.rateCardId !== rateCardId);
       } else {
-        return qty > 0 ? [...prev, { id, qty }] : prev;
+        return quantity > 0 ? [...prev, { rateCardId, quantity, gstType: 18 }] : prev;
       }
     });
+  };
+
+  const handleGstTypeChange = (rateCardId: string, gstType: number) => {
+    setSelectedRates((prev) =>
+      prev.map((r) => (r.rateCardId === rateCardId ? { ...r, gstType } : r))
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,18 +138,14 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
       return;
     }
 
-    const rateCardIds: string[] = [];
-    selectedRates.forEach(({ id, qty }) => {
-      for (let i = 0; i < qty; i++) {
-        rateCardIds.push(id);
-      }
-    });
+    // Log selectedRates to ensure it's correctly structured
+    console.log("Selected Rates:", selectedRates);
 
     try {
       await createQuotation({
         name,
         clientId,
-        rateCardIds,
+        rateCardDetails: selectedRates,
         ticketId: ticketId || undefined,
       });
       toast({
@@ -162,6 +169,15 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
       });
     }
   };
+
+  useEffect(() => {
+    if (ticketId) {
+      const selectedTicket = all_tickets?.find((ticket: any) => ticket.id === ticketId);
+      if (selectedTicket?.client?.id) {
+        setClientId(selectedTicket.client.id);
+      }
+    }
+  }, [ticketId, all_tickets]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -191,8 +207,23 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="ticket">Ticket</Label>
+              <Select value={ticketId} onValueChange={setTicketId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select ticket" />
+                </SelectTrigger>
+                <SelectContent>
+                  {all_tickets?.map((ticket: any) => (
+                    <SelectItem key={ticket.id} value={ticket.id}>
+                      {ticket.title || ticket.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="client">Client</Label>
-              <Select value={clientId} onValueChange={setClientId}>
+              <Select value={clientId} onValueChange={setClientId} disabled={true}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
@@ -205,21 +236,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ticket">Ticket</Label>
-              <Select value={ticketId} onValueChange={setTicketId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select ticket (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {all_tickets?.map((ticket: any) => (
-                    <SelectItem key={ticket.id} value={ticket.id}>
-                      {ticket.title || ticket.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="description">Work Details</Label>
               <Textarea
@@ -233,27 +250,27 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
             <div className="grid gap-2">
               <Label>Rate Card Items</Label>
 
-              {selectedRates.filter((r) => r.qty > 0).length > 0 && (
+              {selectedRates.filter((r) => r.quantity > 0).length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {selectedRates
-                    .filter((r) => r.qty > 0)
+                    .filter((r) => r.quantity > 0)
                     .map((r) => {
                       const rc =
-                        rateCards.find((item) => item.id === r.id) ||
-                        rateCardsBackup.find((item) => item.id === r.id);
+                        rateCards.find((item) => item.id === r.rateCardId) ||
+                        rateCardsBackup.find((item) => item.id === r.rateCardId);
                       if (!rc) return null;
                       return (
                         <div
-                          key={r.id}
-                          className="flex items-center gap-1 border  px-2 py-1 rounded-full text-sm"
+                          key={r.rateCardId}
+                          className="flex items-center gap-1 border px-2 py-1 rounded-full text-sm"
                         >
-                          {rc.srNo}. {rc.description} (x{r.qty})
+                          {rc.srNo}. {rc.description} (x{r.quantity}, GST: {r.gstType}%)
                           <button
                             type="button"
                             className="ml-1 text-red-500"
                             onClick={() =>
                               setSelectedRates((prev) =>
-                                prev.filter((item) => item.id !== r.id)
+                                prev.filter((item) => item.rateCardId !== r.rateCardId)
                               )
                             }
                           >
@@ -267,7 +284,6 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
 
               <Input
                 type="search"
-                
                 placeholder="Search rate card..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -275,7 +291,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
 
               <div className="grid gap-2 max-h-[200px] overflow-y-auto">
                 {rateCards.map((rc) => {
-                  const selected = selectedRates.find((r) => r.id === rc.id);
+                  const selected = selectedRates.find((r) => r.rateCardId === rc.id);
                   return (
                     <div
                       key={rc.id}
@@ -287,12 +303,27 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
                       <Input
                         type="number"
                         min={0}
+                        placeholder="Qty"
                         className="w-20"
-                        value={selected?.qty ?? ""}
+                        value={selected?.quantity ?? ""}
                         onChange={(e) =>
                           handleRateCardQtyChange(rc.id, Number(e.target.value))
                         }
                       />
+                      <Select
+                        value={selected?.gstType?.toString() || "18"}
+                        onValueChange={(value) =>
+                          handleGstTypeChange(rc.id, Number(value))
+                        }
+                      >
+                        <SelectTrigger className="w-[80px]">
+                          <SelectValue placeholder="GST" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="18">18%</SelectItem>
+                          <SelectItem value="28">28%</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   );
                 })}

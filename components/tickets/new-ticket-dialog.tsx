@@ -215,7 +215,7 @@ export default function NewTicketDialog() {
                 {clients.map((client: any) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.initials
-                      ? `${client.initials} - ${client.name}`
+                      ? `${client.name}`
                       : client.name}
                   </SelectItem>
                 ))}

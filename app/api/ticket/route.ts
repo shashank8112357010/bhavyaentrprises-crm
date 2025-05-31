@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       where: whereConditions,
       include: {
         assignee: {
-          select: { name: true, avatar: true, initials: true },
+          select: { name: true, avatar: true, initials: true  },
         },
         workStage: {
           select: {
@@ -96,6 +96,7 @@ export async function GET(req: NextRequest) {
     const transformedTickets = tickets.map((ticket: any) => ({
       id: ticket.id,
       title: ticket.title || "N/A",
+      ticketId : ticket.ticketId || 'NA',
       client: {
         id: ticket.client.id,
         name: ticket.client.name,

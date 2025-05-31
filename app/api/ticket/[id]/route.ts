@@ -9,13 +9,16 @@ import {
 } from "../../../../lib/validations/ticketSchema";
 import { TicketStatus } from "@prisma/client";
 
+
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log("reaching");
     const body = await req.json();
-console.log("reaching");
+    console.log("reaching");
 
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
@@ -25,6 +28,7 @@ console.log("reaching");
         where: { id: params.id },
         select: { status: true, assigneeId: true },
       });
+
       console.log(existingTicket, "existingTicket");
 
       if (!existingTicket) {
@@ -64,7 +68,6 @@ console.log("reaching");
     }
     console.log(body);
 
-    // Otherwise, handle it as a general ticket update
     const validatedData = updateTicketSchema.safeParse(body);
     if (validatedData.error) {
       const fieldErrors = validatedData.error.flatten().fieldErrors;
@@ -78,7 +81,6 @@ console.log("reaching");
         { status: 400 }
       );
     }
-   
 
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
@@ -135,6 +137,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log(params);
+  
   try {
     const ticket = await prisma.ticket.findUnique({
       where: { id: params.id },
@@ -174,6 +178,39 @@ export async function DELETE(
     return NextResponse.json(
       { message: "Failed to delete ticket", error: error.message },
       { status: 400 }
+    );
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+
+    // Log the ID to ensure it's correctly captured
+    console.log(`Fetching ticket with ID: ${id}`);
+
+    // Fetch the ticket from the database
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+    });
+
+    if (!ticket) {
+      console.log(`Ticket with ID ${id} not found`);
+      return NextResponse.json(
+        { message: "Ticket not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(ticket);
+  } catch (error) {
+    console.error("Error fetching ticket:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
     );
   }
 }

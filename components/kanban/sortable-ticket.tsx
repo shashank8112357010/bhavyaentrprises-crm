@@ -116,7 +116,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         <CardContent className="p-3 pb-0">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <Badge variant="outline">{ticket.id}</Badge>
+              <Badge variant="outline">{ticket.ticketId}</Badge>
               <div
                 className={`h-2 w-2 rounded-full ${priorityColor}`}
                 title={`Priority: ${ticket.priority}`}
