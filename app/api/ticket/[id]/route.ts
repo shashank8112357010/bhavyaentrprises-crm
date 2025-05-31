@@ -15,14 +15,17 @@ export async function PATCH(
 ) {
   try {
     const body = await req.json();
+console.log("reaching");
 
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
+      console.log(params);
 
       const existingTicket = await prisma.ticket.findUnique({
         where: { id: params.id },
         select: { status: true, assigneeId: true },
       });
+      console.log(existingTicket, "existingTicket");
 
       if (!existingTicket) {
         return NextResponse.json(
@@ -30,8 +33,8 @@ export async function PATCH(
           { status: 404 }
         );
       }
-      if(body.holdReason){
-       await prisma.ticket.update({
+      if (body.holdReason) {
+        await prisma.ticket.update({
           where: { id: params.id },
           data: { holdReason: body.holdReason },
         });
@@ -75,8 +78,8 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    console.log(validatedData);
-    
+   
+
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
       data: validatedData.data,

@@ -10,21 +10,7 @@ const prisma = new PrismaClient();
 
 async function seedUsers() {
   try {
-    // Seed an admin user
-    const hashedAdminPassword = await bcrypt.hash('admin@123', 10);
-    await prisma.user.upsert({
-      where: { email: 'admin@example.com' },
-      update: {},
-      create: {
-        name: sanitizeString('Admin'),
-        email: sanitizeString('admin@example.com'),
-        password: hashedAdminPassword,
-        role: 'ADMIN', // Ensure this is a valid enum value
-        mobile: sanitizeString('1234567890'),
-      },
-    });
 
-    console.log('✅ Admin user seeded');
 
     // Seed regular users
     const users = [
@@ -69,6 +55,13 @@ async function seedUsers() {
         password: 'welcome@crm',
         role: 'BACKEND', // Ensure this is a valid enum value
         mobile: '9026849414',
+      },
+      {
+        name: 'Girish',
+        email: 'girish@bhavyaentrprises.com',
+        password: 'admin@123',
+        role: 'ADMIN', // Ensure this is a valid enum value
+        mobile: '9999971362',
       }
     ];
 
