@@ -38,16 +38,11 @@ export function UploadClientsDialog({ onUploadComplete }: UploadClientsDialogPro
     setError(null); // Clear previous errors
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      if (
-        selectedFile.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-        selectedFile.type === "application/vnd.ms-excel" ||
-        selectedFile.name.endsWith(".xlsx") ||
-        selectedFile.name.endsWith(".xls")
-      ) {
+      if (selectedFile.type === "text/csv" || selectedFile.name.endsWith(".csv")) {
         setFile(selectedFile);
       } else {
         setFile(null);
-        setError("Invalid file type. Please select an .xlsx or .xls file.");
+        setError("Invalid file type. Please select a .csv file.");
       }
     }
   };
@@ -123,21 +118,21 @@ export function UploadClientsDialog({ onUploadComplete }: UploadClientsDialogPro
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Upload Client Data (.xlsx, .xls)</DialogTitle>
+          <DialogTitle>Upload Client Data (.csv)</DialogTitle>
           <DialogDescription>
-            Select an Excel file that follows the required format. Ensure headers match the sample.
+            Select a CSV file that follows the required format. Ensure headers match the sample.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="file-upload" className="col-span-1 text-right">
-                Excel File
+                CSV File
               </Label>
               <Input
                 id="file-upload"
                 type="file"
-                accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                accept=".csv, text/csv"
                 onChange={handleFileChange}
                 className="col-span-3"
                 disabled={isUploading}

@@ -56,10 +56,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import {
   createClient,
-  exportClientsToExcel,
+  exportClientsToCsv, // Changed from exportClientsToExcel
   getAllClients,
 } from "@/lib/services/client";
-import { UploadClientsDialog } from "@/components/clients/UploadClientsDialog"; // Added import
+import { UploadClientsDialog } from "@/components/clients/UploadClientsDialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@radix-ui/react-select";
 
@@ -172,7 +172,18 @@ export default function ClientsPage() {
   // Reset to first page when filters/search change
   useEffect(() => {
     setCurrentPage(0);
-  }, [searchQuery, clientType, clients]);
+  }, [searchQuery, clientType]);
+
+  // Adjust currentPage if it's out of bounds due to pageCount changing
+  useEffect(() => {
+    if (pageCount > 0) {
+      if (currentPage >= pageCount) {
+        setCurrentPage(pageCount - 1); // Adjust to the new last page
+      }
+    } else {
+      setCurrentPage(0); // No pages, so current page must be 0
+    }
+  }, [pageCount, currentPage]);
 
   async function handleCreateClient(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -313,12 +324,12 @@ export default function ClientsPage() {
                 Add Client
               </Button>
             </DialogTrigger>
-            <Button variant="outline" onClick={exportClientsToExcel}>
+            <Button variant="outline" onClick={exportClientsToCsv}> {/* Changed onClick handler */}
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
             <UploadClientsDialog onUploadComplete={refreshClients} />
-            <a href="/sample_client_import.xlsx" download>
+            <a href="/sample_client_import.csv" download> {/* Changed href to .csv */}
               <Button variant="outline">
                 <Download className="mr-2 h-4 w-4" />
                 Download Sample
