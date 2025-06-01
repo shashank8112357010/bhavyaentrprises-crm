@@ -46,10 +46,13 @@ export default function LoginPage() {
       console.log(response);
 
       const { token, user } = response.data;
+console.log(user);
 
       if (token) {
         setUser(user);
         localStorage.setItem("role", user.role);
+        localStorage.setItem("userId", user.userId);
+
       }
       toast({ title: "Success", description: "Logged in successfully!" });
       setTimeout(() => {
