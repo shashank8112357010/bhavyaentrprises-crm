@@ -14,7 +14,7 @@ export const createClientSchema = z.object({
     message: "Invalid date format",
   }),
   avatar: z.string().optional(),
-  initials: z.string().min(1, "Initials required"),
+  initials: z.string().optional(), // Changed to optional
 });
 
 

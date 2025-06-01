@@ -54,12 +54,14 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { Spinner } from "@/components/ui/spinner";
 import {
   createClient,
-  exportClientsToExcel,
+  exportClientsToCsv, // Changed from exportClientsToExcel
   getAllClients,
 } from "@/lib/services/client";
+import { UploadClientsDialog } from "@/components/clients/UploadClientsDialog";
+import { Spinner } from "@/components/ui/spinner";
+import { Label } from "@radix-ui/react-select";
 
 type Client = {
   id?: string;
@@ -94,7 +96,7 @@ type GetClient = {
   tickets: any[];
 };
 
-const ITEMS_PER_PAGE = 5;
+// const ITEMS_PER_PAGE = 5; // Will be replaced by itemsPerPage state
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,6 +104,8 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<GetClient[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [itemsPerPage, setItemsPerPage] = useState(5); // Added state for items per page
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -121,19 +125,25 @@ export default function ClientsPage() {
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  useEffect(() => {
-    async function fetchClients() {
-      try {
-        setLoading(true);
-        const data = await getAllClients();
-        setClients(data?.clients || []);
-        setLoading(false);
-      } catch (err) {
-        setLoading(false);
-        console.error("Failed to fetch clients:", err);
-      }
+  async function refreshClients() {
+    try {
+      setLoading(true);
+      const data = await getAllClients();
+      setClients(data?.clients || []);
+    } catch (err) {
+      console.error("Failed to fetch clients:", err);
+      toast({
+        title: "Error",
+        description: "Could not refresh client list.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    fetchClients();
+  }
+
+  useEffect(() => {
+    refreshClients();
   }, []);
 
   const filteredClients = clients.filter((client) => {
@@ -149,15 +159,27 @@ export default function ClientsPage() {
     return matchesSearch && matchesType;
   });
 
-  const pageCount = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
+  // Pagination calculation: slice filteredClients for current page
+  const pageCount = itemsPerPage > 0 ? Math.ceil(filteredClients.length / itemsPerPage) : 0;
   const paginatedClients = filteredClients.slice(
-    currentPage * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage // Corrected end index calculation
   );
 
+  // Reset to first page when filters/search change or itemsPerPage changes
   useEffect(() => {
     setCurrentPage(0);
-  }, [searchQuery, clientType, clients]);
+  }, [searchQuery, clientType, itemsPerPage]); // Added itemsPerPage to dependencies
+
+  // Adjust currentPage if it's out of bounds due to pageCount changing
+  useEffect(() => {
+    if (pageCount > 0 && currentPage >= pageCount) {
+        setCurrentPage(pageCount - 1); // Adjust to the new last page
+    } else if (pageCount === 0 && currentPage !== 0) {
+        setCurrentPage(0); // No pages, so current page must be 0
+    }
+    // If currentPage is valid or pageCount is 0 and currentPage is 0, no change needed.
+  }, [pageCount, currentPage]);
 
   async function handleCreateClient(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -288,10 +310,17 @@ export default function ClientsPage() {
                 Add Client
               </Button>
             </DialogTrigger>
-            <Button variant="outline" onClick={exportClientsToExcel}>
+            <Button variant="outline" onClick={exportClientsToCsv}> {/* Changed onClick handler */}
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
+            <UploadClientsDialog onUploadComplete={refreshClients} />
+            <a href="/sample_client_import.csv" download> {/* Changed href to .csv */}
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Download Sample
+              </Button>
+            </a>
           </div>
         </div>
 
@@ -545,35 +574,69 @@ export default function ClientsPage() {
             </Table>
           )}
 
-          {filteredClients.length > ITEMS_PER_PAGE && (
-            <div className="flex justify-end mt-4">
-              <ReactPaginate
-                previousLabel={"← Previous"}
-                nextLabel={"Next →"}
-                breakLabel={"..."}
-                pageCount={pageCount}
-                marginPagesDisplayed={1}
-                pageRangeDisplayed={3}
-                onPageChange={handlePageClick}
-                containerClassName="flex space-x-1 text-sm select-none"
-                pageClassName="px-3 py-1 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"
-                activeClassName="bg-blue-600 text-white border-blue-600"
-                previousClassName="px-3 py-1 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100"
-                nextClassName="px-3 py-1 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100"
-                disabledClassName="opacity-50 cursor-not-allowed"
-                forcePage={currentPage}
-              />
+          {/* Pagination Controls Area */}
+          <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
+            <div className="text-sm text-muted-foreground mb-2 md:mb-0">
+              {filteredClients.length > 0 ? (
+                `Showing ${currentPage * itemsPerPage + 1} - ${Math.min((currentPage + 1) * itemsPerPage, filteredClients.length)} of ${filteredClients.length} clients`
+              ) : (
+                "No clients found"
+              )}
             </div>
-          )}
+
+            {filteredClients.length > itemsPerPage && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Rows:</span>
+                <Select
+                  value={String(itemsPerPage)}
+                  onValueChange={(value) => {
+                    setItemsPerPage(Number(value));
+                    // setCurrentPage(0); // Already handled by useEffect watching itemsPerPage
+                  }}
+                >
+                  <SelectTrigger className="w-[75px] h-9">
+                    <SelectValue placeholder={String(itemsPerPage)} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="15">15</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <ReactPaginate
+                  previousLabel={"← Previous"}
+                  nextLabel={"Next →"}
+                  breakLabel={"..."}
+                  pageCount={pageCount}
+                  marginPagesDisplayed={1}
+                  pageRangeDisplayed={2}
+                  onPageChange={handlePageClick}
+                  containerClassName="flex items-center space-x-1 text-sm select-none"
+                  pageLinkClassName="px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  activeLinkClassName="bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+                  previousLinkClassName="px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  nextLinkClassName="px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  disabledLinkClassName="opacity-50 cursor-not-allowed"
+                  forcePage={currentPage}
+                />
+              </div>
+            )}
+          </div>
         </TabsContent>
 
-        <TabsContent value="grid" className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Grid View Pagination - Apply similar structure */}
+        <TabsContent
+          value="grid"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
           {loading ? (
             <div className="col-span-full flex justify-center py-10">
               <Spinner size="6" />
             </div>
           ) : paginatedClients.length > 0 ? (
             paginatedClients.map((client) => (
+              // ... Card rendering ...
               <Card key={client.id} className="overflow-hidden">
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between">
@@ -641,26 +704,55 @@ export default function ClientsPage() {
             </div>
           )}
 
-          {filteredClients.length > ITEMS_PER_PAGE && (
-            <div className="col-span-full flex justify-end mt-4">
-              <ReactPaginate
-                previousLabel={"← Previous"}
-                nextLabel={"Next →"}
-                breakLabel={"..."}
-                pageCount={pageCount}
-                marginPagesDisplayed={1}
-                pageRangeDisplayed={3}
-                onPageChange={handlePageClick}
-                containerClassName="flex space-x-1 text-sm select-none"
-                pageClassName="px-3 py-1 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"
-                activeClassName="bg-blue-600 text-white border-blue-600"
-                previousClassName="px-3 py-1 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100"
-                nextClassName="px-3 py-1 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100"
-                disabledClassName="opacity-50 cursor-not-allowed"
-                forcePage={currentPage}
-              />
+          {/* Pagination Controls Area for Grid View */}
+           <div className="col-span-full mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
+            <div className="text-sm text-muted-foreground mb-2 md:mb-0">
+              {filteredClients.length > 0 ? (
+                `Showing ${currentPage * itemsPerPage + 1} - ${Math.min((currentPage + 1) * itemsPerPage, filteredClients.length)} of ${filteredClients.length} clients`
+              ) : (
+                "No clients found"
+              )}
             </div>
-          )}
+
+            {filteredClients.length > itemsPerPage && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Rows:</span>
+                <Select
+                  value={String(itemsPerPage)}
+                  onValueChange={(value) => {
+                    setItemsPerPage(Number(value));
+                    // setCurrentPage(0); // Already handled by useEffect
+                  }}
+                >
+                  <SelectTrigger className="w-[75px] h-9">
+                    <SelectValue placeholder={String(itemsPerPage)} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="15">15</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <ReactPaginate
+                  previousLabel={"← Previous"}
+                  nextLabel={"Next →"}
+                  breakLabel={"..."}
+                  pageCount={pageCount}
+                  marginPagesDisplayed={1}
+                  pageRangeDisplayed={2}
+                  onPageChange={handlePageClick}
+                  containerClassName="flex items-center space-x-1 text-sm select-none"
+                  pageLinkClassName="px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  activeLinkClassName="bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+                  previousLinkClassName="px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  nextLinkClassName="px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  disabledLinkClassName="opacity-50 cursor-not-allowed"
+                  forcePage={currentPage}
+                />
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

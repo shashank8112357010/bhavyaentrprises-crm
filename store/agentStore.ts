@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import { deleteAgent, getAllAgents, getAgentById, createAgent, updateAgent } from "../lib/services/agent";
+import {
+  getAllAgents,
+  getAgentById,
+  createAgent as createAgentService, // Renamed for clarity
+  updateAgent as updateAgentService, // Renamed for clarity
+  deleteAgent as deleteAgentService // Renamed to avoid conflict with action name
+} from "../lib/services/agent";
 
 import { Agent , CreateAgentPayload } from "@/components/agent/types";
 
@@ -7,31 +13,60 @@ interface AgentState {
   agents: Agent[];
   loading: boolean;
   error: string | null;
-  fetchAgents: () => Promise<void>;
+  currentPage: number;
+  itemsPerPage: number;
+  totalAgents: number;
+  searchQuery: string;
+  fetchAgents: (params?: { page?: number; limit?: number; query?: string }) => Promise<void>;
   fetchAgentById: (id: string) => Promise<Agent | undefined>;
   addAgent: (agent: CreateAgentPayload) => Promise<void>;
   editAgent: (id: string, updatedAgent: Agent) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
+  setCurrentPage: (page: number) => void;
+  setSearchQuery: (query: string) => void;
+  setItemsPerPage: (newLimit: number) => void; // Added new action
 }
 
-export const useAgentStore = create<AgentState>((set) => ({
+export const useAgentStore = create<AgentState>((set, get) => ({
   agents: [],
   loading: false,
   error: null,
-  fetchAgents: async () => {
+  currentPage: 1,
+  itemsPerPage: 5, // Updated default items per page to 5
+  totalAgents: 0,
+  searchQuery: "",
+  fetchAgents: async (params = {}) => {
     set({ loading: true, error: null });
+    const S = get();
+    const pageToFetch = params.page ?? S.currentPage;
+    const limitToFetch = params.limit ?? S.itemsPerPage;
+    const queryToFetch = params.query !== undefined ? params.query : S.searchQuery;
+
     try {
-      const response = await getAllAgents();
-      set({ agents: response.agents, loading: false });
+      const response = await getAllAgents({
+        page: pageToFetch,
+        limit: limitToFetch,
+        searchQuery: queryToFetch
+      });
+      set({
+        agents: response.data,
+        totalAgents: response.total,
+        currentPage: response.page,
+        itemsPerPage: response.limit, // Update itemsPerPage from API response
+        searchQuery: queryToFetch,
+        loading: false
+      });
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
   },
   fetchAgentById: async (id: string) => {
+    // This function fetches a single agent, pagination state is not directly affected
+    // but loading and error state should be handled.
     set({ loading: true, error: null });
     try {
       const agent = await getAgentById(id);
-      set({ loading: false });
+      set({ loading: false }); // Reset loading after fetch
       return agent;
     } catch (error: any) {
       set({ error: error.message, loading: false });
@@ -39,44 +74,52 @@ export const useAgentStore = create<AgentState>((set) => ({
     }
   },
   addAgent: async (agent: CreateAgentPayload) => {
-    // set({ loading: true, error: null });
     try {
-      const newAgent = await createAgent(agent);
-      
-      set((state) => ({
-        agents: [...state.agents, newAgent?.user],
-        loading: false,
-      }));
-
+      await createAgentService(agent); // Use renamed service
+      // After adding, refresh to the first page with current search query
+      get().fetchAgents({ page: 1, query: get().searchQuery });
     } catch (error: any) {
       set({ error: error.message || 'Failed to create agent'});
-      throw error;
+      throw error; // Rethrow to allow form to handle it
     }
   },
   editAgent: async (id: string, updatedAgent: Agent) => {
-    set({ loading: true, error: null });
     try {
-      await updateAgent(id, updatedAgent);
-      set((state) => ({
-        agents: state.agents.map((agent) =>
-          agent.id === id ? updatedAgent : agent
-        ),
-        loading: false,
-      }));
+      await updateAgentService(id, updatedAgent); // Use renamed service
+      // After editing, refresh the current page
+      get().fetchAgents({ page: get().currentPage, query: get().searchQuery });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.message || 'Failed to update agent', loading: false });
+      throw error; // Rethrow to allow form to handle it
     }
   },
   deleteAgent: async (id: string) => {
-    // set({ loading: true, error: null });
     try {
-      await deleteAgent(id);
-      set((state) => ({
-        agents: state.agents.filter((agent) => agent.id !== id),
-        
-      }));
+      await deleteAgentService(id); // Use renamed service
+      // After deleting, check if the current page becomes empty
+      const { agents, totalAgents, currentPage } = get();
+      if (agents.length === 1 && totalAgents > 1 && currentPage > 1) {
+        // If it was the last item on a page (and not the first page)
+        get().fetchAgents({ page: currentPage - 1, query: get().searchQuery });
+      } else {
+        // Otherwise, refresh the current page (or first page if current page becomes invalid)
+        get().fetchAgents({ page: currentPage, query: get().searchQuery });
+      }
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.message || 'Failed to delete agent', loading: false });
+      throw error; // Rethrow to allow UI to handle it
     }
+  },
+  setCurrentPage: (page: number) => {
+    set({ currentPage: page, loading: true }); // Set loading true before fetch
+    get().fetchAgents({ page, query: get().searchQuery }); // Pass current query
+  },
+  setSearchQuery: (query: string) => {
+    set({ searchQuery: query, currentPage: 1, loading: true }); // Reset to page 1 and set loading
+    get().fetchAgents({ page: 1, query });
+  },
+  setItemsPerPage: (newLimit: number) => {
+    set({ itemsPerPage: newLimit, currentPage: 1, loading: true }); // Update state and set loading
+    get().fetchAgents({ page: 1, limit: newLimit, query: get().searchQuery });
   },
 }));

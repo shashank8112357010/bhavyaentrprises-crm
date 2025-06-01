@@ -28,7 +28,7 @@ interface GetAllRateCardsParams {
 
 export async function getAllRateCards(params: GetAllRateCardsParams = {}) {
   try {
-    const { page = 1, limit = 10, searchQuery = "" } = params;
+    const { page = 1, limit = 5, searchQuery = "" } = params; // Changed default limit to 5
 
     const response = await axios.get("/rate-cards", {
       withCredentials: true,

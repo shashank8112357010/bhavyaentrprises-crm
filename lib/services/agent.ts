@@ -1,7 +1,19 @@
 import axios from "@/lib/axios";
 import { Agent , CreateAgentPayload } from "@/components/agent/types";
 
+interface GetAllAgentsParams {
+  page?: number;
+  limit?: number;
+  searchQuery?: string;
+}
 
+// Make sure the return type matches the API response structure
+interface PaginatedAgentsResponse {
+  data: Agent[]; // Assuming Agent type is defined
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export async function createAgent(payload: CreateAgentPayload) {
   try {
@@ -17,8 +29,11 @@ export async function createAgent(payload: CreateAgentPayload) {
   }
 }
 
-export async function getAllAgents() {
+export async function getAllAgents(
+  params: GetAllAgentsParams = {}
+): Promise<PaginatedAgentsResponse> {
   try {
+    const { page = 1, limit = 10, searchQuery = "" } = params;
     const response = await axios.get("/agent", {
       withCredentials: true,
       headers: {
@@ -26,10 +41,12 @@ export async function getAllAgents() {
         Pragma: "no-cache",
         Expires: "0",
       },
+      params: { page, limit, search: searchQuery }, // Pass params to API
     });
-    return response.data;
+    return response.data; // Should now be the paginated response
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch agents.";
+    const message = error.response?.data?.message || // Use message from API error if available
+                   (error.response?.data?.error || "Failed to fetch agents.");
     throw new Error(message);
   }
 }
