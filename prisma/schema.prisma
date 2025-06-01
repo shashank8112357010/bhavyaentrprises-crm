@@ -50,6 +50,7 @@ model User {
   activeTickets    Int              @default(0)
   rating           Float            @default(0.0)
   completedTickets Int              @default(0)
+  authoredComments Comment[] @relation("UserAuthoredComments")
 }
 
 model RateCard {
@@ -145,7 +146,7 @@ model Comment {
   ticketId  String
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation("UserAuthoredComments", fields: [userId], references: [id])
 
   @@index([ticketId])
   @@index([userId])

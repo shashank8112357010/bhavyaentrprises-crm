@@ -86,6 +86,9 @@ export async function GET(req: NextRequest) {
           },
         },
         Quotation: true, // ✅ All fields from Quotation
+        _count: {
+          select: { comments: true },
+        },
       },
     });
 
@@ -134,7 +137,7 @@ export async function GET(req: NextRequest) {
       completedDate: ticket.completedDate ?? "N/A",
       createdAt: ticket.createdAt || "N/A",
       description: ticket.description || "N/A",
-      comments: ticket.comments ?? 0,
+      comments: ticket._count?.comments ?? 0,
       holdReason: ticket.holdReason || "N/A",
       status: ticket.status || "N/A",
       expenses: ticket.expenses.length
