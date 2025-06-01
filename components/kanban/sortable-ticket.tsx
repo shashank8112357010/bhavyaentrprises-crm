@@ -100,8 +100,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       <Card
         ref={setNodeRef}
         style={{ ...style }}
-        className={`mb-3 cursor-grab transition-all duration-200
-          ${
+        className={`mb-3 transition-all duration-200
+          ${ // Note: Removed cursor-grab from this className string
             ticket.expenses.reduce(
               (sum, e) => sum + (Number(e.amount) || 0),
               0
@@ -115,7 +115,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           }
         `}
         {...attributes}
-        {...listeners}
+        // {...listeners} // Commented out for testing
       >
         <CardContent className="p-3 pb-0">
           <div className="flex items-start justify-between">
