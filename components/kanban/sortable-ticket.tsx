@@ -135,21 +135,21 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               <DropdownMenuContent align="end" className="z-50">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem
-                  onSelect={() => {
-                    console.log("View Details dropdown item selected. Ticket ID:", ticket?.id);
+                  onClick={() => { // Changed from onSelect to onClick
+                    console.log("View Details dropdown item CLICKED. Ticket ID:", ticket?.id);
                     if (ticket?.id) {
                       router.push(`/dashboard/ticket/${ticket.id}`);
                     } else {
-                      console.error("Navigation failed from dropdown: Ticket ID is undefined.");
+                      console.error("Navigation failed from dropdown (onClick): Ticket ID is undefined.");
                     }
                   }}
-                  className="cursor-pointer" // Ensure it looks clickable
+                  className="cursor-pointer"
                 >View Details</DropdownMenuItem>
                 <DropdownMenuItem
                   className="z-50 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log("Edit button clicked directly");
+                    console.log("Edit dropdown item CLICKED. Ticket ID:", ticket?.id);
                     handleEditClick();
                   }}
                 >
@@ -346,14 +346,14 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs z-50"
+            className="h-7 px-2 text-xs" // Removed z-50
             onClick={(e) => {
               e.stopPropagation();
-              console.log("Details button clicked. Ticket ID:", ticket?.id);
+              console.log("Details button CLICKED. Ticket ID:", ticket?.id); // Updated log
               if (ticket?.id) {
                 router.push(`/dashboard/ticket/${ticket.id}`);
               } else {
-                console.error("Navigation failed: Ticket ID is undefined.");
+                console.error("Navigation failed from button: Ticket ID is undefined."); // Updated log
               }
             }}
           >
