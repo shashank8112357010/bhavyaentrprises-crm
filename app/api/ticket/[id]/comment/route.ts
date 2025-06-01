@@ -10,12 +10,12 @@ const createCommentSchema = z.object({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { ticketId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { ticketId } = params;
+    const { id } = params;
 
-    if (!ticketId) {
+    if (!id) {
       return NextResponse.json(
         { message: "Ticket ID is required" },
         { status: 400 }
@@ -23,7 +23,7 @@ export async function GET(
     }
 
     const comments = await prisma.comment.findMany({
-      where: { ticketId },
+      where: { ticketId: id },
       include: {
         user: { // Include user details for the commenter
           select: {
@@ -51,12 +51,12 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { ticketId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { ticketId } = params;
+    const { id } = params;
 
-    if (!ticketId) {
+    if (!id) {
       return NextResponse.json(
         { message: "Ticket ID is required" },
         { status: 400 }
@@ -77,7 +77,7 @@ export async function POST(
 
     // Verify ticket exists
     const ticket = await prisma.ticket.findUnique({
-      where: { id: ticketId },
+      where: { id: id },
     });
 
     if (!ticket) {
@@ -102,7 +102,7 @@ export async function POST(
     const newComment = await prisma.comment.create({
       data: {
         text,
-        ticketId,
+        ticketId: id,
         userId,
       },
       include: { // Include user details in the response for the new comment
@@ -122,7 +122,7 @@ export async function POST(
     console.error("Error creating comment:", error);
     // Handle potential Prisma errors, e.g., foreign key constraint
     if (error instanceof Error && 'code' in error && (error as any).code === 'P2003') {
-        return NextResponse.json({ message: "Invalid ticketId or userId provided." }, { status: 400 });
+        return NextResponse.json({ message: "Invalid ticket ID or user ID provided." }, { status: 400 });
     }
     return NextResponse.json(
       { message: "Internal server error while creating comment" },
