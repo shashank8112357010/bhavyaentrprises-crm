@@ -51,6 +51,8 @@ model User {
   rating           Float            @default(0.0)
   completedTickets Int              @default(0)
   authoredComments Comment[] @relation("UserAuthoredComments")
+  resetPasswordToken String? @unique
+  resetPasswordExpires DateTime?
 }
 
 model RateCard {

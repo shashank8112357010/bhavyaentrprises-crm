@@ -21,13 +21,15 @@ import ExternalCallsList from "@/components/dashboard/external-calls-list";
 import UpcomingSchedule from "@/components/dashboard/upcoming-schedule";
 import { useTicketStore } from "@/store/ticketStore";
 import { useEffect } from "react";
-import { useUserStore } from "@/store/crmStore";
+// import { useUserStore } from "@/store/crmStore"; // Replaced by useAuthStore
+import { useAuthStore } from "@/store/authStore"; // Import useAuthStore
 
 
 export default function Home() {
   const {  fetchTickets } = useTicketStore();
-  const { user } = useUserStore();
- console.log(user);
+  // const { user } = useUserStore(); // Replaced by useAuthStore
+  const { user } = useAuthStore(); // Get user from useAuthStore
+ console.log("User from authStore:", user);
  
 
   useEffect(() => {

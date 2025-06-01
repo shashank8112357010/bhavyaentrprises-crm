@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Role, navRoleAccess } from "@/constants/roleAccessConfig";
+import { useAuthStore } from "@/store/authStore"; // Import useAuthStore
 
 interface SidebarProps {
   className?: string;
@@ -27,12 +28,13 @@ interface SidebarProps {
 export default function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<Role | null>(null);
+  // const [role, setRole] = useState<Role | null>(null); // Role will come from authStore
+  const role = useAuthStore((state) => state.role); // Get role from authStore
 
-  useEffect(() => {
-    const storedRole = localStorage.getItem("role") as Role | null;
-    setRole(storedRole);
-  }, []);
+  // useEffect(() => {
+  //   const storedRole = localStorage.getItem("role") as Role | null;
+  //   setRole(storedRole);
+  // }, []); // No longer needed as role is reactive from Zustand store
 
   const allNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },

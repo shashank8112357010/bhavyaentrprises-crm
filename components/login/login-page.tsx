@@ -13,19 +13,27 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { login } from "@/lib/services/auth";
 import { Eye, EyeOff } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import a loading spinner icon
-import { useUserStore } from "@/store/crmStore";
+// import { useUserStore } from "@/store/crmStore"; // Will be replaced by authStore for user data
+import { useAuthStore } from "@/store/authStore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false); // Will use isLoading from authStore
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+  const router = useRouter(); // Can be used for navigation instead of window.location.href
   const { toast } = useToast();
-  const { setUser } = useUserStore();
+  // const { setUser } = useUserStore(); // Replaced by authStore actions
+
+  const { login, isLoading, error } // error from store can be used for toast
+    = useAuthStore((state) => ({
+    login: state.login,
+    isLoading: state.isLoading,
+    error: state.error,
+  }));
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,34 +47,32 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    // isLoading is set to true within the authStore.login action
+    const result = await login(email, password);
 
-    try {
-      const response = await login({ email, password });
-      console.log(response);
-
-      const { token, user } = response.data;
-
-      if (token) {
-        setUser(user);
-        localStorage.setItem("role", user.role);
-        localStorage.setItem("userId", user.userId);
-      }
+    if (result.success) {
       toast({ title: "Success", description: "Logged in successfully!" });
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 200);
-    } catch (error: any) {
-      console.log(error);
+      // The authStore.login action's service call might already redirect for 302.
+      // If user and token are returned (e.g. status 200), then redirect here.
+      // localStorage is handled by the store action now.
+      // setUser from useUserStore is removed as authStore is the source of truth.
 
+      // Check if redirection is already handled by the service (e.g. for 302 status)
+      // If not, or if we need to ensure it for 200 status returns with user data:
+      if (!window.location.pathname.startsWith("/dashboard")) {
+         // Using router.push for client-side navigation is generally preferred in Next.js
+         // but window.location.href is fine if full page reload is intended or if service layer used it.
+        router.push("/dashboard");
+        // Alternatively, to ensure full page reload: window.location.href = "/dashboard";
+      }
+    } else {
       toast({
         title: "Authentication failed",
-        description: error.message || "Invalid email or password",
+        description: result.error || "Invalid email or password", // Use error from store result
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
+    // isLoading is set to false within the authStore.login action
   };
 
   return (
