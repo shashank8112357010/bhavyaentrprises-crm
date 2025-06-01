@@ -27,12 +27,13 @@ export default function LoginPage() {
   const { toast } = useToast();
   // const { setUser } = useUserStore(); // Replaced by authStore actions
 
-  const { login, isLoading, error } // error from store can be used for toast
-    = useAuthStore((state) => ({
-    login: state.login,
-    isLoading: state.isLoading,
-    error: state.error,
-  }));
+  // Changed to individual selectors for potentially better performance and to avoid warnings
+  const login = useAuthStore((state) => state.login);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const error = useAuthStore((state) => state.error);
+  // Note: if 'error' from the store is used to trigger toasts directly
+  // without being reset, it might show stale errors.
+  // The current implementation in handleLogin uses result.error from the login action promise.
 
 
   const handleLogin = async (e: React.FormEvent) => {
