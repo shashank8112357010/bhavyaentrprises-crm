@@ -16,7 +16,7 @@ function ResetPasswordFormComponent() {
   const { toast } = useToast();
 
   const { resetPassword, isLoading, error, setError, setLoading } = useAuthStore((state) => ({
-    resetPassword: state.resetPassword, // This action needs to be added
+    resetPassword: state.resetPassword,
     isLoading: state.isLoading,
     error: state.error,
     setError: state.setError,

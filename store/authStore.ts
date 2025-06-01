@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: Role;
   initials?: string;
+  name?: string; // Added name as it's returned by /api/auth/me
   [key: string]: any; // For any other user properties you want to add dynamically
 }
 
@@ -26,6 +27,7 @@ interface AuthState {
   resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => Promise<{ success: boolean; error?: string }>;
+  fetchCurrentUser: () => Promise<{ success: boolean; user?: User }>;
 }
 
 // Import login and logout functions from lib/services/auth
@@ -161,6 +163,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred during logout.';
       set({ isLoading: false, error: errorMessage }); // Ensure loading is false on error
       return { success: false, error: errorMessage };
+    }
+  },
+  fetchCurrentUser: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch('/api/auth/me'); // GET request
+      const data = await response.json();
+
+      if (!response.ok) {
+        // If /me returns 401, it means token is bad, so clear client state.
+        if (response.status === 401) {
+         get().clearAuth();
+        }
+        set({ isLoading: false, error: data.message || 'Failed to fetch user details.' });
+        return { success: false };
+      }
+
+      const { user } = data; // Token is httpOnly, not expected in /me response body for client
+
+      set({ user, role: user.role, isLoading: false, error: null }); // Token in store is separate concern
+
+      // Persist role/userId to localStorage if other parts of app still rely on it directly
+      // It's better if they rely on useAuthStore().
+      if (typeof window !== "undefined" && user) {
+          localStorage.setItem("userRole", user.role);
+          localStorage.setItem("userId", user.userId);
+      }
+
+      return { success: true, user };
+    } catch (err) {
+      // On network error etc, might not want to clear auth if user was previously logged in.
+      // Error will be set, UI can show message.
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      set({ isLoading: false, error: errorMessage });
+      // Consider if clearAuth() is appropriate here. If /api/auth/me fails due to network,
+      // user might still have a valid session.
+      return { success: false };
     }
   },
 }));

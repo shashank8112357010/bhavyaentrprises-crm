@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
+import { AuthInitializer } from '@/components/auth/AuthInitializer'; // Import
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -36,14 +37,16 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <div className="flex flex-1">
-              <Sidebar />
-              <main className="flex-1 p-4 md:p-6">{children}</main>
-            </div>
-          </div>
-          <Toaster />
+           <AuthInitializer>
+               <div className="flex min-h-screen flex-col">
+                 <Header />
+                 <div className="flex flex-1">
+                   <Sidebar />
+                   <main className="flex-1 p-4 md:p-6">{children}</main>
+                 </div>
+               </div>
+               <Toaster />
+           </AuthInitializer>
         </ThemeProvider>
       </body>
     </html>
