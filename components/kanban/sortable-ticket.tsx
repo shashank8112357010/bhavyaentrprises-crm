@@ -118,48 +118,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         // {...listeners} // Listeners will be moved to the handle
       >
         <CardContent className="p-3 pb-0">
-          <div className="flex items-start justify-between cursor-grab" {...listeners}> {/* Added cursor-grab and listeners here */}
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{ticket.ticketId}</Badge>
-              <div
-                className={`h-2 w-2 rounded-full ${priorityColor}`}
-                title={`Priority: ${ticket.priority}`}
-              ></div>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-6 p-0 ">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="z-50">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => { // Changed from onSelect to onClick
-                    console.log("View Details dropdown item CLICKED. Ticket ID:", ticket?.id);
-                    if (ticket?.id) {
-                      router.push(`/dashboard/ticket/${ticket.id}`);
-                    } else {
-                      console.error("Navigation failed from dropdown (onClick): Ticket ID is undefined.");
-                    }
-                  }}
-                  className="cursor-pointer"
-                >View Details</DropdownMenuItem>
-                <DropdownMenuItem
-                  className="z-50 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log("Edit dropdown item CLICKED. Ticket ID:", ticket?.id);
-                    handleEditClick();
-                  }}
-                >
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-200">
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div
+            className="flex items-start justify-between cursor-grab" // Kept existing classes for layout
+            {...listeners}
+            style={{ padding: '10px', border: '1px dashed red', width: '100%' }} // Added diagnostic style
+          >
+            DRAG HANDLE TEST
           </div>
 
           <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
