@@ -207,15 +207,15 @@ export async function updateTicket( updatedTicket: any) {
 
 /**
  * Fetches all comments for a specific ticket.
- * @param ticketId The ID of the ticket.
+ * @param id The ID of the ticket.
  * @returns A promise that resolves to an array of comments.
  */
-export async function getComments(ticketId: string) {
-  if (!ticketId) {
+export async function getComments(id: string) {
+  if (!id) {
     throw new Error("Ticket ID is required to fetch comments.");
   }
   try {
-    const response = await axios.get(`/ticket/${ticketId}/comment`);
+    const response = await axios.get(`/ticket/${id}/comment`);
     return response.data;
   } catch (error: any) {
     console.error("Error fetching comments:", error);
@@ -226,17 +226,17 @@ export async function getComments(ticketId: string) {
 
 /**
  * Adds a new comment to a specific ticket.
- * @param ticketId The ID of the ticket.
+ * @param id The ID of the ticket.
  * @param text The text content of the comment.
  * @param userId The ID of the user adding the comment.
  * @returns A promise that resolves to the newly created comment data.
  */
-export async function addComment(ticketId: string, text: string, userId: string) {
-  if (!ticketId || !text || !userId) {
+export async function addComment(id: string, text: string, userId: string) {
+  if (!id || !text || !userId) {
     throw new Error("Ticket ID, comment text, and user ID are required.");
   }
   try {
-    const response = await axios.post(`/ticket/${ticketId}/comment`, { text, userId });
+    const response = await axios.post(`/ticket/${id}/comment`, { text, userId });
     return response.data;
   } catch (error: any) {
     console.error("Error adding comment:", error);
