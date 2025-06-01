@@ -195,6 +195,37 @@ export async function GET(
     // Fetch the ticket from the database
     const ticket = await prisma.ticket.findUnique({
       where: { id },
+      include: {
+        client: true,
+        assignee: { // Assuming 'assignee' is the relation field to the User model
+          select: { // Select specific fields from User to avoid exposing sensitive data
+            id: true,
+            name: true,
+            email: true, // Optional: include if needed for display
+            avatar: true,
+            initials: true,
+            role: true,
+          }
+        },
+        workStage: true,
+        Quotation: true, // Assuming 'Quotation' is the relation field for quotations
+        expenses: true,  // Assuming 'expenses' is the relation field for expenses
+        comments: {      // Include comments
+          orderBy: {
+            createdAt: 'asc' // Order comments by creation time
+          },
+          include: {
+            user: { // Include user details for each comment
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                initials: true,
+              }
+            }
+          }
+        }
+      },
     });
 
     if (!ticket) {

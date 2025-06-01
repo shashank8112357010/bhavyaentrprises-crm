@@ -204,3 +204,43 @@ export async function updateTicket( updatedTicket: any) {
     throw new Error(message);
   }
 }
+
+/**
+ * Fetches all comments for a specific ticket.
+ * @param ticketId The ID of the ticket.
+ * @returns A promise that resolves to an array of comments.
+ */
+export async function getComments(ticketId: string) {
+  if (!ticketId) {
+    throw new Error("Ticket ID is required to fetch comments.");
+  }
+  try {
+    const response = await axios.get(`/ticket/${ticketId}/comment`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error fetching comments:", error);
+    const message = error.response?.data?.message || "Failed to fetch comments.";
+    throw new Error(message);
+  }
+}
+
+/**
+ * Adds a new comment to a specific ticket.
+ * @param ticketId The ID of the ticket.
+ * @param text The text content of the comment.
+ * @param userId The ID of the user adding the comment.
+ * @returns A promise that resolves to the newly created comment data.
+ */
+export async function addComment(ticketId: string, text: string, userId: string) {
+  if (!ticketId || !text || !userId) {
+    throw new Error("Ticket ID, comment text, and user ID are required.");
+  }
+  try {
+    const response = await axios.post(`/ticket/${ticketId}/comment`, { text, userId });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error adding comment:", error);
+    const message = error.response?.data?.message || "Failed to add comment.";
+    throw new Error(message);
+  }
+}

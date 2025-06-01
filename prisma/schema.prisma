@@ -123,7 +123,6 @@ model Ticket {
   completedDate DateTime?
   createdAt     DateTime     @default(now())
   description   String
-  comments      Int?
   holdReason    String?
   due           Int?
   paid          Boolean?     @default(false)
@@ -136,6 +135,20 @@ model Ticket {
   client        Client       @relation(fields: [clientId], references: [id])
   expenses      Expense[]
   Quotation     Quotation[]
+  comments      Comment[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  createdAt DateTime @default(now())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([ticketId])
+  @@index([userId])
 }
 
 enum ExpenseCategory {
