@@ -17,13 +17,14 @@ interface AgentState {
   itemsPerPage: number;
   totalAgents: number;
   searchQuery: string;
-  fetchAgents: (params?: { page?: number; query?: string }) => Promise<void>;
+  fetchAgents: (params?: { page?: number; limit?: number; query?: string }) => Promise<void>;
   fetchAgentById: (id: string) => Promise<Agent | undefined>;
   addAgent: (agent: CreateAgentPayload) => Promise<void>;
   editAgent: (id: string, updatedAgent: Agent) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
   setCurrentPage: (page: number) => void;
   setSearchQuery: (query: string) => void;
+  setItemsPerPage: (newLimit: number) => void; // Added new action
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
@@ -31,23 +32,28 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   loading: false,
   error: null,
   currentPage: 1,
-  itemsPerPage: 10, // Default items per page
+  itemsPerPage: 5, // Updated default items per page to 5
   totalAgents: 0,
   searchQuery: "",
   fetchAgents: async (params = {}) => {
     set({ loading: true, error: null });
-    const { page = get().currentPage, query = get().searchQuery } = params;
+    const S = get();
+    const pageToFetch = params.page ?? S.currentPage;
+    const limitToFetch = params.limit ?? S.itemsPerPage;
+    const queryToFetch = params.query !== undefined ? params.query : S.searchQuery;
+
     try {
       const response = await getAllAgents({
-        page,
-        limit: get().itemsPerPage,
-        searchQuery: query
+        page: pageToFetch,
+        limit: limitToFetch,
+        searchQuery: queryToFetch
       });
       set({
         agents: response.data,
         totalAgents: response.total,
-        currentPage: response.page, // Use page from response to be sure
-        searchQuery: query, // Update search query in state
+        currentPage: response.page,
+        itemsPerPage: response.limit, // Update itemsPerPage from API response
+        searchQuery: queryToFetch,
         loading: false
       });
     } catch (error: any) {
@@ -105,11 +111,15 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     }
   },
   setCurrentPage: (page: number) => {
-    set({ currentPage: page });
-    get().fetchAgents({ page });
+    set({ currentPage: page, loading: true }); // Set loading true before fetch
+    get().fetchAgents({ page, query: get().searchQuery }); // Pass current query
   },
   setSearchQuery: (query: string) => {
-    set({ searchQuery: query, currentPage: 1 }); // Reset to page 1 on new search
+    set({ searchQuery: query, currentPage: 1, loading: true }); // Reset to page 1 and set loading
     get().fetchAgents({ page: 1, query });
+  },
+  setItemsPerPage: (newLimit: number) => {
+    set({ itemsPerPage: newLimit, currentPage: 1, loading: true }); // Update state and set loading
+    get().fetchAgents({ page: 1, limit: newLimit, query: get().searchQuery });
   },
 }));
