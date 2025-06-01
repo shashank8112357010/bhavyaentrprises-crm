@@ -26,6 +26,20 @@ import {
 // Placeholder for ticket store or service - replace with actual later
 // import { useTicketStore } from "@/store/ticketStore";
 
+// TODO: Implement this function based on your authentication setup
+// This function should parse your JWT token / session cookie
+// and return the authenticated user's ID.
+const getCurrentUserIdFromAuth = (): string | null => {
+  console.warn("getCurrentUserIdFromAuth: Placeholder function called. Implement to retrieve actual user ID from token/session.");
+  // Example: If you store userId in localStorage (not recommended for sensitive data like actual tokens)
+  // return localStorage.getItem("userId");
+
+  // Replace this with your actual logic.
+  // For testing, you might return a hardcoded valid UUID temporarily if you know one.
+  // return "your-test-user-uuid"; // TEMPORARY FOR TESTING ONLY if you have a valid UUID
+  return null; // Default to null if not implemented or ID not found
+};
+
 // Type for User details within a Comment
 interface CommentUser {
   id: string;
@@ -159,15 +173,23 @@ export default function TicketDetailsPage() {
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  // Placeholder for auth - replace with actual user ID
-  // const { userId: currentUserId } = useAuth(); // Example if you have an auth hook
-  const currentUserId = "user-placeholder-id"; // Replace with actual current user ID
-
   const handleAddComment = async () => {
-    if (!newCommentText.trim() || !ticketId || !currentUserId) {
+    const currentUserId = getCurrentUserIdFromAuth();
+
+    if (!currentUserId) {
+      toast({
+        title: "Error Adding Comment",
+        description: "Could not identify current user. Please ensure you are logged in.",
+        variant: "destructive",
+      });
+      setIsSubmittingComment(false); // Ensure button is re-enabled
+      return;
+    }
+
+    if (!newCommentText.trim() || !ticketId) { // currentUserId is now checked above
       toast({
         title: "Error",
-        description: "Comment text and user ID are required.",
+        description: "Comment text is required.", // Simplified message
         variant: "destructive",
       });
       return;

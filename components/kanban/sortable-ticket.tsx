@@ -115,10 +115,10 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           }
         `}
         {...attributes}
-        // {...listeners} // Commented out for testing
+        // {...listeners} // Listeners will be moved to the handle
       >
         <CardContent className="p-3 pb-0">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between cursor-grab" {...listeners}> {/* Added cursor-grab and listeners here */}
             <div className="flex items-center gap-2">
               <Badge variant="outline">{ticket.ticketId}</Badge>
               <div
