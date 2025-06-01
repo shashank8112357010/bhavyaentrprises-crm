@@ -194,7 +194,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 {ticket.comments > 0 && (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <MessageSquare className="mr-1 h-3 w-3" />
-                    <span>{ticket.comments || "N/A"}</span>
+                    <span>{ticket.comments}</span>
                   </div>
                 )}
 
