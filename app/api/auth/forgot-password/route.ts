@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/prisma/client';
+import { prisma } from '@/lib/prisma';
+
 import crypto from 'crypto';
 import bcryptjs from 'bcryptjs';
 import { sendMail } from '@/lib/mailer';

@@ -49,19 +49,20 @@ async function seedUsers() {
         role: 'ACCOUNTS', // Ensure this is a valid enum value
         mobile: '8699511189',
       },
-      {
-        name: 'Shashank Sharma',
-        email: 'helpdesk4@bhavyaentrprises.com',
-        password: 'welcome@crm',
-        role: 'BACKEND', // Ensure this is a valid enum value
-        mobile: '9026849414',
-      },
+
       {
         name: 'Girish',
         email: 'girish@bhavyaentrprises.com',
         password: 'admin@123',
         role: 'ADMIN', // Ensure this is a valid enum value
         mobile: '9999971362',
+      },
+      {
+        name: 'Shashank',
+        email: 'shashank.sharma@praarabdh.com',
+        password: 'admin@123',
+        role: 'ADMIN', // Ensure this is a valid enum value
+        mobile: '9999971363',
       }
     ];
 

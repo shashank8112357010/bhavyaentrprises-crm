@@ -28,30 +28,30 @@ enum Status {
 }
 
 model User {
-  id               String           @id @default(uuid())
-  name             String
-  email            String           @unique
-  password         String
-  mobile           String           @unique
-  role             Role
-  createdAt        DateTime         @default(now())
-  tickets          Ticket[] // relation
-  department       String?
-  specialization   String?
-  status           Status           @default(ACTIVE)
-  leadsAssigned    Int              @default(0)
-  leadsActive      Int              @default(0)
-  leadsClosed      Int              @default(0)
-  conversionRate   Float            @default(0.0)
-  performanceTrend PerformanceTrend @default(STABLE)
-  joinedDate       DateTime         @default(now())
-  avatar           String?
-  initials         String?
-  activeTickets    Int              @default(0)
-  rating           Float            @default(0.0)
-  completedTickets Int              @default(0)
-  authoredComments Comment[] @relation("UserAuthoredComments")
-  resetPasswordToken String? @unique
+  id                   String           @id @default(uuid())
+  name                 String
+  email                String           @unique
+  password             String
+  mobile               String           @unique
+  role                 Role
+  createdAt            DateTime         @default(now())
+  tickets              Ticket[] // relation
+  department           String?
+  specialization       String?
+  status               Status           @default(ACTIVE)
+  leadsAssigned        Int              @default(0)
+  leadsActive          Int              @default(0)
+  leadsClosed          Int              @default(0)
+  conversionRate       Float            @default(0.0)
+  performanceTrend     PerformanceTrend @default(STABLE)
+  joinedDate           DateTime         @default(now())
+  avatar               String?
+  initials             String?
+  activeTickets        Int              @default(0)
+  rating               Float            @default(0.0)
+  completedTickets     Int              @default(0)
+  authoredComments     Comment[]        @relation("UserAuthoredComments")
+  resetPasswordToken   String?          @unique
   resetPasswordExpires DateTime?
 }
 
@@ -117,7 +117,7 @@ model Expense {
 
 model Ticket {
   id            String       @id @default(uuid())
-  ticketId      String     @unique
+  ticketId      String       @unique
   title         String
   branch        String
   priority      String
