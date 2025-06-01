@@ -37,7 +37,7 @@ export const updateTicketSchema = z.object({
     message: "Invalid date format",
   }).optional(),
   description: z.string().min(1, "Description is required").optional(),
-  comments: z.array(commentSchema).min(1), // Array of rate card detail objects
+  comments: z.array(commentSchema).min(1).optional(), // Array of rate card detail objects
   holdReason: z.string().optional(),
   userId: z.string().min(1, "user ID is required").optional(),
   clientId: z.string().min(1, "Client ID is required").optional(),

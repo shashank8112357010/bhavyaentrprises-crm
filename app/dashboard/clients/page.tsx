@@ -40,11 +40,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import {
@@ -54,13 +54,12 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
 import {
   createClient,
   exportClientsToExcel,
   getAllClients,
 } from "@/lib/services/client";
-import { Spinner } from "@/components/ui/spinner";
-import { Label } from "@radix-ui/react-select";
 
 type Client = {
   id?: string;
@@ -92,7 +91,7 @@ type GetClient = {
   initials: string;
   activeTickets?: number;
   gstn?: string;
-  tickets : [];
+  tickets: any[];
 };
 
 const ITEMS_PER_PAGE = 5;
@@ -101,8 +100,8 @@ export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [clientType, setClientType] = useState("all");
   const [clients, setClients] = useState<GetClient[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -120,10 +119,6 @@ export default function ClientsPage() {
     gstn: "",
   });
 
-
-
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
@@ -131,8 +126,8 @@ export default function ClientsPage() {
       try {
         setLoading(true);
         const data = await getAllClients();
-        setLoading(false);
         setClients(data?.clients || []);
+        setLoading(false);
       } catch (err) {
         setLoading(false);
         console.error("Failed to fetch clients:", err);
@@ -141,8 +136,7 @@ export default function ClientsPage() {
     fetchClients();
   }, []);
 
-  // Filtered clients by search and type
-  const filteredClients = clients.filter((client: Client) => {
+  const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,14 +149,12 @@ export default function ClientsPage() {
     return matchesSearch && matchesType;
   });
 
-  // Pagination calculation: slice filteredClients for current page
   const pageCount = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
   const paginatedClients = filteredClients.slice(
     currentPage * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE
   );
 
-  // Reset to first page when filters/search change
   useEffect(() => {
     setCurrentPage(0);
   }, [searchQuery, clientType, clients]);
@@ -171,15 +163,7 @@ export default function ClientsPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const {
-      name,
-      type,
-      totalBranches,
-      contactPerson,
-      contactPhone,
-      lastServiceDate,
-      initials,
-    } = newClient;
+    const { name, type, totalBranches, contactPerson, contactPhone, lastServiceDate } = newClient;
 
     if (!name) {
       toast({
@@ -241,23 +225,22 @@ export default function ClientsPage() {
       return;
     }
 
-
-
     try {
       const initials = newClient.name.split(" ")
-      .map((n: any) => n[0])
-      .join("")
-      const createdClient = await createClient({...newClient , initials : initials  });
-      setClients((prev) => [...prev, createdClient]);
+        .map((n) => n[0])
+        .join("");
+      const createdClient = await createClient({ ...newClient, initials });
 
-      toast(
-        {
+      setIsDialogOpen(false);
+
+      const data = await getAllClients();
+      setClients(data?.clients || []);
+
+      toast({
         title: "Success",
         description: "Client created successfully.",
-      }
-    );
+      });
 
-      // Reset form
       setNewClient({
         name: "",
         type: "Choose Bank",
@@ -283,14 +266,13 @@ export default function ClientsPage() {
     }
   }
 
-  // Handle page change from ReactPaginate
   function handlePageClick(selectedItem: { selected: number }) {
     setCurrentPage(selectedItem.selected);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <Dialog>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
@@ -301,7 +283,7 @@ export default function ClientsPage() {
 
           <div className="flex items-end gap-2">
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Client
               </Button>
@@ -332,11 +314,10 @@ export default function ClientsPage() {
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Choose Client Type" className="text-white" />
+                <SelectValue placeholder="Choose Client Type" />
               </SelectTrigger>
-
               <SelectContent>
-                <SelectItem value='d'>Choose Client Type</SelectItem>
+                <SelectItem value="Choose Bank">Choose Client Type</SelectItem>
                 <SelectItem value="Bank">Bank</SelectItem>
                 <SelectItem value="NBFC">NBFC</SelectItem>
                 <SelectItem value="Insurance">Insurance</SelectItem>
@@ -436,12 +417,9 @@ export default function ClientsPage() {
             <Input
               placeholder="Initials"
               value={newClient.name.split(" ")
-                .map((n: any) => n[0])
+                .map((n) => n[0])
                 .join("")}
-              onChange={(e) =>
-                setNewClient({ ...newClient, initials: e.target.value })
-              }
-              maxLength={3}
+              readOnly
             />
 
             <DialogFooter>
@@ -463,12 +441,9 @@ export default function ClientsPage() {
         />
 
         <div className="max-w-xs w-[190px]">
-       
-
           <Select
             value={clientType}
             onValueChange={setClientType}
-            
           >
             <SelectTrigger>
               <SelectValue placeholder="Filter by Client Type" />
@@ -479,8 +454,6 @@ export default function ClientsPage() {
               <SelectItem value="nbfc">NBFC</SelectItem>
               <SelectItem value="insurance">Insurance</SelectItem>
               <SelectItem value="corporate">Corporate</SelectItem>
-
-
             </SelectContent>
           </Select>
         </div>
@@ -518,10 +491,7 @@ export default function ClientsPage() {
                       <TableCell className="flex items-center gap-2">
                         {client.avatar ? (
                           <Avatar>
-                            <AvatarImage
-                              src={client.avatar}
-                              alt={client.name}
-                            />
+                            <AvatarImage src={client.avatar} alt={client.name} />
                             <AvatarFallback>{client.initials}</AvatarFallback>
                           </Avatar>
                         ) : (
@@ -539,7 +509,9 @@ export default function ClientsPage() {
                       <TableCell>{client.type}</TableCell>
                       <TableCell>{client.totalBranches}</TableCell>
                       <TableCell>{client.contactPerson}</TableCell>
-                      <TableCell className="hover:underline cursor-pointer">{client.contactEmail}</TableCell>
+                      <TableCell className="hover:underline cursor-pointer">
+                        {client.contactEmail}
+                      </TableCell>
                       <TableCell>{client.contactPhone}</TableCell>
                       <TableCell>
                         <Badge
@@ -573,7 +545,6 @@ export default function ClientsPage() {
             </Table>
           )}
 
-          {/* Pagination: only show if more than 5 records */}
           {filteredClients.length > ITEMS_PER_PAGE && (
             <div className="flex justify-end mt-4">
               <ReactPaginate
@@ -596,10 +567,7 @@ export default function ClientsPage() {
           )}
         </TabsContent>
 
-        <TabsContent
-          value="grid"
-          className="grid grid-cols-1 md:grid-cols-3 gap-4"
-        >
+        <TabsContent value="grid" className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {loading ? (
             <div className="col-span-full flex justify-center py-10">
               <Spinner size="6" />
@@ -628,7 +596,7 @@ export default function ClientsPage() {
                       <div className="text-sm font-medium">Contact Person</div>
                       <div className="text-sm">{client.contactPerson}</div>
                     </div>
-                    <div  className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <div className="text-sm font-medium">Contact Info</div>
                       <div className="text-sm">{client.contactEmail}</div>
                       <div className="text-sm text-muted-foreground">
@@ -641,13 +609,11 @@ export default function ClientsPage() {
                         <div className="text-sm">{client.totalBranches}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">
-                          Active Tickets
-                        </div>
+                        <div className="text-sm font-medium">Active Tickets</div>
                         <div className="text-center">
                           <Badge
                             variant={
-                              client?.tickets.length > 1
+                              client.tickets.length > 1
                                 ? "destructive"
                                 : client.tickets.length > 5
                                 ? "default"
@@ -675,7 +641,6 @@ export default function ClientsPage() {
             </div>
           )}
 
-          {/* Pagination in grid view */}
           {filteredClients.length > ITEMS_PER_PAGE && (
             <div className="col-span-full flex justify-end mt-4">
               <ReactPaginate

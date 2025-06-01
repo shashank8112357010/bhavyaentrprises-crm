@@ -424,11 +424,10 @@ export default function KanbanPage() {
           >
             Clear Filters
           </Button>
+          <Button variant="secondary" onClick={() => setExportModalOpen(true)}>
+            Export Tickets
+          </Button>
         </div>
-
-        <Button variant="secondary" onClick={() => setExportModalOpen(true)}>
-          Export Tickets
-        </Button>
       </div>
 
       <KanbanBoard tickets={filteredTickets} onDragEnd={handleDragEnd} />

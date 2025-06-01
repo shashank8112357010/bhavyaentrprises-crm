@@ -16,9 +16,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log("reaching");
+
     const body = await req.json();
-    console.log("reaching");
+  
 
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
