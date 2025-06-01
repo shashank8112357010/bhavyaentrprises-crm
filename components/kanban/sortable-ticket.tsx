@@ -15,6 +15,8 @@ import {
   MoreHorizontal,
   Receipt,
   User,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +36,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { Ticket } from "./types";
-import { updateTicket } from "@/lib/services/ticket";
+import { updateTicket, deleteTicket } from "@/lib/services/ticket";
 import EditTicketDialog from "../tickets/edit-ticket-dialog";
 
 interface SortableTicketProps {
@@ -80,7 +82,17 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       await updateTicket(ticket);
     } catch (error) {
       console.error("Failed to update ticket:", error);
-    } finally {
+    }
+  };
+
+  const handleDelete = async () => {
+    if (confirm("Are you sure you want to delete this ticket?")) {
+      try {
+        await deleteTicket(ticket.id);
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to delete ticket:", error);
+      }
     }
   };
 
@@ -88,24 +100,14 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     console.log("isEditDialogOpen", isEditDialogOpen);
   }, [isEditDialogOpen]);
 
-  const handleEditClick = () => {
-    console.log("Edit button clicked");
-    setIsEditDialogOpen(true);
-  };
-
-  console.log("SortableTicket rendered with ticket ID:", ticket?.id); // Added for debugging
-
   return (
     <>
       <Card
         ref={setNodeRef}
         style={{ ...style }}
-        className={`mb-3 transition-all duration-200
-          ${ // Note: Removed cursor-grab from this className string
-            ticket.expenses.reduce(
-              (sum, e) => sum + (Number(e.amount) || 0),
-              0
-            ) <
+        className={`relative mb-3 transition-all duration-200
+          ${
+            ticket.expenses &&  ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) <
             ticket?.quotations?.reduce(
               (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
               0
@@ -115,17 +117,34 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           }
         `}
         {...attributes}
-        // {...listeners} // Listeners will be moved to the handle
       >
-        <CardContent className="p-3 pb-0">
-          <div
-            className="flex items-start justify-between cursor-grab" // Kept existing classes for layout
-            {...listeners}
-            style={{ padding: '10px', border: '1px dashed red', width: '100%' }} // Added diagnostic style
+        {/* Edit/Delete buttons */}
+        <div className="absolute top-2 right-2 flex gap-2 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 p-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditDialogOpen(true);
+            }}
           >
-            DRAG HANDLE TEST
-          </div>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
 
+        <CardContent className="p-3 pb-0" {...listeners}>
           <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
 
           <div className="flex items-center mt-2 text-sm text-muted-foreground">
@@ -144,7 +163,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                     <span className="flex gap-2">
                       Quote:{" "}
                       {ticket?.quotations && ticket?.quotations?.length > 0
-                        ? ticket?.quotations.map((i) => i.id)
+                        ? ticket?.quotations.map((i) => i.id).join(", ")
                         : "N/A"}
                     </span>
                   </TooltipTrigger>
@@ -160,17 +179,18 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                   <Calendar className="mr-1 h-3 w-3" />
                   <span>
                     {formatDateString(
-                      ticket.workStage?.dateReceived || new Date().toISOString()
+                      ticket.workStage?.dateReceived ||
+                        new Date().toISOString()
                     )}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {ticket.comments > 0 && (
+                {ticket.comments.length > 0 && (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <MessageSquare className="mr-1 h-3 w-3" />
-                    <span>{ticket.comments}</span>
+                    <span>{ticket.comments.length}</span>
                   </div>
                 )}
 
@@ -178,10 +198,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                   <div className="flex items-center text-xs text-muted-foreground">
                     <Calendar className="mr-1 h-3 w-3" />
                     <span>
-                      Due:{" "}
-                      {formatDateString(
-                        ticket.dueDate || new Date().toISOString()
-                      )}
+                      Due: {formatDateString(ticket.dueDate)}
                     </span>
                   </div>
                 )}
@@ -189,22 +206,14 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 {ticket.scheduledDate && (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <Clock className="mr-1 h-3 w-3" />
-                    <span>
-                      {formatDateString(
-                        ticket.scheduledDate || new Date().toISOString()
-                      )}
-                    </span>
+                    <span>{formatDateString(ticket.scheduledDate)}</span>
                   </div>
                 )}
 
-                {ticket.completedDate != "N/A" && (
+                {ticket.completedDate !== "N/A" && (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
-                    <span>
-                      {formatDateString(
-                        ticket.completedDate || new Date().toISOString()
-                      )}
-                    </span>
+                    <span>{formatDateString(ticket.completedDate || '')}</span>
                   </div>
                 )}
               </div>
@@ -247,77 +256,61 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             <Badge variant="secondary" className="text-xs">
               Quotation: ₹
               {ticket?.quotations
-                ?.reduce(
-                  (total: any, exp: any) =>
-                    total + (Number(exp.grandTotal) || 0),
-                  0
-                )
+                ?.reduce((total: any, exp: any) => total + (Number(exp.grandTotal) || 0), 0)
                 .toLocaleString()}
             </Badge>
 
             <Badge variant="secondary" className="text-xs">
               Expense: ₹
               {ticket?.expenses
-                ?.reduce(
-                  (total: any, exp: any) => total + (Number(exp.amount) || 0),
-                  0
-                )
+                ?.reduce((total: any, exp: any) => total + (Number(exp.amount) || 0), 0)
                 .toLocaleString()}
             </Badge>
-
           </div>
+
           <div className="flex flex-wrap gap-2 mt-3">
-            {
-             ticket.expenses.length > 0 && ticket.expenses.reduce(
-                (sum, e) => sum + (Number(e.amount) || 0),
-                0
-              ) !=
-              ticket?.quotations?.reduce(
-                (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
-                0
-              ) &&    <Badge
-              variant="secondary"
-              className={`text-xs ${
-                ticket.expenses.reduce(
-                  (sum, e) => sum + (Number(e.amount) || 0),
-                  0
-                ) <
+            {ticket.expenses && ticket.expenses.length > 0 &&
+              ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) !==
                 ticket?.quotations?.reduce(
                   (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
                   0
-                )
-                  ? "bg-green-500 text-white"
-                  : "bg-red-400 text-white"
-              }`}
-            >
-              {ticket.expenses.reduce(
-                (sum, e) => sum + (Number(e.amount) || 0),
-                0
-              ) <
-              ticket?.quotations?.reduce(
-                (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
-                0
-              )
-                ? "Profit"
-                : "Loss"}
-            </Badge>
-            }
-       
+                ) && (
+                <Badge
+                  variant="secondary"
+                  className={`text-xs ${
+                    ticket.expenses && 
+                    ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) <
+                    ticket?.quotations?.reduce(
+                      (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
+                      0
+                    )
+                      ? "bg-green-500 text-white"
+                      : "bg-red-400 text-white"
+                  }`}
+                >
+                  { ticket.expenses && ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) <
+                  ticket?.quotations?.reduce(
+                    (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
+                    0
+                  )
+                    ? "Profit"
+                    : "Loss"}
+                </Badge>
+              )}
           </div>
-         
         </CardContent>
+
         <CardFooter className="p-3 flex justify-end">
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs" // Removed z-50
+            className="h-7 px-2 text-xs"
             onClick={(e) => {
               e.stopPropagation();
-              console.log("Details button CLICKED. Ticket ID:", ticket?.id); // Updated log
               if (ticket?.id) {
                 router.push(`/dashboard/ticket/${ticket.id}`);
               } else {
-                console.error("Navigation failed from button: Ticket ID is undefined."); // Updated log
+                console.error("Navigation failed: Ticket ID is undefined.");
               }
             }}
           >

@@ -50,6 +50,13 @@ export interface Quotation {
   gst: number;
   grandTotal: number;
 }
+
+type Comment = {
+  text: string,
+  ticketId: string,
+  userId: string, // Assuming GST types are 18 and 28
+}
+
 export interface Ticket  {
   id: string;
   title: string;
@@ -93,7 +100,7 @@ export interface Ticket  {
   completedDate?: string;
   createdAt: string;
   description: string;
-  comments: number;
+  comments: Comment[];
   holdReason?: string;
   status: TicketStatus;
   quotations?: Quotation[];  

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createTicketSchema } from "@/lib/validations/ticketSchema";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,10 +48,18 @@ export async function POST(req: NextRequest) {
     
 
     // Create the ticket with the generated ID
+    const { comments, ...rest } = validatedData;
+
     const ticket = await prisma.ticket.create({
       data: {
-        ...validatedData,
-        ticketId : newId
+        ...rest,
+        ticketId: newId,
+        comments: comments?.length ? {
+          create: comments.map((comment: { text: string; userId: string }) => ({
+            text: comment.text,
+            userId: comment.userId,
+          })),
+        } : undefined,
       },
     });
 

@@ -84,7 +84,7 @@ export async function PATCH(
 
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
-      data: validatedData.data,
+      data: validatedData.data as any,
     });
 
     return NextResponse.json({ ticket });

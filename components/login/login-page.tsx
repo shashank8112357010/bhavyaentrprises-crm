@@ -50,6 +50,7 @@ export default function LoginPage() {
       if (token) {
         setUser(user);
         localStorage.setItem("role", user.role);
+        localStorage.setItem("userId", user.userId);
       }
       toast({ title: "Success", description: "Logged in successfully!" });
       setTimeout(() => {

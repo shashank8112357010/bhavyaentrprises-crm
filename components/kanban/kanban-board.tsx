@@ -24,7 +24,8 @@ import {
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
 import { Ticket } from "@/components/kanban/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Role } from "@/constants/roleAccessConfig";
 
 interface TicketsState {
   new: Ticket[];
@@ -46,6 +47,7 @@ interface KanbanBoardProps {
 
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [role, setRole] = useState<Role | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -53,6 +55,11 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role") as Role | null;
+    setRole(storedRole);
+  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -129,6 +136,17 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     return titles[status] ?? status;
   };
 
+  const getVisibleColumns = () => {
+    const allColumns = Object.keys(tickets) as Array<keyof TicketsState>;
+    if (role === "ADMIN" || role === "ACCOUNTS") {
+      return allColumns;
+    } else {
+      return allColumns.filter(
+        (column) => column !== "billing_pending" && column !== "billing_completed"
+      );
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -136,8 +154,8 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-2 pb-10 overflow-x-auto">
-        {(Object.keys(tickets) as Array<keyof TicketsState>).map((status) => (
+      <div className="flex w-screen overflow-x-auto gap-4 p-4">
+        {getVisibleColumns().map((status) => (
           <KanbanColumn
             key={status}
             id={status}
@@ -148,7 +166,7 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
         ))}
       </div>
 
-      <DragOverlay >
+      <DragOverlay>
         {activeId &&
           (() => {
             const activeTicket = Object.values(tickets)

@@ -1,5 +1,11 @@
 // lib/validations/ticketSchema.ts
 import { z } from "zod";
+const commentSchema = z.object({
+  text: z.string(),
+  ticketId: z.string().min(1),
+  userId: z.string().max(28), // Assuming GST types are 18 and 28
+});
+
 
 export const createTicketSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -12,11 +18,13 @@ export const createTicketSchema = z.object({
     message: "Invalid date format",
   }).optional(),
   description: z.string().min(1, "Description is required"),
-  comments: z.number().int().min(0).optional(),
+  comments: z.array(commentSchema).min(1).optional(), // Array of rate card detail objects
   holdReason: z.string().optional(),
   assigneeId: z.string().min(1, "Assignee ID is required"),
   clientId: z.string().min(1, "Client ID is required"),
 });
+
+
 
 export const updateTicketSchema = z.object({
   title: z.string().min(1, "Title is required").optional(),
@@ -29,9 +37,9 @@ export const updateTicketSchema = z.object({
     message: "Invalid date format",
   }).optional(),
   description: z.string().min(1, "Description is required").optional(),
-  comments: z.number().int().min(0).optional(),
+  comments: z.array(commentSchema).min(1), // Array of rate card detail objects
   holdReason: z.string().optional(),
-  assigneeId: z.string().min(1, "Assignee ID is required").optional(),
+  userId: z.string().min(1, "user ID is required").optional(),
   clientId: z.string().min(1, "Client ID is required").optional(),
 });
 

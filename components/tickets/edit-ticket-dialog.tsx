@@ -25,7 +25,11 @@ import { useClientStore } from "@/store/clientStore";
 import { useTicketStore } from "@/store/ticketStore";
 import { useToast } from "@/hooks/use-toast";
 import { Ticket } from "@/lib/services/ticket";
-
+type Comment = {
+  text: string,
+  ticketId: string,
+  userId: string, // Assuming GST types are 18 and 28
+}
 interface EditTicketInput {
   id: string;
   title: string;
@@ -43,7 +47,7 @@ interface EditTicketInput {
     initials: string | null;
   };
   dueDate?: any;
-  comments?: number;
+  comments?: Comment[];
   scheduledDate?: string;
   completedDate?: string;
   description: string;
