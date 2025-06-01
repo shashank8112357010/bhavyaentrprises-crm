@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       where: whereConditions,
       include: {
         assignee: {
-          select: { name: true, avatar: true, initials: true },
+          select: { name: true, avatar: true, initials: true  },
         },
         workStage: {
           select: {
@@ -86,6 +86,9 @@ export async function GET(req: NextRequest) {
           },
         },
         Quotation: true, // ✅ All fields from Quotation
+        _count: {
+          select: { comments: true },
+        },
       },
     });
 
@@ -96,6 +99,7 @@ export async function GET(req: NextRequest) {
     const transformedTickets = tickets.map((ticket: any) => ({
       id: ticket.id,
       title: ticket.title || "N/A",
+      ticketId : ticket.ticketId || 'NA',
       client: {
         id: ticket.client.id,
         name: ticket.client.name,
@@ -133,7 +137,7 @@ export async function GET(req: NextRequest) {
       completedDate: ticket.completedDate ?? "N/A",
       createdAt: ticket.createdAt || "N/A",
       description: ticket.description || "N/A",
-      comments: ticket.comments ?? 0,
+      comments: ticket._count?.comments ?? 0,
       holdReason: ticket.holdReason || "N/A",
       status: ticket.status || "N/A",
       expenses: ticket.expenses.length

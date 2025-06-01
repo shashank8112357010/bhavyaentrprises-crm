@@ -120,6 +120,9 @@ export default function ClientsPage() {
     gstn: "",
   });
 
+
+
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -238,24 +241,21 @@ export default function ClientsPage() {
       return;
     }
 
-    if (!initials) {
-      toast({
-        title: "Missing Initials",
-        description: "Client initials are required.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
+
 
     try {
-      const createdClient = await createClient(newClient);
+      const initials = newClient.name.split(" ")
+      .map((n: any) => n[0])
+      .join("")
+      const createdClient = await createClient({...newClient , initials : initials  });
       setClients((prev) => [...prev, createdClient]);
 
-      toast({
+      toast(
+        {
         title: "Success",
         description: "Client created successfully.",
-      });
+      }
+    );
 
       // Reset form
       setNewClient({
@@ -332,12 +332,15 @@ export default function ClientsPage() {
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Type" className="text-white" />
+                <SelectValue placeholder="Choose Client Type" className="text-white" />
               </SelectTrigger>
+
               <SelectContent>
-                <SelectItem value="Choose Bank">Choose Bank</SelectItem>
+                <SelectItem value='d'>Choose Client Type</SelectItem>
+                <SelectItem value="Bank">Bank</SelectItem>
                 <SelectItem value="NBFC">NBFC</SelectItem>
-                <SelectItem value="bank">Bank</SelectItem>
+                <SelectItem value="Insurance">Insurance</SelectItem>
+                <SelectItem value="Corporate">Corporate</SelectItem>
               </SelectContent>
             </Select>
             <Input
@@ -432,7 +435,9 @@ export default function ClientsPage() {
 
             <Input
               placeholder="Initials"
-              value={newClient.initials}
+              value={newClient.name.split(" ")
+                .map((n: any) => n[0])
+                .join("")}
               onChange={(e) =>
                 setNewClient({ ...newClient, initials: e.target.value })
               }
@@ -457,21 +462,25 @@ export default function ClientsPage() {
           type="search"
         />
 
-        <div className="max-w-xs ">
+        <div className="max-w-xs w-[190px]">
        
 
           <Select
             value={clientType}
             onValueChange={setClientType}
-            // className="max-w-xs"
+            
           >
             <SelectTrigger>
               <SelectValue placeholder="Filter by Client Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="all">Select Client Types</SelectItem>
               <SelectItem value="bank">Bank</SelectItem>
               <SelectItem value="nbfc">NBFC</SelectItem>
+              <SelectItem value="insurance">Insurance</SelectItem>
+              <SelectItem value="corporate">Corporate</SelectItem>
+
+
             </SelectContent>
           </Select>
         </div>

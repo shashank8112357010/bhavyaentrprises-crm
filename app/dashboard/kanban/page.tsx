@@ -28,11 +28,16 @@ import { exportTicketsToExcel } from "@/lib/services/ticket";
 import { Label } from "@radix-ui/react-label";
 import { Textarea } from "@/components/ui/textarea";
 import { Role } from "@/constants/roleAccessConfig";
-
+type Comment = {
+  text: string;
+  ticketId: string;
+  userId: string; // Assuming GST types are 18 and 28
+};
 // Types
 type Ticket = {
   id: string;
   title: string;
+  ticketId: string;
   branch: string;
   priority: string;
   assignee: {
@@ -76,7 +81,7 @@ type Ticket = {
   completedDate?: string;
   createdAt: string;
   description: string;
-  comments: number;
+  comments: Comment[];
   holdReason?: string;
   status: Status;
 };
@@ -99,8 +104,13 @@ type Status =
   | "billing_completed";
 
 export default function KanbanPage() {
-  const { tickets, fetchTickets, updateTicketStatus, updateTicket, fetchTicketById } =
-    useTicketStore();
+  const {
+    tickets,
+    fetchTickets,
+    updateTicketStatus,
+    updateTicket,
+    fetchTicketById,
+  } = useTicketStore();
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
   const { toast } = useToast();
@@ -125,7 +135,6 @@ export default function KanbanPage() {
   // Assume you have a way to get the current user's role, e.g., from a context or store
   const [userRole, setUserRole] = useState<Role | null>(null); // Default role, replace with actual logic to get the user's role
 
-
   useEffect(() => {
     const storedRole = localStorage.getItem("role") as Role | null;
     setUserRole(storedRole);
@@ -135,7 +144,15 @@ export default function KanbanPage() {
     fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
     fetchAgents();
     fetchClients();
-  }, [fetchTickets, fetchAgents, fetchClients, startDateTicket, startDate, endDate, endDateTicket]);
+  }, [
+    fetchTickets,
+    fetchAgents,
+    fetchClients,
+    startDateTicket,
+    startDate,
+    endDate,
+    endDateTicket,
+  ]);
 
   const handleDragEnd = async (result: any) => {
     const { source, destination, ticketId } = result;
@@ -160,7 +177,7 @@ export default function KanbanPage() {
         break;
 
       case "onHold":
-        setTicketToHold(ticket);
+        setTicketToHold(ticket as any);
         setHoldReasonText(ticket.holdReason || "");
         setHoldReasonModalOpen(true);
         return;
@@ -169,7 +186,8 @@ export default function KanbanPage() {
         if (!workStage || workStage.quoteNo === "N/A") {
           toast({
             title: "Order Violation",
-            description: "Please attach a quotation and move to In Progress first.",
+            description:
+              "Please attach a quotation and move to In Progress first.",
             variant: "destructive",
           });
           return;
@@ -177,7 +195,8 @@ export default function KanbanPage() {
         if (!workStage.poStatus || !workStage.jcrStatus) {
           toast({
             title: "Pending Work",
-            description: "PO and JCR must be completed before marking as completed.",
+            description:
+              "PO and JCR must be completed before marking as completed.",
             variant: "destructive",
           });
           return;
@@ -311,7 +330,6 @@ export default function KanbanPage() {
       ? (["billing_pending", "billing_completed"] as const)
       : []),
   ];
-  
 
   return (
     <div className="flex flex-col gap-8">

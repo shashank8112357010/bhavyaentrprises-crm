@@ -21,16 +21,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Invalid input", errors: parsed.error }, { status: 400 });
     }
 
-    const { name, clientId, rateCardIds, ticketId } = parsed.data;
+    const { name, clientId, rateCardDetails, ticketId } = parsed.data;
 
-    const rateCards = await prisma.rateCard.findMany({ where: { id: { in: rateCardIds } } });
+    // Extract rateCardIds from rateCardDetails
+    const rateCardIds = rateCardDetails.map((detail: { rateCardId: string }) => detail.rateCardId);
+
+    // Fetch rate cards to get full details
+    const rateCards = await prisma.rateCard.findMany({
+      where: { id: { in: rateCardIds } },
+    });
+
     if (rateCards.length !== rateCardIds.length) {
       return NextResponse.json({ message: "Some RateCard entries not found" }, { status: 404 });
     }
 
     // Compute totals
-    const subtotal = rateCards.reduce((sum, r) => sum + r.rate, 0);
-    const gst = subtotal * 0.18;
+    const subtotal = rateCardDetails.reduce((sum, detail) => {
+      const rateCard = rateCards.find(rc => rc.id === detail.rateCardId);
+      return sum + (rateCard ? rateCard.rate * detail.quantity : 0);
+    }, 0);
+
+    const gst = subtotal * 0.18; // Assuming GST is 18%
     const grandTotal = subtotal + gst;
 
     // Generate new quotation ID
@@ -39,15 +50,17 @@ export async function POST(req: NextRequest) {
     });
     const serial = latest ? parseInt(latest.id.replace("QUOT", "")) + 1 : 1;
     const newId = `QUOT${serial.toString().padStart(2, "0")}`;
+console.log(rateCards ,"rateCards");
 
     // Generate PDF buffer
     const pdfBuffer = await generateQuotationPdf({
       quotationId: newId,
       clientId,
       name,
-      rateCards,
+      rateCards, // Pass rateCards instead of rateCardDetails
       subtotal,
       gst,
+      rateCardDetails,
       grandTotal,
     });
 
@@ -70,6 +83,7 @@ export async function POST(req: NextRequest) {
         subtotal,
         gst,
         grandTotal,
+        rateCardDetails : rateCardDetails as any, // Store the rate card details as JSON
       },
     });
 
@@ -78,7 +92,7 @@ export async function POST(req: NextRequest) {
         where: { id: ticketId },
         select: { workStageId: true },
       });
-    
+
       if (ticket?.workStageId) {
         // Update existing workStage
         await prisma.workStage.update({
@@ -112,7 +126,7 @@ export async function POST(req: NextRequest) {
             agentName: "N/A",
           },
         });
-    
+
         // Link the new WorkStage to the ticket
         await prisma.ticket.update({
           where: { id: ticketId },
@@ -122,7 +136,6 @@ export async function POST(req: NextRequest) {
         });
       }
     }
-    
 
     return NextResponse.json({ message: "Quotation created", quotation });
   } catch (error) {

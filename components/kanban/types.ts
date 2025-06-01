@@ -5,6 +5,7 @@ export type PerformanceTrend = 'UP' | 'DOWN' | 'STABLE';
 
 export type Agent = {
   id: string;
+ 
   name: string;
   email: string;
   password: string;
@@ -49,9 +50,17 @@ export interface Quotation {
   gst: number;
   grandTotal: number;
 }
+
+type Comment = {
+  text: string,
+  ticketId: string,
+  userId: string, // Assuming GST types are 18 and 28
+}
+
 export interface Ticket  {
   id: string;
   title: string;
+  ticketId : string;
  
   branch: string;
   priority: string;
@@ -91,7 +100,7 @@ export interface Ticket  {
   completedDate?: string;
   createdAt: string;
   description: string;
-  comments: number;
+  comments: Comment[];
   holdReason?: string;
   status: TicketStatus;
   quotations?: Quotation[];  

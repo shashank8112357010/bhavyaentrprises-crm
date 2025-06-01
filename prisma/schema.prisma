@@ -50,53 +50,7 @@ model User {
   activeTickets    Int              @default(0)
   rating           Float            @default(0.0)
   completedTickets Int              @default(0)
-}
-
-model Client {
-  id              String   @id @default(uuid())
-  name            String
-  type            String // e.g., "Bank"
-  totalBranches   Int
-  contactPerson   String
-  contactEmail    String?
-  contactPhone    String
-  contractStatus  String // e.g., "Active"
-  lastServiceDate DateTime
-  avatar          String? // logo path or URL
-  initials        String
-  gstn            String? // <-- New field
-
-  tickets   Ticket[] // one-to-many relationship
-  Quotation Quotation[]
-}
-
-enum ExpenseCategory {
-  LABOR
-  TRANSPORT
-  MATERIAL
-  OTHER
-}
-
-enum PaymentType {
-  VCASH
-  ONLINE
-  REST
-}
-
-model Expense {
-  id          String          @id @default(uuid())
-  customId    String          @unique
-  amount      Float
-  description String
-  category    ExpenseCategory
-  requester   String // NEW
-  paymentType PaymentType // NEW
-  quotationId String?
-  quotation   Quotation?      @relation(fields: [quotationId], references: [id])
-  ticketId    String?
-  ticket      Ticket?         @relation(fields: [ticketId], references: [id])
-  createdAt   DateTime        @default(now())
-  pdfUrl      String?
+  authoredComments Comment[] @relation("UserAuthoredComments")
 }
 
 model RateCard {
@@ -111,46 +65,104 @@ model RateCard {
 }
 
 model Quotation {
-  id        String    @id @default(uuid())
-  name      String
-  pdfUrl    String
-  clientId  String
-  client    Client    @relation(fields: [clientId], references: [id])
-  createdAt DateTime  @default(now())
-  expenses  Expense[]
-  ticketId  String?
-  ticket    Ticket?   @relation(fields: [ticketId], references: [id])
+  id              String    @id @default(uuid())
+  name            String
+  pdfUrl          String
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id])
+  createdAt       DateTime  @default(now())
+  expenses        Expense[]
+  rateCardDetails Json? // This will store an array of objects with rateCardId, quantity, and gstType
+  ticketId        String?
+  ticket          Ticket?   @relation(fields: [ticketId], references: [id])
+  subtotal        Float
+  gst             Float
+  grandTotal      Float
+}
 
-  subtotal   Float
-  gst        Float
-  grandTotal Float
+model Client {
+  id              String      @id @default(uuid())
+  name            String
+  type            String
+  totalBranches   Int
+  contactPerson   String
+  contactEmail    String?
+  contactPhone    String
+  contractStatus  String
+  lastServiceDate DateTime
+  avatar          String?
+  initials        String
+  gstn            String?
+  tickets         Ticket[]
+  Quotation       Quotation[]
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  customId    String          @unique
+  amount      Float
+  description String
+  category    ExpenseCategory
+  requester   String
+  paymentType PaymentType
+  quotationId String?
+  quotation   Quotation?      @relation(fields: [quotationId], references: [id])
+  ticketId    String?
+  ticket      Ticket?         @relation(fields: [ticketId], references: [id])
+  createdAt   DateTime        @default(now())
+  pdfUrl      String?
 }
 
 model Ticket {
-  id            String    @id @default(uuid())
+  id            String       @id @default(uuid())
+  ticketId      String     @unique
   title         String
   branch        String
   priority      String
   dueDate       DateTime?
   scheduledDate DateTime?
   completedDate DateTime?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime     @default(now())
   description   String
-  comments      Int?
   holdReason    String?
   due           Int?
-  paid          Boolean?  @default(false)
+  paid          Boolean?     @default(false)
+  assigneeId    String
+  assignee      User         @relation(fields: [assigneeId], references: [id])
+  status        TicketStatus @default(new)
+  workStageId   String?      @unique
+  workStage     WorkStage?   @relation(name: "TicketToWorkStage", fields: [workStageId], references: [id])
+  clientId      String
+  client        Client       @relation(fields: [clientId], references: [id])
+  expenses      Expense[]
+  Quotation     Quotation[]
+  comments      Comment[]
+}
 
-  assigneeId String
-  assignee   User         @relation(fields: [assigneeId], references: [id])
-  status     TicketStatus @default(new)
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  createdAt DateTime @default(now())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("UserAuthoredComments", fields: [userId], references: [id])
 
-  workStageId String?     @unique
-  workStage   WorkStage?  @relation(name: "TicketToWorkStage", fields: [workStageId], references: [id])
-  clientId    String
-  client      Client      @relation(fields: [clientId], references: [id])
-  expenses    Expense[] // <-- opposite side of Expense.ticket
-  Quotation   Quotation[]
+  @@index([ticketId])
+  @@index([userId])
+}
+
+enum ExpenseCategory {
+  LABOR
+  TRANSPORT
+  MATERIAL
+  OTHER
+}
+
+enum PaymentType {
+  VCASH
+  ONLINE
+  REST
 }
 
 enum TicketStatus {
@@ -178,9 +190,8 @@ model WorkStage {
   poNumber     String
   jcrStatus    Boolean  @default(false)
   agentName    String
-
-  ticketId String?
-  ticket   Ticket? @relation(name: "TicketToWorkStage")
+  ticketId     String?
+  ticket       Ticket?  @relation(name: "TicketToWorkStage")
 
   @@unique([ticketId])
 }

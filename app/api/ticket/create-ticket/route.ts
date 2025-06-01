@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createTicketSchema } from "@/lib/validations/ticketSchema";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,30 +23,43 @@ export async function POST(req: NextRequest) {
       throw new Error("Client not found");
     }
 
-    // Generate the new ticket ID
-    const currentMonth = new Date().toLocaleString('default', { month: 'short' });
-    const yearShort = new Date().getFullYear().toString().substring(2);
+
 
     let serial = 1; // Default serial number if no tickets exist
 
     if (latestTicket) {
       // Extract the serial number from the latest ticket ID
-      const latestIdParts = latestTicket.id.split('/');
-      if (latestIdParts.length > 1) {
-        const latestSerial = parseInt(latestIdParts[1]);
+      const latestIdParts = latestTicket?.ticketId?.split("-");
+      const serialStr = latestIdParts && latestIdParts[1]?.match(/\d{4}/)?.[0];
+      if (serialStr) {
+        const latestSerial = parseInt(serialStr);
         if (!isNaN(latestSerial)) {
           serial = latestSerial + 1;
         }
       }
     }
 
-    const newId = `BE-${currentMonth}-${yearShort}/${serial.toString().padStart(4, "0")}/${client.name}`;
+    const currentMonth = new Date().toLocaleString("default", { month: "short" }); // e.g., "May"
+    const yearShort = new Date().getFullYear().toString().slice(-2); // e.g., "25"
+    const sanitizedClientName = client.name.replace(/\s+/g, "-").replace(/[^\w-]/g, "").toUpperCase();
+    const newId = `BE${yearShort}${currentMonth}${serial.toString().padStart(4, "0")}-${sanitizedClientName}`;
+    console.log(newId);
+    
+    
 
     // Create the ticket with the generated ID
+    const { comments, ...rest } = validatedData;
+
     const ticket = await prisma.ticket.create({
       data: {
-        ...validatedData,
-        id: newId,
+        ...rest,
+        ticketId: newId,
+        comments: comments?.length ? {
+          create: comments.map((comment: { text: string; userId: string }) => ({
+            text: comment.text,
+            userId: comment.userId,
+          })),
+        } : undefined,
       },
     });
 

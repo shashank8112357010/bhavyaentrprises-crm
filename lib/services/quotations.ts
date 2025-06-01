@@ -1,10 +1,16 @@
 // lib/services/quotationService.ts
 import axios from "@/lib/axios";
 
+interface RateCardDetail {
+  rateCardId: string;
+  quantity: number;
+  gstType: number;
+}
+
 interface CreateQuotationParams {
   name: string;
   clientId: string;
-  rateCardIds: string[];
+  rateCardDetails: RateCardDetail[];
   ticketId?: string;
 }
 
@@ -20,6 +26,7 @@ export async function createQuotation(params: CreateQuotationParams) {
     throw new Error(message);
   }
 }
+
 
 interface GetAllQuotationsParams {
   page?: number;

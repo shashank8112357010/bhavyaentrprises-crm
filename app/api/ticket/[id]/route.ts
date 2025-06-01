@@ -9,13 +9,16 @@ import {
 } from "../../../../lib/validations/ticketSchema";
 import { TicketStatus } from "@prisma/client";
 
+
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log("reaching");
     const body = await req.json();
-console.log("reaching");
+    console.log("reaching");
 
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
@@ -25,6 +28,7 @@ console.log("reaching");
         where: { id: params.id },
         select: { status: true, assigneeId: true },
       });
+
       console.log(existingTicket, "existingTicket");
 
       if (!existingTicket) {
@@ -64,7 +68,6 @@ console.log("reaching");
     }
     console.log(body);
 
-    // Otherwise, handle it as a general ticket update
     const validatedData = updateTicketSchema.safeParse(body);
     if (validatedData.error) {
       const fieldErrors = validatedData.error.flatten().fieldErrors;
@@ -78,11 +81,10 @@ console.log("reaching");
         { status: 400 }
       );
     }
-   
 
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
-      data: validatedData.data,
+      data: validatedData.data as any,
     });
 
     return NextResponse.json({ ticket });
@@ -135,6 +137,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log(params);
+  
   try {
     const ticket = await prisma.ticket.findUnique({
       where: { id: params.id },
@@ -174,6 +178,70 @@ export async function DELETE(
     return NextResponse.json(
       { message: "Failed to delete ticket", error: error.message },
       { status: 400 }
+    );
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+
+    // Log the ID to ensure it's correctly captured
+    console.log(`Fetching ticket with ID: ${id}`);
+
+    // Fetch the ticket from the database
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        assignee: { // Assuming 'assignee' is the relation field to the User model
+          select: { // Select specific fields from User to avoid exposing sensitive data
+            id: true,
+            name: true,
+            email: true, // Optional: include if needed for display
+            avatar: true,
+            initials: true,
+            role: true,
+          }
+        },
+        workStage: true,
+        Quotation: true, // Assuming 'Quotation' is the relation field for quotations
+        expenses: true,  // Assuming 'expenses' is the relation field for expenses
+        comments: {      // Include comments
+          orderBy: {
+            createdAt: 'asc' // Order comments by creation time
+          },
+          include: {
+            user: { // Include user details for each comment
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                initials: true,
+              }
+            }
+          }
+        }
+      },
+    });
+
+    if (!ticket) {
+      console.log(`Ticket with ID ${id} not found`);
+      return NextResponse.json(
+        { message: "Ticket not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(ticket);
+  } catch (error) {
+    console.error("Error fetching ticket:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
     );
   }
 }

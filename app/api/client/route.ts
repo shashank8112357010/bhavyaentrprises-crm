@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 import { createClientSchema } from "@/lib/validations/clientSchema";
 const ITEMS_PER_PAGE = 10;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
