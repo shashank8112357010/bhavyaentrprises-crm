@@ -27,11 +27,15 @@ function ResetPasswordFormComponent() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [tokenProcessed, setTokenProcessed] = useState(false); // New state
 
   useEffect(() => {
+    if (tokenProcessed) return; // Prevent re-running if already processed
+
     const tokenFromUrl = searchParams.get("token");
     if (tokenFromUrl) {
       setToken(tokenFromUrl);
+      setTokenProcessed(true); // Mark as processed
     } else {
       toast({
         title: "Error",
@@ -39,8 +43,9 @@ function ResetPasswordFormComponent() {
         variant: "destructive",
       });
       router.push("/forgot-password"); // Redirect if no token
+      setTokenProcessed(true); // Mark as processed
     }
-  }, [searchParams, router, toast]);
+  }, [searchParams, router, toast, tokenProcessed]); // Added tokenProcessed to dependency array
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
