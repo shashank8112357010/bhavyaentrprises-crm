@@ -3,10 +3,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { getTicketById } from "@/lib/services/ticket"; // Import the actual service
+import { getTicketById, addComment } from "@/lib/services/ticket"; // Import services
+import { useToast } from "@/hooks/use-toast"; // Import useToast
 
-// UI Imports from ticket-details-dialog
-import { Button } from "@/components/ui/button";
+// UI Imports
+import { Button } from "@/components/ui/button"; // Already here
+import { Textarea } from "@/components/ui/textarea"; // Import Textarea
+import { Label } from "@/components/ui/label"; // Import Label
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -150,6 +153,55 @@ export default function TicketDetailsPage() {
   const [ticket, setTicket] = useState<TicketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // State for new comment
+  const [newCommentText, setNewCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  // Placeholder for auth - replace with actual user ID
+  // const { userId: currentUserId } = useAuth(); // Example if you have an auth hook
+  const currentUserId = "user-placeholder-id"; // Replace with actual current user ID
+
+  const handleAddComment = async () => {
+    if (!newCommentText.trim() || !ticketId || !currentUserId) {
+      toast({
+        title: "Error",
+        description: "Comment text and user ID are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      // The addComment service should return the newly created comment,
+      // ideally with user details populated as defined in Comment and CommentUser types.
+      const addedComment: Comment = await addComment(ticketId, newCommentText, currentUserId);
+
+      setTicket(prevTicket => {
+        if (!prevTicket) return null;
+        // Optimistically update the comments list
+        const updatedComments = [...(prevTicket.comments || []), addedComment];
+        return { ...prevTicket, comments: updatedComments };
+      });
+
+      setNewCommentText(""); // Clear the textarea
+      toast({
+        title: "Success",
+        description: "Comment added successfully.",
+      });
+    } catch (err: any) {
+      console.error("Error adding comment:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to add comment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   useEffect(() => {
     if (ticketId) {
@@ -416,7 +468,29 @@ export default function TicketDetailsPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">No comments or activity recorded yet.</p>
               )}
-              {/* Add Comment form will be a separate component/feature */}
+
+              {/* Add Comment Form */}
+              <div className="mt-6 pt-4 border-t">
+                <h4 className="text-lg font-semibold mb-3">Add New Comment</h4>
+                <div className="grid gap-2 mb-2">
+                  <Label htmlFor="newComment" className="sr-only">Your Comment</Label>
+                  <Textarea
+                    id="newComment"
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    placeholder="Type your comment here..."
+                    rows={3}
+                    disabled={isSubmittingComment}
+                  />
+                </div>
+                <Button
+                  onClick={handleAddComment}
+                  disabled={isSubmittingComment || !newCommentText.trim()}
+                  size="sm"
+                >
+                  {isSubmittingComment ? "Submitting..." : "Add Comment"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

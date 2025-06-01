@@ -3,6 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   Building,
@@ -41,6 +42,7 @@ interface SortableTicketProps {
 }
 
 export function SortableTicket({ ticket }: SortableTicketProps) {
+  const router = useRouter();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const {
@@ -130,7 +132,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="z-50">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>View</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => router.push(`/dashboard/ticket/${ticket.id}`)}>View Details</DropdownMenuItem>
                 <DropdownMenuItem
                   className="z-50 cursor-pointer"
                   onClick={(e) => {
@@ -333,7 +335,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs z-50"
-            onClick={(e) => alert("k")}
+            onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/ticket/${ticket.id}`); }}
           >
             <ArrowUpRight className="mr-1 h-3 w-3" />
             Details
