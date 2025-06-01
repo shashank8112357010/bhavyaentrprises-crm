@@ -3,6 +3,7 @@ import ejs from "ejs";
 import path from "path";
 
 interface RateCardEntry {
+  id: string;
   srNo: number;
   description: string;
   unit: string;
