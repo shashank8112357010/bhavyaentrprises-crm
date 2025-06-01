@@ -93,6 +93,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     setIsEditDialogOpen(true);
   };
 
+  console.log("SortableTicket rendered with ticket ID:", ticket?.id); // Added for debugging
+
   return (
     <>
       <Card
@@ -132,7 +134,17 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="z-50">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => router.push(`/dashboard/ticket/${ticket.id}`)}>View Details</DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    console.log("View Details dropdown item selected. Ticket ID:", ticket?.id);
+                    if (ticket?.id) {
+                      router.push(`/dashboard/ticket/${ticket.id}`);
+                    } else {
+                      console.error("Navigation failed from dropdown: Ticket ID is undefined.");
+                    }
+                  }}
+                  className="cursor-pointer" // Ensure it looks clickable
+                >View Details</DropdownMenuItem>
                 <DropdownMenuItem
                   className="z-50 cursor-pointer"
                   onClick={(e) => {
@@ -335,7 +347,15 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs z-50"
-            onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/ticket/${ticket.id}`); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log("Details button clicked. Ticket ID:", ticket?.id);
+              if (ticket?.id) {
+                router.push(`/dashboard/ticket/${ticket.id}`);
+              } else {
+                console.error("Navigation failed: Ticket ID is undefined.");
+              }
+            }}
           >
             <ArrowUpRight className="mr-1 h-3 w-3" />
             Details
