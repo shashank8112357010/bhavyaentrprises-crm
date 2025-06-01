@@ -59,6 +59,7 @@ import {
   exportClientsToExcel,
   getAllClients,
 } from "@/lib/services/client";
+import { UploadClientsDialog } from "@/components/clients/UploadClientsDialog"; // Added import
 import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@radix-ui/react-select";
 
@@ -126,19 +127,25 @@ export default function ClientsPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
 
-  useEffect(() => {
-    async function fetchClients() {
-      try {
-        setLoading(true);
-        const data = await getAllClients();
-        setLoading(false);
-        setClients(data?.clients || []);
-      } catch (err) {
-        setLoading(false);
-        console.error("Failed to fetch clients:", err);
-      }
+  async function refreshClients() {
+    try {
+      setLoading(true);
+      const data = await getAllClients();
+      setClients(data?.clients || []);
+    } catch (err) {
+      console.error("Failed to fetch clients:", err);
+      toast({
+        title: "Error",
+        description: "Could not refresh client list.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    fetchClients();
+  }
+
+  useEffect(() => {
+    refreshClients();
   }, []);
 
   // Filtered clients by search and type
@@ -310,6 +317,13 @@ export default function ClientsPage() {
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
+            <UploadClientsDialog onUploadComplete={refreshClients} />
+            <a href="/sample_client_import.xlsx" download>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Download Sample
+              </Button>
+            </a>
           </div>
         </div>
 

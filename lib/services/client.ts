@@ -28,6 +28,26 @@ export async function createClient(payload: CreateClientPayload) {
   }
 }
 
+// ------------ 7. Import Clients from Excel --------------
+export async function importClientsFromExcel(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await axios.post("/client/import", formData, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data; // Contains { message, successCount, skippedCount, errorCount, errors }
+  } catch (error: any) {
+    console.error("Error importing clients from Excel:", error);
+    const message = error.response?.data?.error || "Failed to import clients from Excel. Please try again or check the file format.";
+    throw new Error(message);
+  }
+}
+
 // ------------ 2. Get All Lead --------------
 interface GetAllClientsParams {
   page?: number;
