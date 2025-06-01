@@ -32,6 +32,7 @@ import {
   Search,
   UserCheck2,
 } from "lucide-react";
+import ReactPaginate from "react-paginate"; // Added import
 import { useAgentStore } from "../../../store/agentStore";
 import { NewAgentDialog } from "@/components/agent/new-agent-dialog";
 import { AgentDetailModal } from "../../../components/agent/AgentDetailModal";
@@ -51,29 +52,34 @@ import { useToast } from "@/hooks/use-toast";
 import { Agent } from "../../../components/agent/types";
 
 export default function AgentsPage() {
-  const { agents, loading, error, fetchAgents, deleteAgent } = useAgentStore();
-  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    agents,
+    loading,
+    error,
+    fetchAgents,
+    deleteAgent,
+    currentPage,
+    itemsPerPage,
+    totalAgents,
+    searchQuery,
+    setCurrentPage,
+    setSearchQuery
+  } = useAgentStore();
+
   const [selectedAgentForDetails, setSelectedAgentForDetails] =
     useState<Agent | null>(null);
   const [selectedAgentForDeletion, setSelectedAgentForDeletion] =
     useState<Agent | null>(null);
   const [selectedAgentForEdit, setSelectedAgentForEdit] = useState<Agent | null>(null);
-  const [Loading, setLoading] = useState<Boolean | false>(false);
+  const [isDeletingAgent, setIsDeletingAgent] = useState<boolean>(false); // Renamed local loading state
   const { toast } = useToast();
 
-
-
   useEffect(() => {
-    fetchAgents();
+    fetchAgents(); // Initial fetch uses defaults from store (page 1, empty query)
   }, [fetchAgents]);
 
-  const filteredAgents = agents.filter(
-    (agent: Agent) =>
-      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (agent.specialization &&
-        agent.specialization.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Client-side filtering is no longer needed as API handles search and pagination
+  // const filteredAgents = agents.filter(...);
 
   const handleViewDetails = (agent: Agent) => {
     setSelectedAgentForDetails(agent);
@@ -94,31 +100,41 @@ export default function AgentsPage() {
   const handleConfirmDelete = async (agentId: string) => {
     if (!agentId) return;
     try {
-      setLoading(true);
+      setIsDeletingAgent(true); // Use renamed state setter
       await deleteAgent(agentId);
       toast({ title: "Success", description: "Agent deleted successfully" });
       setSelectedAgentForDeletion(null);
-      setLoading(false);
     } catch (error: any) {
-      setLoading(false);
       toast({
         title: "Error",
         description: error.message || "Failed to delete agent.",
         variant: "destructive",
       });
+    } finally {
+      setIsDeletingAgent(false); // Use renamed state setter
     }
   };
 
-  // useEffect(() => {
-  //   toast({
-  //     title: "Error",
-  //     description: error || "Failed to delete agent.",
-  //     variant: "destructive",
-  //   });
-  // }, [error]);
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value); // Call store action
+  };
 
-  console.log(agents);
-  
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected + 1); // Store's page is 1-based
+  };
+
+  const pageCount = itemsPerPage > 0 ? Math.ceil(totalAgents / itemsPerPage) : 0;
+
+  // Display error toast if error state from store changes
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -149,8 +165,8 @@ export default function AgentsPage() {
             placeholder="Search agents..."
             className="w-full md:w-[300px] pl-8"
             type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchQuery} // Bind to store's searchQuery
+            onChange={handleSearchChange} // Use new handler
           />
         </div>
       </div>
@@ -162,7 +178,7 @@ export default function AgentsPage() {
             <UserCheck2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{agents.length}</div>
+            <div className="text-2xl font-bold">{totalAgents}</div> {/* Use totalAgents from store */}
           </CardContent>
         </Card>
         <Card>
@@ -173,6 +189,7 @@ export default function AgentsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {agents.filter((a:any) => a.status === "ACTIVE").length}
+              {/* This will reflect current page stats */}
             </div>
           </CardContent>
         </Card>
@@ -184,6 +201,7 @@ export default function AgentsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {agents.filter((a) => a.status === "active").length}
+              {/* This will reflect current page stats */}
             </div>
           </CardContent>
         </Card>
@@ -225,7 +243,8 @@ export default function AgentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAgents.map((agent: any) => (
+              {/* Render agents directly from the store, no more client-side filteredAgents */}
+              {!loading && agents.map((agent: any) => (
                 <TableRow key={agent.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -325,21 +344,49 @@ export default function AgentsPage() {
                 </TableRow>
               ))}
             </TableBody>
-            <TableBody className="text-center">
-              <TableRow>
-                <TableCell colSpan={7} className="p-5 mt-4">
-                  {loading ? (
-                    <Spinner size="6" />
-                  ) : (
-                    filteredAgents.length === 0 &&
-                    " No team members found matching your search."
-                  )}
-                </TableCell>
-              </TableRow>
-            </TableBody>
+            {/* Removed TableBody for loading/no data, handled below Table */}
           </Table>
+
+          {loading && (
+            <div className="flex justify-center items-center py-10">
+              <Spinner size="8" />
+            </div>
+          )}
+          {!loading && totalAgents === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+              No team members found.
+            </div>
+          )}
+          {!loading && agents.length === 0 && totalAgents > 0 && (
+             <div className="text-center py-10 text-muted-foreground">
+              No team members found for the current search or page.
+            </div>
+          )}
+
         </CardContent>
       </Card>
+
+      {totalAgents > 0 && pageCount > 1 && (
+        <div className="mt-8 flex justify-center">
+            <ReactPaginate
+                previousLabel={"← Previous"}
+                nextLabel={"Next →"}
+                breakLabel={"..."}
+                pageCount={pageCount}
+                marginPagesDisplayed={2}
+                pageRangeDisplayed={3}
+                onPageChange={handlePageClick}
+                containerClassName={"flex items-center space-x-1 rtl:space-x-reverse"}
+                pageLinkClassName={"px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white rounded-md"}
+                previousLinkClassName={"px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"}
+                nextLinkClassName={"px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"}
+                breakLinkClassName={"px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white rounded-md"}
+                activeLinkClassName={"z-10 px-3 py-2 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white"}
+                disabledLinkClassName={"opacity-50 cursor-not-allowed"}
+                forcePage={currentPage - 1} // forcePage is 0-based
+            />
+        </div>
+      )}
 
       {selectedAgentForDeletion && (
         <Dialog
@@ -370,7 +417,7 @@ export default function AgentsPage() {
                 variant="destructive"
                 onClick={() => handleConfirmDelete(selectedAgentForDeletion.id)}
               >
-                {Loading ? <Spinner size="4" /> : " Confirm Delete"}
+                {isDeletingAgent ? <Spinner size="4" /> : " Confirm Delete"} {/* Use renamed state */}
               </Button>
             </DialogFooter>
           </DialogContent>
