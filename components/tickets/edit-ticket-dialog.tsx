@@ -69,7 +69,6 @@ const formatDate = (date: Date | string) => {
 };
 
 export default function EditTicketDialog({ ticket, onUpdate, open, onOpenChange }: EditTicketDialogProps) {
-  console.log(open);
   
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();

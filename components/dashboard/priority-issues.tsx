@@ -50,7 +50,6 @@ export default function PriorityIssues() {
       </div>
     );
   }
-  console.log(priorityIssues , "priorityIssues");
   
 
   return (

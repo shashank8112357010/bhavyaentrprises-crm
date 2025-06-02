@@ -98,9 +98,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     }
   };
 
-  useEffect(() => {
-    console.log("isEditDialogOpen", isEditDialogOpen);
-  }, [isEditDialogOpen]);
+
 
   const handleJcrUploadClick = () => jcrInputRef.current?.click();
   const handlePoUploadClick = () => poInputRef.current?.click();

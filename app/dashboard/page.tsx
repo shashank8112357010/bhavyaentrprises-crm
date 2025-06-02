@@ -38,7 +38,6 @@ export default function Home() {
   } = useTicketStore();
   // const { user } = useUserStore(); // Replaced by useAuthStore
   const { user } = useAuthStore(); // Get user from useAuthStore
- console.log("User from authStore:", user);
  
 
   useEffect(() => {

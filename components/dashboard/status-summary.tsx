@@ -41,7 +41,6 @@ export default function StatusSummary() {
     return <div className="w-full h-[300px] flex items-center justify-center">No tickets with current statuses.</div>;
   }
 
-  console.log(tickets);
   
 
   return (

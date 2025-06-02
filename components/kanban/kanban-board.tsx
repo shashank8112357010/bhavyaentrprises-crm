@@ -49,7 +49,6 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const { user } = useAuthStore();
-  console.log(tickets);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -135,13 +134,6 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   };
 
   const getVisibleColumns = () => {
-    // alert(user?.role)
-    // console.log(user , "while render");
-
-    if (user?.role === "ADMIN") {
-      console.log("TEst passed");
-    }
-
     const allColumns = Object.keys(tickets) as Array<keyof TicketsState>;
 
     if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {

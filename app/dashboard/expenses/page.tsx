@@ -2,33 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import ReactPaginate from "react-paginate";
-import {
-  Button,
-  Input,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui"; // Assuming ui/index.ts exports all these
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Search, Download, MoreHorizontal, Receipt, Plus } from "lucide-react"; // Using Receipt for expenses
 import { useDebounce } from "@/hooks/useDebounce";
@@ -36,6 +16,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { getAllExpenses } from "@/lib/services/expense"; // Service for expenses
 import { NewExpenseDialog } from "@/components/finances/new-expense-dialog"; // Dialog for expenses
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Interfaces
 interface ExpenseQuotationTicket {
@@ -264,7 +249,7 @@ export default function ExpensesPage() {
           <div className="flex items-center gap-2">
             <Select
               value={itemsPerPage.toString()}
-              onValueChange={(value) => {
+              onValueChange={(value:any) => {
                 setItemsPerPage(Number(value));
                 setPage(0); // Reset to first page
               }}

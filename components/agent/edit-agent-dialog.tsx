@@ -32,7 +32,6 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { editAgent } = useAgentStore();
   const { toast } = useToast();
-  console.log(agent, "agent from edit dialog");
 
   const [formData, setFormData] = useState({
     name:  "",

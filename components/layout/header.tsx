@@ -23,25 +23,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 
 export default function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const {user} = useAuthStore()
   const { toast } = useToast();
-  console.log(user);
   
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle menu</span>
-          </Button>
+    
           <Link href="/" className="flex items-center gap-2">
             <Image
               className=" text-primary"

@@ -248,7 +248,6 @@ export const useTicketStore = create<TicketState>((set) => ({
     set({ loading: true, error: null });
     try {
       const newTicket = await createTicket(ticketData);
-      console.log(newTicket, "newTicket from store");
       const { ticket } = newTicket;
 
       set((state) => ({
@@ -272,7 +271,6 @@ export const useTicketStore = create<TicketState>((set) => ({
     set({ loading: true, error: null });
     try {
       const ticketFromServer = await updateTicket(updatedTicket);
-      console.log(ticketFromServer , "ticketFromServer");
       
 
       set((state) => {

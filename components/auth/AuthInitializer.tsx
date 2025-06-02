@@ -16,7 +16,6 @@ export function AuthInitializer({ children }: AuthInitializerProps) {
     // Check if already initialized to prevent multiple calls if component somehow re-mounts.
     // Also check if there's a user already (e.g. after login redirect).
     if (!initialized && !user) {
-      console.log("AuthInitializer: No user in store, attempting to fetch current user.");
       fetchCurrentUser().finally(() => {
         setInitialized(true);
         console.log("AuthInitializer: fetchCurrentUser completed.");

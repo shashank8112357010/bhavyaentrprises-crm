@@ -150,7 +150,6 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
     }
 
     // Log selectedRates to ensure it's correctly structured
-    console.log("Selected Rates:", selectedRates);
 
     try {
       await createQuotation({

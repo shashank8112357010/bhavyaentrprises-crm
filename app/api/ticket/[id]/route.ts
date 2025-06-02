@@ -22,14 +22,12 @@ export async function PATCH(
 
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
-      console.log(params);
 
       const existingTicket = await prisma.ticket.findUnique({
         where: { id: params.id },
         select: { status: true, assigneeId: true },
       });
 
-      console.log(existingTicket, "existingTicket");
 
       if (!existingTicket) {
         return NextResponse.json(
