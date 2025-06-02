@@ -18,13 +18,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = quotationSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ message: "Invalid input", errors: parsed.error }, { status: 400 });
+      return NextResponse.json({ message: "Invalid input", errors: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { name, clientId, rateCardDetails, ticketId } = parsed.data;
+    // All validated data, including new fields
+    const { 
+      name, clientId, rateCardDetails, ticketId, 
+      status, expiryDate, currency, notes,
+      // subTotal: clientSubTotal, gst: clientGst, grandTotal: clientGrandTotal // Optional client-sent totals
+    } = parsed.data;
 
     // Extract rateCardIds from rateCardDetails
-    const rateCardIds = rateCardDetails.map((detail: { rateCardId: string }) => detail.rateCardId);
+    const rateCardIds = rateCardDetails.map((detail) => detail.rateCardId);
 
     // Fetch rate cards to get full details
     const rateCards = await prisma.rateCard.findMany({
@@ -35,36 +40,57 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Some RateCard entries not found" }, { status: 404 });
     }
 
-    // Compute totals
-    const subtotal = rateCardDetails.reduce((sum, detail) => {
+    // Compute totals based on fetched rate cards and gstType from rateCardDetails
+    let calculatedSubtotal = 0;
+    let calculatedTotalGst = 0;
+
+    for (const detail of rateCardDetails) {
       const rateCard = rateCards.find(rc => rc.id === detail.rateCardId);
-      return sum + (rateCard ? rateCard.rate * detail.quantity : 0);
-    }, 0);
+      if (rateCard) {
+        const itemSubtotal = rateCard.rate * detail.quantity;
+        calculatedSubtotal += itemSubtotal;
+        // Use gstType from detail (e.g., 18 for 18%, 28 for 28%)
+        const itemGst = itemSubtotal * (detail.gstType / 100);
+        calculatedTotalGst += itemGst;
+      }
+    }
+    const calculatedGrandTotal = calculatedSubtotal + calculatedTotalGst;
 
-    const gst = subtotal * 0.18; // Assuming GST is 18%
-    const grandTotal = subtotal + gst;
-
-    // Generate new quotation ID
-    const latest = await prisma.quotation.findFirst({
-      orderBy: { createdAt: "desc" },
+    // Generate new quotation ID and Serial Number
+    const latestQuotation = await prisma.quotation.findFirst({
+      orderBy: { serialNo: "desc" }, // Assuming serialNo is an auto-incrementing or sequential number
+      select: { serialNo: true }
     });
-    const serial = latest ? parseInt(latest.id.replace("QUOT", "")) + 1 : 1;
-    const newId = `QUOT${serial.toString().padStart(2, "0")}`;
-console.log(rateCards ,"rateCards");
-
-    // Generate PDF buffer
-    const pdfBuffer = await generateQuotationPdf({
-      quotationId: newId,
-      clientId,
-      name,
-      rateCards, // Pass rateCards instead of rateCardDetails
-      subtotal,
-      gst,
-      rateCardDetails,
-      grandTotal,
+    const nextSerialNo = latestQuotation && latestQuotation.serialNo ? latestQuotation.serialNo + 1 : 1;
+    // The quoteNo (ID like QUOTXXX) should be unique. Using a timestamp part or a more robust unique ID generation is better.
+    // For now, keeping similar logic to existing but using nextSerialNo for display if needed.
+    // The primary ID `id` for the quotation will still be `newId` based on the old logic for QUOTXXX format.
+    const latestIdRecord = await prisma.quotation.findFirst({
+        orderBy: { createdAt: "desc" }, // Assuming QUOTxxx is based on creation order for the serial part
+        select: { id: true }
     });
+    const serialForId = latestIdRecord ? parseInt(latestIdRecord.id.replace("QUOT", "")) + 1 : 1;
+    const newQuotationId = `QUOT${serialForId.toString().padStart(2, "0")}`;
 
-    // Save PDF to disk
+    // Data for PDF generation
+    const pdfData = {
+      quotationId: newQuotationId,
+      quotationName: name, // Quotation's own name/title
+      client, // Pass the fetched client object
+      rateCardsFull: rateCards, // Full rate card objects
+      rateCardDetails, // Original details with quantity and gstType
+      subTotal: calculatedSubtotal,
+      gst: calculatedTotalGst,
+      grandTotal: calculatedGrandTotal,
+      currency: currency || "INR", // Pass currency to PDF
+      notes, // Pass notes to PDF
+      expiryDate, // Pass expiryDate to PDF
+      // status, // Status might not be needed directly in PDF content, but can be passed
+    };
+    // console.log(rateCards ,"rateCards for PDF"); // Already have rateCards which is rateCardsFull
+
+    const pdfBuffer = await generateQuotationPdf(pdfData);
+
     const folderPath = path.join(process.cwd(), "public", "quotations");
     if (!existsSync(folderPath)) mkdirSync(folderPath, { recursive: true });
 
@@ -75,49 +101,60 @@ console.log(rateCards ,"rateCards");
     // Save in DB
     const quotation = await prisma.quotation.create({
       data: {
-        id: newId,
+        id: newQuotationId, // This is the QUOTXXX formatted ID
         name,
+        serialNo: nextSerialNo, // Store the numerical serial number
         clientId,
         ticketId,
+        status: status || "DRAFT",
+        expiryDate,
+        currency: currency || "INR",
+        notes,
         pdfUrl: `/quotations/${filename}`,
-        subtotal,
-        gst,
-        grandTotal,
-        rateCardDetails : rateCardDetails as any, // Store the rate card details as JSON
+        subtotal: calculatedSubtotal,
+        gst: calculatedTotalGst,
+        grandTotal: calculatedGrandTotal,
+        rateCardDetails: rateCardDetails as any, 
       },
     });
+
+    // Fetch client details for WorkStage and potentially PDF if needed (though PDF now gets client object)
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) {
+        // This should ideally not happen if clientID is validated by schema foreign key constraint
+        return NextResponse.json({ message: "Client not found after validation." }, { status: 404 });
+    }
+
 
     if (ticketId) {
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
-        select: { workStageId: true },
+        select: { workStageId: true, client: { select: { name: true }} }, // Also fetch client name via ticket if needed
       });
 
+      const workStageClientName = ticket?.client?.name || client.name; // Prioritize client name from ticket if available
+
       if (ticket?.workStageId) {
-        // Update existing workStage
         await prisma.workStage.update({
           where: { id: ticket.workStageId },
           data: {
-            quoteNo: newId,
-            quoteTaxable: subtotal,
-            quoteAmount: grandTotal,
+            quoteNo: newQuotationId,
+            quoteTaxable: calculatedSubtotal,
+            quoteAmount: calculatedGrandTotal,
           },
         });
       } else {
-        // Create new workStage and link to ticket
         const newWorkStage = await prisma.workStage.create({
           data: {
-            ticket: {
-              connect: { id: ticketId },
-            },
-            stateName: "N/A",
-            adminName: "N/A",
-            clientName: "N/A",
-            siteName: "N/A",
-            quoteNo: newId,
+            ticket: { connect: { id: ticketId } },
+            stateName: "N/A", // Default or map from quotation status if appropriate
+            adminName: "System", // Or based on logged-in user if available
+            clientName: workStageClientName, 
+            siteName: "N/A", // This might need to come from ticket or client details
+            quoteNo: newQuotationId,
             dateReceived: new Date(),
-            quoteTaxable: subtotal,
-            quoteAmount: grandTotal,
+            quoteTaxable: calculatedSubtotal,
+            quoteAmount: calculatedGrandTotal,
             workStatus: "N/A",
             approval: "N/A",
             poStatus: false,

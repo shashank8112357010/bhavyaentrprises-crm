@@ -23,6 +23,10 @@ import { getAllQuotations } from "@/lib/services/quotations";
 // import { NewQuotationDialog } from "@/components/finances/new-quotation-dialog"; // Removed
 import { useToast } from "@/hooks/use-toast";
 
+// Define QuotationStatus enum values - typically this would come from your prisma schema
+// For client-side, we can define it or import if available as a shared type
+const quotationStatusOptions = ["All", "DRAFT", "SENT", "ACCEPTED", "REJECTED", "ARCHIVED"];
+
 // Interfaces
 interface QuotationClient {
   id: string;
@@ -44,6 +48,7 @@ interface QuotationItem {
   gst: number;
   grandTotal: number;
   pdfUrl: string;
+  status: string; // Added status field
   // Assuming 'customId' might be the human-readable quote number
   customId?: string;
 }
@@ -66,10 +71,11 @@ export default function QuotationsPage() {
   const [page, setPage] = useState(0); // 0-based for react-paginate
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<string>("All"); // New state for status filter
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { toast } = useToast();
 
-  const fetchQuotationsList = useCallback(async () => {
+  const fetchQuotationsList = useCallback(async (currentStatusFilter: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -77,6 +83,7 @@ export default function QuotationsPage() {
         page: page + 1, // API is 1-based
         limit: itemsPerPage,
         searchQuery: debouncedSearchQuery,
+        status: currentStatusFilter === "All" ? undefined : currentStatusFilter, // Pass status filter
       });
       setQuotations(response.quotations || []);
       setTotalCount(response?.pagination.total || 0);
@@ -91,11 +98,11 @@ export default function QuotationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, itemsPerPage, debouncedSearchQuery, toast]);
+  }, [page, itemsPerPage, debouncedSearchQuery, toast]); 
 
   useEffect(() => {
-    fetchQuotationsList();
-  }, [fetchQuotationsList]);
+    fetchQuotationsList(statusFilter); // Pass statusFilter to the fetch function
+  }, [fetchQuotationsList, statusFilter]); // Added statusFilter to dependency array
 
   const handlePageChange = (selectedItem: { selected: number }) => {
     setPage(selectedItem.selected);
@@ -168,6 +175,20 @@ export default function QuotationsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <div>
+          <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(0); }}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              {quotationStatusOptions.map(status => (
+                <SelectItem key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Card>
@@ -192,6 +213,7 @@ export default function QuotationsPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Ticket</TableHead>
+                  <TableHead>Status</TableHead> {/* New column for Status */}
                   <TableHead className="text-right">Subtotal</TableHead>
                   <TableHead className="text-right">GST</TableHead>
                   <TableHead className="text-right">Grand Total</TableHead>
@@ -214,6 +236,7 @@ export default function QuotationsPage() {
                         q.ticket?.title || "N/A"
                       )}
                     </TableCell>
+                    <TableCell>{q.status}</TableCell> {/* Displaying status */}
                     <TableCell className="text-right">₹{q.subtotal?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
                     <TableCell className="text-right">₹{q.gst?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
                     <TableCell className="text-right">₹{q.grandTotal?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>

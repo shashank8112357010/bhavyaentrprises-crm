@@ -1,9 +1,9 @@
 "use client";
 
 // Page for Editing Existing Quotation
-import React, { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation"; // Using next/navigation
-import { useQuery, useMutation, useQueryClient as useReactQueryClient } from "@tanstack/react-query";
+import React, { useEffect, useState, useMemo, useCallback } from "react"; // Added useCallback
+import { useRouter } from "next/navigation"; 
+// Removed Tanstack Query imports
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,10 +66,25 @@ interface QuotationWithDetails extends InsertQuotation {
 
 // Import paths (same as new/page.tsx)
 import { generatePDF } from "@/lib/pdf/quotation";
-import { apiRequest, queryClient } from "@/lib/axios";
+// import { apiRequest, queryClient } from "@/lib/axios"; // queryClient removed
+import { axiosInstance } from "@/lib/axios"; // Assuming axiosInstance is exported
 
-// Define type for client creation form data
+// Define type for client creation form data (same as new page)
 type CreateClientFormData = z.infer<typeof createClientSchema>;
+
+// Service functions (conceptual, replace with actual imports if they exist in lib/services)
+const getQuotationByIdService = async (id: string) => {
+  return axiosInstance.get(`/api/quotations/${id}`);
+};
+
+const updateQuotationService = async (id: string, data: Partial<QuotationWithDetails>) => { // Use QuotationWithDetails or a specific UpdateDTO
+  return axiosInstance.put(`/api/quotations/${id}`, data);
+};
+
+const deleteQuotationService = async (id: string) => {
+  return axiosInstance.delete(`/api/quotations/${id}`);
+};
+// End of service functions
 
 // Placeholder components (same as new/page.tsx)
 // Modified ClientSearch to include a "Create New Client" button trigger
@@ -113,57 +128,49 @@ interface CreateClientDialogProps {
 
 const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenChange, onClientCreated }) => {
   const { toast } = useToast();
-  const reactQueryClient = useReactQueryClient();
+  // const reactQueryClient = useReactQueryClient(); // Removed
+  const [isLoading, setIsLoading] = useState(false); // Manual loading state
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof CreateClientFormData, string>>>({});
   const [formData, setFormData] = useState<Partial<CreateClientFormData>>({
     type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0]
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateClientFormData, string>>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'number' ? parseInt(value, 10) : value }));
-    setErrors(prev => ({ ...prev, [name]: undefined }));
+    setFormErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   const handleSelectChange = (name: keyof CreateClientFormData, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: undefined }));
+    setFormErrors(prev => ({ ...prev, [name]: undefined }));
   };
-
-  const createClientMutation = useMutation(
-    (clientData: CreateClientFormData) => createClient(clientData),
-    {
-      onSuccess: (newClient) => {
-        toast({ title: "Success", description: "New client created successfully." });
-        reactQueryClient.invalidateQueries(["clients"]);
-        onClientCreated(newClient as Client);
-        onOpenChange(false);
-        setFormData({ type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0] });
-        setErrors({});
-      },
-      onError: (error: Error) => {
-        toast({ title: "Error", description: `Failed to create client: ${error.message}`, variant: "destructive" });
-      },
-    }
-  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({});
+    setFormErrors({});
+    setIsLoading(true);
     try {
       const validatedData = createClientSchema.parse(formData);
-      createClientMutation.mutate(validatedData);
-    } catch (error) {
+      const newClient = await createClient(validatedData); // Assumes createClient uses axiosInstance
+      toast({ title: "Success", description: "New client created successfully." });
+      onClientCreated(newClient as Client);
+      onOpenChange(false);
+      setFormData({ type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0] });
+      setFormErrors({});
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
-        const fieldErrors: Partial<Record<keyof CreateClientFormData, string>> = {};
+        const fieldErrorsZod: Partial<Record<keyof CreateClientFormData, string>> = {};
         error.errors.forEach(err => {
-          if (err.path[0]) fieldErrors[err.path[0] as keyof CreateClientFormData] = err.message;
+          if (err.path[0]) fieldErrorsZod[err.path[0] as keyof CreateClientFormData] = err.message;
         });
-        setErrors(fieldErrors);
+        setFormErrors(fieldErrorsZod);
         toast({ title: "Validation Error", description: "Please check the form fields.", variant: "destructive"});
       } else {
-        toast({ title: "Submission Error", description: (error as Error).message, variant: "destructive"});
+        toast({ title: "Submission Error", description: error.message || "Failed to create client.", variant: "destructive"});
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -178,9 +185,9 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
           {/* Form fields (name, type, totalBranches, contactPerson, contactPhone, contactEmail, contractStatus, lastServiceDate, gstn, avatar, initials) */}
           {/* Name */}
           <div>
-            <Label htmlFor="name_edit">Client Name</Label> {/* Changed id to avoid conflict if rendered together by mistake */}
+            <Label htmlFor="name_edit">Client Name</Label> 
             <Input id="name_edit" name="name" value={formData.name || ""} onChange={handleInputChange} />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
           </div>
           {/* Type */}
           <div>
@@ -192,31 +199,31 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
                 <SelectItem value="Insurance">Insurance</SelectItem><SelectItem value="Corporate">Corporate</SelectItem>
               </SelectContent>
             </Select>
-            {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type}</p>}
+            {formErrors.type && <p className="text-red-500 text-xs mt-1">{formErrors.type}</p>}
           </div>
            {/* totalBranches */}
           <div>
             <Label htmlFor="totalBranches_edit">Total Branches</Label>
             <Input id="totalBranches_edit" name="totalBranches" type="number" value={formData.totalBranches || ""} onChange={handleInputChange} />
-            {errors.totalBranches && <p className="text-red-500 text-xs mt-1">{errors.totalBranches}</p>}
+            {formErrors.totalBranches && <p className="text-red-500 text-xs mt-1">{formErrors.totalBranches}</p>}
           </div>
           {/* contactPerson */}
           <div>
             <Label htmlFor="contactPerson_edit">Contact Person</Label>
             <Input id="contactPerson_edit" name="contactPerson" value={formData.contactPerson || ""} onChange={handleInputChange} />
-            {errors.contactPerson && <p className="text-red-500 text-xs mt-1">{errors.contactPerson}</p>}
+            {formErrors.contactPerson && <p className="text-red-500 text-xs mt-1">{formErrors.contactPerson}</p>}
           </div>
           {/* contactPhone */}
           <div>
             <Label htmlFor="contactPhone_edit">Contact Phone</Label>
             <Input id="contactPhone_edit" name="contactPhone" value={formData.contactPhone || ""} onChange={handleInputChange} />
-            {errors.contactPhone && <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>}
+            {formErrors.contactPhone && <p className="text-red-500 text-xs mt-1">{formErrors.contactPhone}</p>}
           </div>
           {/* contactEmail */}
           <div>
             <Label htmlFor="contactEmail_edit">Contact Email (Optional)</Label>
             <Input id="contactEmail_edit" name="contactEmail" type="email" value={formData.contactEmail || ""} onChange={handleInputChange} />
-            {errors.contactEmail && <p className="text-red-500 text-xs mt-1">{errors.contactEmail}</p>}
+            {formErrors.contactEmail && <p className="text-red-500 text-xs mt-1">{formErrors.contactEmail}</p>}
           </div>
           {/* contractStatus */}
           <div>
@@ -227,33 +234,36 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
                 <SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            {errors.contractStatus && <p className="text-red-500 text-xs mt-1">{errors.contractStatus}</p>}
+            {formErrors.contractStatus && <p className="text-red-500 text-xs mt-1">{formErrors.contractStatus}</p>}
           </div>
           {/* lastServiceDate */}
           <div>
             <Label htmlFor="lastServiceDate_edit">Last Service Date</Label>
             <Input id="lastServiceDate_edit" name="lastServiceDate" type="date" value={formData.lastServiceDate || ""} onChange={handleInputChange} />
-            {errors.lastServiceDate && <p className="text-red-500 text-xs mt-1">{errors.lastServiceDate}</p>}
+            {formErrors.lastServiceDate && <p className="text-red-500 text-xs mt-1">{formErrors.lastServiceDate}</p>}
           </div>
           {/* gstn */}
           <div>
             <Label htmlFor="gstn_edit">GSTN (Optional)</Label>
             <Input id="gstn_edit" name="gstn" value={formData.gstn || ""} onChange={handleInputChange} />
+            {formErrors.gstn && <p className="text-red-500 text-xs mt-1">{formErrors.gstn}</p>}
           </div>
           {/* avatar */}
           <div>
             <Label htmlFor="avatar_edit">Avatar URL (Optional)</Label>
             <Input id="avatar_edit" name="avatar" value={formData.avatar || ""} onChange={handleInputChange} />
+            {formErrors.avatar && <p className="text-red-500 text-xs mt-1">{formErrors.avatar}</p>}
           </div>
           {/* initials */}
           <div>
             <Label htmlFor="initials_edit">Initials (Optional)</Label>
             <Input id="initials_edit" name="initials" value={formData.initials || ""} onChange={handleInputChange} />
+            {formErrors.initials && <p className="text-red-500 text-xs mt-1">{formErrors.initials}</p>}
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="submit" disabled={createClientMutation.isLoading}>
-              {createClientMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create Client
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create Client
             </Button>
           </DialogFooter>
         </form>
@@ -270,124 +280,232 @@ interface EditQuotationPageProps {
 }
 
 const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
-  const { id: quotationId } = params; // Extract id, rename to avoid conflict if 'id' is used elsewhere
+  const { id: quotationId } = params; 
   const router = useRouter();
   const { toast } = useToast();
-  const reactQueryClient = useReactQueryClient();
+  // const reactQueryClient = useReactQueryClient(); // Removed
 
+  // Form states
+  const [quotationName, setQuotationName] = useState(""); 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [quotationDate, setQuotationDate] = useState<Date | undefined>(); // Initialize as undefined for edit
-  const [expiryDate, setExpiryDate] = useState<Date | undefined>();
-  const [items, setItems] = useState<InsertQuotationItem[]>([]); // Initialize as empty for edit
+  const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false);
+  const [quotationDate, setQuotationDate] = useState<string>(""); 
+  const [expiryDate, setExpiryDate] = useState<string>("");
+  
+  // State for QuotationTable items (Phase 2.1)
+  interface QuotationLineItem { // Same as new/page.tsx
+    id: string; 
+    rateCardId: string; 
+    description: string; 
+    unit: string;        
+    rate: number;        
+    quantity: number;
+    gstRate: number;     
+    total: number;       
+  }
+  const [quotationLineItems, setQuotationLineItems] = useState<QuotationLineItem[]>([]);
+  // States for Rate Card Search Dialog (will be needed for QuotationTable)
+  const [isRateCardSearchOpen, setIsRateCardSearchOpen] = useState(false);
+  const [rateCardSearchQuery, setRateCardSearchQuery] = useState("");
+  const [rateCardSearchResults, setRateCardSearchResults] = useState<MockRateCard[]>([]); // MockRateCard type will be defined later
+  const [isLoadingRateCards, setIsLoadingRateCards] = useState(false);
+
+
   const [status, setStatus] = useState<string>("DRAFT");
   const [notes, setNotes] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("INR");
   const [quoteNo, setQuoteNo] = useState("");
   const [serialNo, setSerialNo] = useState(0);
+  
+  // Loading and error states
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [errorLoadingData, setErrorLoadingData] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [errorUpdating, setErrorUpdating] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  // Removed errorDeleting as toast is used directly
 
-  // Fetch existing quotation using params.id
-  const { data: existingQuotation, isLoading: isLoadingExisting, error: existingQuotationError } = useQuery<QuotationWithDetails>(
-    ["/api/quotations", quotationId], // Use quotationId from params
-    async () => apiRequest(`/api/quotations/${quotationId}`),
-    {
-      enabled: !!quotationId, // Only fetch if quotationId is present
-    }
-  );
-
-  // Fetch next serial number - Disabled for edit page (existing quotations have serials)
-  const { data: serialData, isLoading: isLoadingSerial } = useQuery<{ serialNo: number; quoteNo: string }>(
-    ["/api/next-serial"],
-    async () => apiRequest("/api/next-serial"),
-    {
-      enabled: !quotationId, // Disabled if quotationId is present (i.e., for an edit page)
-    }
-  );
-
-  // Effect to load data from existingQuotation into form state
+  // Effect to load existing quotation data
   useEffect(() => {
-    if (existingQuotation) {
-      setSelectedClient(existingQuotation.client || null); // Assuming client data might be nested or just an ID
-      setQuotationDate(new Date(existingQuotation.date));
-      setExpiryDate(existingQuotation.expiryDate ? new Date(existingQuotation.expiryDate) : undefined);
-      // Ensure items have a 'total' field if not present, or calculate it
-      setItems(existingQuotation.items.map(item => ({ ...item, total: item.quantity * item.unitPrice })));
-      setStatus(existingQuotation.status);
-      setNotes(existingQuotation.notes || "");
-      setCurrency(existingQuotation.currency);
-      setQuoteNo(existingQuotation.quoteNo);
-      setSerialNo(existingQuotation.serialNo);
+    if (!quotationId) {
+      setIsLoadingData(false);
+      setErrorLoadingData("No quotation ID provided.");
+      toast({ title: "Error", description: "No quotation ID provided.", variant: "destructive" });
+      router.push("/dashboard/quotations"); // Redirect if no ID
+      return;
     }
-  }, [existingQuotation]);
 
-  // If serialData was intended for new quotations, this useEffect might not be relevant here,
-  // or only as a fallback if somehow an "edit" page was reached without an ID (which shouldn't happen).
-  useEffect(() => {
-    if (!quotationId && serialData) { // This condition should ideally not be met on an edit page
-      setQuoteNo(serialData.quoteNo);
-      setSerialNo(serialData.serialNo);
-      toast({ title: "Warning", description: "Editing page loaded without ID, but got new serial. Check routing.", variant: "destructive" });
-    }
-  }, [serialData, quotationId, toast]);
-
-
-  const subTotal = useMemo(() => items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0), [items]);
-  const taxRate = 0.10; // Example: 10%
-  const taxAmount = subTotal * taxRate;
-  const grandTotal = subTotal + taxAmount;
-
-  const saveQuotationMutation = useMutation(
-    async (quotationData: Partial<InsertQuotation>) => { // Use Partial for updates, or a specific UpdateDTO
-      if (quotationId) { // Logic for UPDATE
-        return apiRequest(`/api/quotations/${quotationId}`, {
-          method: "PUT",
-          body: JSON.stringify(quotationData),
+    const fetchQuotation = async () => {
+      setIsLoadingData(true);
+      try {
+        const response = await getQuotationByIdService(quotationId);
+        const data: QuotationWithDetails = response.data; // Assuming response.data is QuotationWithDetails
+        
+        setQuotationName(data.name || `Quotation ${data.quoteNo}`); 
+        setSelectedClient(data.client || null);
+        setQuotationDate(data.date ? new Date(data.date).toISOString().split('T')[0] : "");
+        setExpiryDate(data.expiryDate ? new Date(data.expiryDate).toISOString().split('T')[0] : "");
+        
+        // Transform fetched rateCardDetails (or items) into QuotationLineItem[]
+        // Assuming data.rateCardDetails is an array like: { rateCardId, quantity, gstType, rateCard: {description, unit, rate} }
+        // Or data.items is an array with similar structure.
+        // This needs to match the actual structure of `QuotationWithDetails` from the API.
+        // For now, I'll assume `data.items` is the source and contains necessary fields or nested objects.
+        const fetchedItems = data.items || (data as any).rateCardDetails || []; // Adapt based on actual API response
+        const transformedLineItems: QuotationLineItem[] = fetchedItems.map((item: any) => {
+          const rate = item.rate || item.unitPrice || item.rateCard?.rate || 0;
+          const quantity = item.quantity || 0;
+          const gstRate = item.gstType || item.gstRate || 18; // Default if not present
+          return {
+            id: item.id || crypto.randomUUID(), // Use existing item ID or generate new for client-side key
+            rateCardId: item.rateCardId || item.rateCard?.id || "",
+            description: item.description || item.rateCard?.description || "N/A",
+            unit: item.unit || item.rateCard?.unit || "N/A",
+            rate: rate,
+            quantity: quantity,
+            gstRate: gstRate,
+            total: rate * quantity * (1 + gstRate / 100),
+          };
         });
-      } else {
-        // This block should ideally not be reached on an "edit" page.
-        // If it is, it implies an issue with routing or page logic.
-        toast({ title: "Error", description: "Attempted to create a new quotation from the edit page.", variant: "destructive" });
-        throw new Error("Cannot create new quotation from edit page without ID.");
-        // return apiRequest("/api/quotations", {
-        //   method: "POST",
-        //   body: JSON.stringify(quotationData), // Fallback to POST, though not ideal for an edit page
-        // });
+        setQuotationLineItems(transformedLineItems);
+        
+        setStatus(data.status);
+        setNotes(data.notes || "");
+        setCurrency(data.currency);
+        setQuoteNo(data.quoteNo);
+        setSerialNo(data.serialNo);
+        setErrorLoadingData(null);
+      } catch (err: any) {
+        setErrorLoadingData(err.message || "Failed to fetch quotation data.");
+        toast({ title: "Error", description: err.message || "Failed to fetch quotation data.", variant: "destructive" });
+      } finally {
+        setIsLoadingData(false);
       }
-    },
-    {
-      onSuccess: (data: any) => {
-        toast({ title: "Success", description: `Quotation ${data.quoteNo} updated.` });
-        reactQueryClient.invalidateQueries(["/api/quotations", quotationId]); // Invalidate specific quotation
-        reactQueryClient.invalidateQueries(["/api/quotations"]); // Invalidate list
-      },
-      onError: (error: Error) => {
-        toast({ title: "Error updating quotation", description: error.message, variant: "destructive" });
-      },
-    }
-  );
+    };
 
-  const handleSubmit = () => {
+    fetchQuotation();
+  }, [quotationId, router, toast]);
+
+  // Calculations based on quotationLineItems (same as new/page.tsx)
+  const subTotal = useMemo(() => 
+    quotationLineItems.reduce((acc, item) => acc + (item.rate * item.quantity), 0), 
+  [quotationLineItems]); 
+
+  const totalGstAmount = useMemo(() => 
+    quotationLineItems.reduce((acc, item) => acc + (item.rate * item.quantity * (item.gstRate / 100)), 0),
+  [quotationLineItems]);
+
+  const grandTotal = useMemo(() => subTotal + totalGstAmount, [subTotal, totalGstAmount]);
+
+  // Mock RateCard type and search function (from new/page.tsx) - will be needed for QuotationTable
+  interface MockRateCard { id: string; description: string; unit: string; rate: number; }
+  const mockRateCards: MockRateCard[] = [ // This would be fetched from a service
+      { id: "rc1", description: "Standard Service A", unit: "Hour", rate: 100 },
+      { id: "rc2", description: "Premium Consult B", unit: "Session", rate: 250 },
+      { id: "rc3", description: "Material Pack C", unit: "Pack", rate: 50 },
+  ];
+
+  const searchRateCardsService = useCallback(async (query: string): Promise<MockRateCard[]> => {
+    setIsLoadingRateCards(true);
+    return new Promise(resolve => setTimeout(() => {
+      const results = mockRateCards.filter(rc => rc.description.toLowerCase().includes(query.toLowerCase()));
+      setRateCardSearchResults(results);
+      setIsLoadingRateCards(false);
+      resolve(results);
+    }, 300));
+  }, []); 
+  
+  const handleSearchRateCards = useCallback(async () => {
+    if (!rateCardSearchQuery.trim()) {
+      setRateCardSearchResults(mockRateCards); 
+      return;
+    }
+    await searchRateCardsService(rateCardSearchQuery);
+  }, [rateCardSearchQuery, searchRateCardsService]);
+
+  const addLineItemFromRateCard = useCallback((rateCard: MockRateCard) => {
+    setQuotationLineItems(prevItems => [
+      ...prevItems,
+      {
+        id: crypto.randomUUID(),
+        rateCardId: rateCard.id,
+        description: rateCard.description,
+        unit: rateCard.unit,
+        rate: rateCard.rate,
+        quantity: 1,
+        gstRate: 18, 
+        total: rateCard.rate * (1 + 18 / 100), 
+      },
+    ]);
+    setIsRateCardSearchOpen(false);
+    setRateCardSearchQuery("");
+    setRateCardSearchResults([]);
+  }, []); 
+
+  const updateLineItem = useCallback((index: number, field: keyof QuotationLineItem, value: string | number) => {
+    setQuotationLineItems(prevItems => {
+      const updatedItems = [...prevItems];
+      const itemToUpdate = { ...updatedItems[index] };
+      
+      if (field === 'quantity' || field === 'rate' || field === 'gstRate') {
+        (itemToUpdate[field] as number) = Number(value) || 0;
+      } else {
+        // (itemToUpdate[field] as string) = String(value); // If other string fields were editable
+      }
+      itemToUpdate.total = itemToUpdate.rate * itemToUpdate.quantity * (1 + itemToUpdate.gstRate / 100);
+      updatedItems[index] = itemToUpdate;
+      return updatedItems;
+    });
+  }, []);
+
+  const removeLineItem = useCallback((index: number) => {
+    setQuotationLineItems(prevItems => prevItems.filter((_, i) => i !== index));
+  }, []);
+
+  const handleSubmit = async () => {
     if (!selectedClient) {
       toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
       return;
     }
-    // For an update, you might send only changed fields or the full object.
-    // The DTO might differ (e.g., UpdateQuotationDto). Using InsertQuotation for now.
-    const quotationData: Partial<InsertQuotation> = {
-      // id: quotationId, // ID is in URL, not usually in body for PUT, but depends on API
-      serialNo, // Serial and QuoteNo might be non-editable or validated on backend
-      quoteNo,
+    if (!quotationName.trim()) {
+        toast({ title: "Validation Error", description: "Quotation Name/Title is required.", variant: "destructive"});
+        return;
+    }
+
+    const quotationDataToUpdate: Partial<QuotationWithDetails> = { // Or a specific UpdateDTO
+      name: quotationName,
       clientId: selectedClient.id,
-      date: quotationDate,
-      expiryDate,
-      items,
+      date: quotationDate ? new Date(quotationDate) : undefined, 
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      rateCardDetails: quotationLineItems.map(item => ({ // Format for backend
+        rateCardId: item.rateCardId,
+        quantity: item.quantity,
+        gstType: item.gstRate,
+      })),
+      // items: [], // Deprecated if using rateCardDetails
       status,
-      subTotal,
-      taxAmount,
-      grandTotal,
+      subTotal, 
+      gst: totalGstAmount, // Use the correct calculated GST total
+      grandTotal, 
       currency,
       notes,
+      // serialNo and quoteNo are typically not part of an update payload from client
+      // quoteNo and serialNo are generally not updated or handled by backend
     };
-    saveQuotationMutation.mutate(quotationData);
+
+    setIsUpdating(true);
+    setErrorUpdating(null);
+    try {
+      const response = await updateQuotationService(quotationId, quotationDataToUpdate);
+      toast({ title: "Success", description: `Quotation ${response.data.quoteNo} updated.` });
+      // No direct query invalidation, data will be refetched if user navigates or via page refresh
+      router.push("/dashboard/quotations"); // Optionally navigate away or refresh data
+    } catch (error: any) {
+      setErrorUpdating(error.response?.data?.message || error.message || "Failed to update quotation.");
+      toast({ title: "Error updating quotation", description: error.response?.data?.message || error.message, variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -395,29 +513,30 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
         toast({ title: "Error", description: "No quotation ID found to delete.", variant: "destructive" });
         return;
     }
-    // Add a confirmation dialog here in a real app
+    // TODO: Implement a confirmation dialog before deleting
+    setIsDeleting(true);
     try {
-        await apiRequest(`/api/quotations/${quotationId}`, { method: "DELETE" });
+        await deleteQuotationService(quotationId);
         toast({ title: "Success", description: "Quotation deleted." });
-        reactQueryClient.invalidateQueries(["/api/quotations"]);
-        router.push("/dashboard/quotations"); // Navigate back to list
+        router.push("/dashboard/quotations"); 
     } catch (error: any) {
-        toast({ title: "Error deleting quotation", description: error.message, variant: "destructive" });
+        toast({ title: "Error deleting quotation", description: error.message || "Failed to delete quotation.", variant: "destructive" });
+    } finally {
+        setIsDeleting(false);
     }
   };
 
-
-  if (isLoadingExisting) {
+  if (isLoadingData) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /> Loading quotation data...</div>;
   }
 
-  if (existingQuotationError) {
-      return <div className="text-red-500 p-4">Error loading quotation: {(existingQuotationError as Error).message}</div>;
+  if (errorLoadingData) {
+      return <div className="text-red-500 p-4">Error loading quotation: {errorLoadingData}</div>;
   }
 
-  if (!existingQuotation && !isLoadingExisting) {
-      return <div className="text-red-500 p-4">Quotation not found. It might have been deleted.</div>;
-  }
+  // If no existingQuotation data after loading (and no error string), it implies not found.
+  // This check might need refinement based on how getQuotationByIdService resolves if not found.
+  // For now, errorLoadingData string check is the primary error display.
 
 
   return (

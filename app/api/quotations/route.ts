@@ -8,11 +8,12 @@ export async function GET(req: Request) {
     const page = searchParams.get("page") || "1";
     const limit = searchParams.get("limit") || "10";
     const search = searchParams.get("search") || "";
+    const status = searchParams.get("status"); // Get status from query params
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
 
-    const whereClause: Prisma.QuotationWhereInput = search
+    let whereClause: Prisma.QuotationWhereInput = search
       ? {
           OR: [
             { name: { contains: search, mode: "insensitive" } },
@@ -21,6 +22,18 @@ export async function GET(req: Request) {
           ],
         }
       : {};
+
+    // If status is provided and not "All", add it to the where clause
+    if (status && status !== "All") {
+      // Ensure 'status' is a valid QuotationStatus enum value.
+      // Prisma will validate if the string corresponds to an enum value.
+      // If not, it would throw an error, which should be caught by the try-catch.
+      // It's good practice to validate against known enum values if possible before querying.
+      whereClause = {
+        ...whereClause,
+        status: status as any, // Cast to any if QuotationStatus enum isn't directly imported/checked here
+      };
+    }
 
     const total = await prisma.quotation.count({ where: whereClause });
 

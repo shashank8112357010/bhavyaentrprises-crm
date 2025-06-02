@@ -55,6 +55,13 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [loading, setLoading] = useState(false);
+  
+  // New fields state - Phase 1
+  const [quotationName, setQuotationName] = useState(""); // For "Work Details"
+  const [expiryDate, setExpiryDate] = useState<string>("");
+  const [currency, setCurrency] = useState<string>("INR");
+  const [notes, setNotesValue] = useState<string>(""); // Renamed from 'notes' to avoid conflict if 'notes' prop exists
+
   const startDate = "1970-01-01";
   const endDate = "2100-12-31";
 
@@ -122,13 +129,20 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
     e.preventDefault();
     setLoading(true);
 
-    const form = e.target as typeof e.target & {
-      description: { value: string };
-      date: { value: string };
-      remarks: { value: string };
-    };
-    const name = form.description.value;
+    // const form = e.target as typeof e.target & { // No longer using direct form access for these
+    //   description: { value: string };
+    //   // date: { value: string }; // Date is handled by state or default
+    //   remarks: { value: string };
+    // };
+    // const name = form.description.value; // Using quotationName state
+    // const notes = form.remarks.value; // Using notesValue state
+    const quotationDate = (e.target as any).date.value; // Keep date from form directly for now
 
+    if (!quotationName.trim()) {
+        setLoading(false);
+        toast({ title: "Error", description: "Work Details (Quotation Name) is required.", variant: "destructive" });
+        return;
+    }
     if (!clientId) {
       setLoading(false);
       toast({
@@ -152,11 +166,23 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
     // Log selectedRates to ensure it's correctly structured
 
     try {
+      // Ensure createQuotation service can handle all these fields.
+      // The backend API /api/quotations/create-quotations will handle defaults for status, currency if not provided.
+      // It will also recalculate totals.
       await createQuotation({
-        name,
+        name: quotationName,
         clientId,
         rateCardDetails: selectedRates,
         ticketId: ticketId || undefined,
+        status: "DRAFT", // Default status
+        expiryDate: expiryDate || undefined,
+        currency: currency || "INR",
+        notes: notesValue || undefined,
+        // Date is also part of the quotation, ensure it's passed if not handled by backend default.
+        // The backend schema doesn't explicitly list `date` but it's a common field.
+        // For now, assuming backend handles date if not explicitly passed or `createQuotation` service adds it.
+        // The original code had a date field, so it should be passed.
+        date: quotationDate ? new Date(quotationDate) : new Date(), // Pass the date
       });
       toast({
         title: "Success",
@@ -167,6 +193,12 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
       setTicketId("");
       setSelectedRates([]);
       setSearchTerm("");
+      // Reset new fields
+      setQuotationName("");
+      setExpiryDate("");
+      setCurrency("INR");
+      setNotesValue("");
+      
       onSuccess?.();
       setLoading(false);
     } catch (error) {
@@ -274,20 +306,48 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Work Details</Label>
+              <Label htmlFor="quotationName">Work Details (Quotation Name)</Label>
               <Textarea
-                id="description"
-                name="description"
-                placeholder="Enter work details"
+                id="quotationName"
+                name="quotationName" // Name attribute for form submission if not using state directly
+                placeholder="Enter work details / quotation name"
+                value={quotationName}
+                onChange={(e) => setQuotationName(e.target.value)}
                 required
               />
             </div>
+            
+            {/* New Fields - Phase 1 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="expiryDate">Expiry Date</Label>
+                <Input 
+                  id="expiryDate" 
+                  name="expiryDate" 
+                  type="date" 
+                  value={expiryDate} 
+                  onChange={(e) => setExpiryDate(e.target.value)} 
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Input 
+                  id="currency" 
+                  name="currency" 
+                  type="text" 
+                  value={currency} 
+                  onChange={(e) => setCurrency(e.target.value.toUpperCase())} 
+                  placeholder="e.g., INR"
+                />
+              </div>
+            </div>
+
 
             <div className="grid gap-2">
               <Label>Rate Card Items</Label>
 
               {selectedRates.filter((r) => r.quantity > 0).length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-2 p-2 border rounded-md bg-muted">
                   {selectedRates
                     .filter((r) => r.quantity > 0)
                     .map((r) => {
@@ -298,9 +358,9 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
                       return (
                         <div
                           key={r.rateCardId}
-                          className="flex items-center gap-1 border px-2 py-1 rounded-full text-sm"
+                          className="flex items-center gap-1 border bg-background px-2 py-1 rounded-full text-xs" // Changed to text-xs for compactness
                         >
-                          {rc.srNo}. {rc.description} (x{r.quantity}, GST: {r.gstType}%)
+                          {rc.description} ({rc.unit || 'N/A'}) x{r.quantity} @ {rc.rate} (GST: {r.gstType}%) {/* Added unit and rate */}
                           <button
                             type="button"
                             className="ml-1 text-red-500"
@@ -333,8 +393,8 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
                       key={rc.id}
                       className="flex items-center justify-between gap-2"
                     >
-                      <div className="text-sm flex-1">
-                        {rc.srNo}. {rc.description} - ₹{rc.rate}
+                      <div className="text-sm flex-1 truncate" title={`${rc.description} (Unit: ${rc.unit || 'N/A'}) - Rate: ₹${rc.rate}`}>
+                        {rc.srNo}. {rc.description} (Unit: {rc.unit || 'N/A'}) - ₹{rc.rate} {/* Display unit here - Phase 2 */}
                       </div>
                       <Input
                         type="number"
@@ -367,11 +427,13 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="remarks">Additional Remarks</Label>
+              <Label htmlFor="notes">Additional Remarks / Notes</Label>
               <Textarea
-                id="remarks"
-                name="remarks"
-                placeholder="Enter any additional remarks"
+                id="notes"
+                name="notes" // Name attribute for form submission if not using state directly
+                placeholder="Enter any additional remarks or notes for the quotation"
+                value={notesValue}
+                onChange={(e) => setNotesValue(e.target.value)}
               />
             </div>
           </div>
