@@ -66,6 +66,8 @@ export async function GET(req: NextRequest) {
             poStatus: true,
             poNumber: true,
             jcrStatus: true,
+            poFilePath : true,
+            jcrFilePath : true
           },
         },
         client: {
@@ -130,6 +132,8 @@ export async function GET(req: NextRequest) {
             poStatus: ticket.workStage.poStatus || false,
             poNumber: ticket.workStage.poNumber || "N/A",
             jcrStatus: ticket.workStage.jcrStatus || false,
+            poFilePath: ticket.workStage.poFilePath || '',
+            jcrFilePath: ticket.workStage.jcrFilePath || '',
           }
         : undefined,
       dueDate: ticket.dueDate ?? "N/A",
@@ -137,7 +141,7 @@ export async function GET(req: NextRequest) {
       completedDate: ticket.completedDate ?? "N/A",
       createdAt: ticket.createdAt || "N/A",
       description: ticket.description || "N/A",
-      comments: ticket._count?.comments ?? 0,
+      comments: ticket.comments || [],
       holdReason: ticket.holdReason || "N/A",
       status: ticket.status || "N/A",
       expenses: ticket.expenses.length

@@ -1,3 +1,4 @@
+// app/api/ticket/[id]/upload-po/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import fs from "fs/promises";
@@ -66,7 +67,7 @@ export async function POST(
       data: {
         workStage: {
           update: {
-            poFilePath: filePath, // Storing the absolute path, consider relative if needed
+            poFilePath: filePath, // Ensure this field is correctly defined in your schema
             poStatus: true,
           },
         },
@@ -85,11 +86,11 @@ export async function POST(
     let statusCode = 500;
 
     if (error.code === 'P2025') { // Prisma error code for record not found during update
-        errorMessage = "Ticket or WorkStage not found during update.";
-        statusCode = 404;
+      errorMessage = "Ticket or WorkStage not found during update.";
+      statusCode = 404;
     } else if (error instanceof TypeError && error.message.includes("Failed to parse URL")) {
-        errorMessage = "Invalid file data in form.";
-        statusCode = 400;
+      errorMessage = "Invalid file data in form.";
+      statusCode = 400;
     }
 
     return NextResponse.json(

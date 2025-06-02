@@ -10,9 +10,7 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  FileText,
   MessageSquare,
-  MoreHorizontal,
   Receipt,
   User,
   Pencil,
@@ -24,22 +22,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useToast } from "@/components/ui/use-toast"; // Added useToast
+
 import type { Ticket } from "./types";
 import { updateTicket, deleteTicket } from "@/lib/services/ticket";
 import EditTicketDialog from "../tickets/edit-ticket-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface SortableTicketProps {
   ticket: Ticket;
@@ -302,15 +294,15 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             <Badge
               variant="outline"
               className={`text-xs ${
-                !ticket.workStage || ticket.workStage.poNumber === "N/A"
-                  ? "bg-yellow-400 text-black"
-                  : "bg-green-500 text-white"
+                ticket?.workStage?.poStatus
+                  ?"bg-green-500 text-white"  
+                  : "bg-yellow-400 text-black"
               }`}
             >
               PO:{" "}
-              {!ticket.workStage || ticket.workStage.poNumber === "N/A"
-                ? "Pending"
-                : "Approved"}
+              {ticket?.workStage?.poStatus
+                ? "Submitted"
+                : "Pending"}
             </Badge>
 
             <Badge

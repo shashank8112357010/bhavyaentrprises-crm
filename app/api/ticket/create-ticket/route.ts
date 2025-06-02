@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ ticket });
+    return NextResponse.json({ ticket : {...ticket , comments : []} });
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to create ticket", error: error.message },

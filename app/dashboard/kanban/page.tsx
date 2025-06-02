@@ -28,6 +28,7 @@ import { exportTicketsToExcel } from "@/lib/services/ticket";
 import { Label } from "@radix-ui/react-label";
 import { Textarea } from "@/components/ui/textarea";
 import { Role } from "@/constants/roleAccessConfig";
+import { useAuthStore } from "@/store/authStore";
 type Comment = {
   text: string;
   ticketId: string;
@@ -132,6 +133,7 @@ export default function KanbanPage() {
   const [holdReasonText, setHoldReasonText] = useState("");
   const [ticketToHold, setTicketToHold] = useState<Ticket | null>(null);
   const [isLoadingHold, setLoadingHold] = useState(false);
+  const { user } = useAuthStore();
 
   // Assume you have a way to get the current user's role, e.g., from a context or store
   const [userRole, setUserRole] = useState<Role | null>(null); // Default role, replace with actual logic to get the user's role
@@ -291,7 +293,7 @@ export default function KanbanPage() {
   const filteredTickets: TicketsState = Object.entries(tickets).reduce(
     (acc, [status, statusTickets]) => {
       const allowedStatuses = ["new", "inProgress", "onHold", "completed"];
-      if (userRole === "ADMIN" || userRole === "ACCOUNTS") {
+      if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
         allowedStatuses.push("billing_pending", "billing_completed");
       }
 
@@ -327,7 +329,7 @@ export default function KanbanPage() {
     "inProgress",
     "onHold",
     "completed",
-    ...(userRole === "ADMIN" || userRole === "ACCOUNTS"
+    ...(user?.role === "ADMIN" || user?.role === "ACCOUNTS"
       ? (["billing_pending", "billing_completed"] as const)
       : []),
   ];
@@ -341,7 +343,7 @@ export default function KanbanPage() {
             Manage and track maintenance requests
           </p>
         </div>
-        <NewTicketDialog />
+        {user?.role === "ADMIN" && <NewTicketDialog />}
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 items-center justify-between">
@@ -354,46 +356,49 @@ export default function KanbanPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        {user?.role === "ADMIN" && (
+          <>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <div className="flex items-center">
+                    <Building className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Filter by client" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clients</SelectItem>
+                  {clients.map((client: any) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <div className="flex items-center">
-                <Building className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by client" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Clients</SelectItem>
-              {clients.map((client: any) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <div className="flex items-center capitalize">
-                <User className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by assignee" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Assignees</SelectItem>
-              {agents.map((agent: any) => (
-                <SelectItem
-                  className="capitalize"
-                  key={agent.id}
-                  value={agent.id}
-                >
-                  {agent.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <div className="flex items-center capitalize">
+                    <User className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Filter by assignee" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assignees</SelectItem>
+                  {agents.map((agent: any) => (
+                    <SelectItem
+                      className="capitalize"
+                      key={agent.id}
+                      value={agent.id}
+                    >
+                      {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 items-center justify-between">

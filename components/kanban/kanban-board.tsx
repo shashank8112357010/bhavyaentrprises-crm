@@ -26,6 +26,7 @@ import { SortableTicket } from "./sortable-ticket";
 import { Ticket } from "@/components/kanban/types";
 import { useEffect, useState } from "react";
 import { Role } from "@/constants/roleAccessConfig";
+import { useAuthStore } from "@/store/authStore";
 
 interface TicketsState {
   new: Ticket[];
@@ -48,6 +49,9 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [role, setRole] = useState<Role | null>(null);
+  const {user} = useAuthStore()
+  console.log(tickets);
+  
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -60,6 +64,9 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     const storedRole = localStorage.getItem("role") as Role | null;
     setRole(storedRole);
   }, []);
+
+
+  
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -137,8 +144,18 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   };
 
   const getVisibleColumns = () => {
+    // alert(user?.role)
+    // console.log(user , "while render");
+
+    if(user?.role === "ADMIN"){
+      console.log("TEst passed");
+      
+    }
+    
+    
     const allColumns = Object.keys(tickets) as Array<keyof TicketsState>;
-    if (role === "ADMIN" || role === "ACCOUNTS") {
+
+    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
       return allColumns;
     } else {
       return allColumns.filter(
@@ -146,6 +163,12 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       );
     }
   };
+
+  useEffect(()=>{
+    getVisibleColumns()
+  },[user?.role])
+
+  
 
   return (
     <DndContext

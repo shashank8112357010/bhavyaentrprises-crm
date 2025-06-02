@@ -84,6 +84,8 @@ export interface Ticket  {
     poNumber: string;
     jcrStatus: Boolean;
     agentName: string;
+    jcrFilePath : string;
+    poFilePath : string
 
   };
   due?: number; 
