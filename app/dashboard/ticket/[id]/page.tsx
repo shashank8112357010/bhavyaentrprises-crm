@@ -437,25 +437,19 @@ export default function TicketDetailsPage() {
 
         {/* Financials Tab Content */}
         <TabsContent value="financials" className="space-y-4 mt-4">
-          <div className="mb-4 flex gap-2 flex-wrap">
+          <div className="mb-4  flex gap-2 flex-wrap">
             <NewQuotationDialog
               onSuccess={loadTicketData}
               initialTicketId={ticket.id}
               initialClientId={ticket.client?.id}
             />
-            {ticket.Quotation && ticket.Quotation.length > 0 && (
-              <NewExpenseDialog
-                onSuccess={loadTicketData}
-                ticketId={ticket.id}
-                ticketQuotations={ticket.Quotation.map(q => ({ id: q.id, name: q.name }))}
-              />
-            )}
+           
           </div>
           {ticket.Quotation && ticket.Quotation.length > 0 ? (
             ticket.Quotation.map(quotation => (
               <Card key={quotation.id}>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Quotation: {quotation.name}</CardTitle>
+                  <CardTitle className="text-sm font-medium">Quotation: {quotation.name } </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm">
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">

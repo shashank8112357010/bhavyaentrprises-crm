@@ -30,6 +30,7 @@ import { Spinner } from "../ui/spinner";
 type PaymentType = "VCASH" | "REST" | "ONLINE";
 type ClientDetail = {
   name: string;
+  id : string;
 };
 interface QuotationForDialog {
   id: string;
@@ -47,6 +48,7 @@ export function NewExpenseDialog({
   onSuccess,
   ticketId,
   ticketQuotations,
+  
 }: NewExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [quotationsToDisplay, setQuotationsToDisplay] = useState<
