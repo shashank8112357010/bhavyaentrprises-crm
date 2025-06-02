@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from 'next/link'; // Import Link
 import ReactPaginate from "react-paginate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -198,7 +199,15 @@ export default function QuotationsPage() {
                     <TableCell>{q.customId || q.id}</TableCell>
                     <TableCell className="font-medium max-w-xs truncate">{q.name}</TableCell>
                     <TableCell>{q.client?.name || "N/A"}</TableCell>
-                    <TableCell>{q.ticket?.title || "N/A"}</TableCell>
+                    <TableCell>
+                      {q.ticket && q.ticket.id ? (
+                        <Link href={`/dashboard/ticket/${q.ticket.id}`} className="hover:underline">
+                          {q.ticket.title || "N/A"}
+                        </Link>
+                      ) : (
+                        q.ticket?.title || "N/A"
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">₹{q.subtotal?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
                     <TableCell className="text-right">₹{q.gst?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
                     <TableCell className="text-right">₹{q.grandTotal?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
