@@ -3,7 +3,7 @@
 // Page for Editing Existing Quotation
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation"; // Using next/navigation
-import { useQuery, useMutation, useQueryClient as useReactQueryClient } from "@tanstack/react-query";
+// TanStack Query imports removed
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,7 +66,7 @@ interface QuotationWithDetails extends InsertQuotation {
 
 // Import paths (same as new/page.tsx)
 import { generatePDF } from "@/lib/pdf/quotation";
-import { apiRequest, queryClient } from "@/lib/axios";
+import apiRequest from "@/lib/axios"; // Corrected import for apiRequest
 
 // Define type for client creation form data
 type CreateClientFormData = z.infer<typeof createClientSchema>;
@@ -113,7 +113,8 @@ interface CreateClientDialogProps {
 
 const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenChange, onClientCreated }) => {
   const { toast } = useToast();
-  const reactQueryClient = useReactQueryClient();
+  // const reactQueryClient = useReactQueryClient(); // Removed: reactQueryClient not used directly for mutation
+  const [isSubmittingDialog, setIsSubmittingDialog] = useState(false); // Added for dialog's loading state
   const [formData, setFormData] = useState<Partial<CreateClientFormData>>({
     type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0]
   });
@@ -130,29 +131,26 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
     setErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
-  const createClientMutation = useMutation(
-    (clientData: CreateClientFormData) => createClient(clientData),
-    {
-      onSuccess: (newClient) => {
-        toast({ title: "Success", description: "New client created successfully." });
-        reactQueryClient.invalidateQueries(["clients"]);
-        onClientCreated(newClient as Client);
-        onOpenChange(false);
-        setFormData({ type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0] });
-        setErrors({});
-      },
-      onError: (error: Error) => {
-        toast({ title: "Error", description: `Failed to create client: ${error.message}`, variant: "destructive" });
-      },
-    }
-  );
+  // Removed useMutation block for createClientMutation
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setIsSubmittingDialog(true); // Set dialog loading state
+
     try {
       const validatedData = createClientSchema.parse(formData);
-      createClientMutation.mutate(validatedData);
+      // Directly call the createClient service
+      const newClient = await createClient(validatedData);
+
+      // Success handling
+      toast({ title: "Success", description: "New client created successfully." });
+      // reactQueryClient.invalidateQueries(["clients"]); // Removed: Was used to refetch client list. Handle via callback or state if needed.
+      onClientCreated(newClient as Client); // Pass the new client up
+      onOpenChange(false); // Close dialog
+      setFormData({ type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0] }); // Reset form
+      setErrors({});
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof CreateClientFormData, string>> = {};
@@ -162,8 +160,11 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
         setErrors(fieldErrors);
         toast({ title: "Validation Error", description: "Please check the form fields.", variant: "destructive"});
       } else {
-        toast({ title: "Submission Error", description: (error as Error).message, variant: "destructive"});
+        // API error or other unexpected error
+        toast({ title: "Error", description: `Failed to create client: ${(error as Error).message}`, variant: "destructive" });
       }
+    } finally {
+      setIsSubmittingDialog(false); // Reset dialog loading state
     }
   };
 
@@ -252,8 +253,8 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="submit" disabled={createClientMutation.isLoading}>
-              {createClientMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create Client
+            <Button type="submit" disabled={isSubmittingDialog}>
+              {isSubmittingDialog && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create Client
             </Button>
           </DialogFooter>
         </form>
@@ -270,46 +271,62 @@ interface EditQuotationPageProps {
 }
 
 const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
-  const { id: quotationId } = params; // Extract id, rename to avoid conflict if 'id' is used elsewhere
+  const { id: quotationId } = params;
   const router = useRouter();
   const { toast } = useToast();
-  const reactQueryClient = useReactQueryClient();
+  // const reactQueryClient = useReactQueryClient(); // Removed
 
+  // State for existing quotation data
+  const [existingQuotation, setExistingQuotation] = useState<QuotationWithDetails | null>(null);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(true);
+  const [existingQuotationError, setExistingQuotationError] = useState<string | null>(null);
+
+  // State for form fields
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [quotationDate, setQuotationDate] = useState<Date | undefined>(); // Initialize as undefined for edit
+  const [quotationDate, setQuotationDate] = useState<Date | undefined>();
   const [expiryDate, setExpiryDate] = useState<Date | undefined>();
-  const [items, setItems] = useState<InsertQuotationItem[]>([]); // Initialize as empty for edit
+  const [items, setItems] = useState<InsertQuotationItem[]>([]);
   const [status, setStatus] = useState<string>("DRAFT");
   const [notes, setNotes] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [quoteNo, setQuoteNo] = useState("");
   const [serialNo, setSerialNo] = useState(0);
 
-  // Fetch existing quotation using params.id
-  const { data: existingQuotation, isLoading: isLoadingExisting, error: existingQuotationError } = useQuery<QuotationWithDetails>(
-    ["/api/quotations", quotationId], // Use quotationId from params
-    async () => apiRequest(`/api/quotations/${quotationId}`),
-    {
-      enabled: !!quotationId, // Only fetch if quotationId is present
-    }
-  );
+  // State for saving quotation
+  const [isSavingQuotation, setIsSavingQuotation] = useState(false);
 
-  // Fetch next serial number - Disabled for edit page (existing quotations have serials)
-  const { data: serialData, isLoading: isLoadingSerial } = useQuery<{ serialNo: number; quoteNo: string }>(
-    ["/api/next-serial"],
-    async () => apiRequest("/api/next-serial"),
-    {
-      enabled: !quotationId, // Disabled if quotationId is present (i.e., for an edit page)
+  // Effect to fetch existing quotation data
+  useEffect(() => {
+    if (quotationId) {
+      const fetchQuotation = async () => {
+        setIsLoadingExisting(true);
+        setExistingQuotationError(null);
+        try {
+          const data = await apiRequest<QuotationWithDetails>(`/api/quotations/${quotationId}`);
+          setExistingQuotation(data);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error fetching quotation";
+          setExistingQuotationError(errorMessage);
+          toast({ title: "Error Fetching Quotation", description: errorMessage, variant: "destructive" });
+          console.error("Error fetching quotation:", error);
+        } finally {
+          setIsLoadingExisting(false);
+        }
+      };
+      fetchQuotation();
+    } else {
+      setIsLoadingExisting(false);
+      setExistingQuotationError("No Quotation ID provided.");
+      toast({ title: "Error", description: "No Quotation ID provided.", variant: "destructive" });
     }
-  );
+  }, [quotationId, toast]);
 
   // Effect to load data from existingQuotation into form state
   useEffect(() => {
     if (existingQuotation) {
-      setSelectedClient(existingQuotation.client || null); // Assuming client data might be nested or just an ID
+      setSelectedClient(existingQuotation.client || null);
       setQuotationDate(new Date(existingQuotation.date));
       setExpiryDate(existingQuotation.expiryDate ? new Date(existingQuotation.expiryDate) : undefined);
-      // Ensure items have a 'total' field if not present, or calculate it
       setItems(existingQuotation.items.map(item => ({ ...item, total: item.quantity * item.unitPrice })));
       setStatus(existingQuotation.status);
       setNotes(existingQuotation.notes || "");
@@ -319,75 +336,58 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
     }
   }, [existingQuotation]);
 
-  // If serialData was intended for new quotations, this useEffect might not be relevant here,
-  // or only as a fallback if somehow an "edit" page was reached without an ID (which shouldn't happen).
-  useEffect(() => {
-    if (!quotationId && serialData) { // This condition should ideally not be met on an edit page
-      setQuoteNo(serialData.quoteNo);
-      setSerialNo(serialData.serialNo);
-      toast({ title: "Warning", description: "Editing page loaded without ID, but got new serial. Check routing.", variant: "destructive" });
-    }
-  }, [serialData, quotationId, toast]);
-
+  // Serial number fetching logic and related useEffect removed as it's not used on edit page
 
   const subTotal = useMemo(() => items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0), [items]);
   const taxRate = 0.10; // Example: 10%
   const taxAmount = subTotal * taxRate;
   const grandTotal = subTotal + taxAmount;
 
-  const saveQuotationMutation = useMutation(
-    async (quotationData: Partial<InsertQuotation>) => { // Use Partial for updates, or a specific UpdateDTO
-      if (quotationId) { // Logic for UPDATE
-        return apiRequest(`/api/quotations/${quotationId}`, {
-          method: "PUT",
-          body: JSON.stringify(quotationData),
-        });
-      } else {
-        // This block should ideally not be reached on an "edit" page.
-        // If it is, it implies an issue with routing or page logic.
-        toast({ title: "Error", description: "Attempted to create a new quotation from the edit page.", variant: "destructive" });
-        throw new Error("Cannot create new quotation from edit page without ID.");
-        // return apiRequest("/api/quotations", {
-        //   method: "POST",
-        //   body: JSON.stringify(quotationData), // Fallback to POST, though not ideal for an edit page
-        // });
-      }
-    },
-    {
-      onSuccess: (data: any) => {
-        toast({ title: "Success", description: `Quotation ${data.quoteNo} updated.` });
-        reactQueryClient.invalidateQueries(["/api/quotations", quotationId]); // Invalidate specific quotation
-        reactQueryClient.invalidateQueries(["/api/quotations"]); // Invalidate list
-      },
-      onError: (error: Error) => {
-        toast({ title: "Error updating quotation", description: error.message, variant: "destructive" });
-      },
-    }
-  );
+  // saveQuotationMutation removed
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedClient) {
       toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
       return;
     }
-    // For an update, you might send only changed fields or the full object.
-    // The DTO might differ (e.g., UpdateQuotationDto). Using InsertQuotation for now.
-    const quotationData: Partial<InsertQuotation> = {
-      // id: quotationId, // ID is in URL, not usually in body for PUT, but depends on API
-      serialNo, // Serial and QuoteNo might be non-editable or validated on backend
-      quoteNo,
-      clientId: selectedClient.id,
-      date: quotationDate,
-      expiryDate,
-      items,
-      status,
-      subTotal,
-      taxAmount,
-      grandTotal,
-      currency,
-      notes,
-    };
-    saveQuotationMutation.mutate(quotationData);
+    if (!quotationId) {
+      toast({ title: "Error", description: "Quotation ID is missing.", variant: "destructive" });
+      return;
+    }
+
+    setIsSavingQuotation(true);
+    try {
+      const quotationData: Partial<InsertQuotation> = {
+        serialNo,
+        quoteNo,
+        clientId: selectedClient.id,
+        date: quotationDate,
+        expiryDate,
+        items,
+        status,
+        subTotal,
+        taxAmount,
+        grandTotal,
+        currency,
+        notes,
+      };
+
+      const updatedQuotation = await apiRequest(`/api/quotations/${quotationId}`, {
+        method: "PUT",
+        body: JSON.stringify(quotationData),
+      });
+
+      toast({ title: "Success", description: `Quotation ${updatedQuotation.quoteNo} updated.` });
+      // Optionally update local state if API returns the full updated object
+      // setExistingQuotation(updatedQuotation); // If API returns the updated object
+      // reactQueryClient.invalidateQueries calls removed
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error saving quotation";
+      toast({ title: "Error updating quotation", description: errorMessage, variant: "destructive" });
+      console.error("Error saving quotation:", error);
+    } finally {
+      setIsSavingQuotation(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -399,24 +399,23 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
     try {
         await apiRequest(`/api/quotations/${quotationId}`, { method: "DELETE" });
         toast({ title: "Success", description: "Quotation deleted." });
-        reactQueryClient.invalidateQueries(["/api/quotations"]);
+        // reactQueryClient.invalidateQueries(["/api/quotations"]); // Removed
         router.push("/dashboard/quotations"); // Navigate back to list
     } catch (error: any) {
         toast({ title: "Error deleting quotation", description: error.message, variant: "destructive" });
     }
   };
 
-
   if (isLoadingExisting) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /> Loading quotation data...</div>;
   }
 
   if (existingQuotationError) {
-      return <div className="text-red-500 p-4">Error loading quotation: {(existingQuotationError as Error).message}</div>;
+      return <div className="text-red-500 p-4">Error loading quotation: {existingQuotationError}</div>;
   }
 
-  if (!existingQuotation && !isLoadingExisting) {
-      return <div className="text-red-500 p-4">Quotation not found. It might have been deleted.</div>;
+  if (!existingQuotation && !isLoadingExisting) { // Check error state as well
+      return <div className="text-red-500 p-4">Quotation not found. It might have been deleted or the ID is invalid.</div>;
   }
 
 
@@ -426,18 +425,25 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
         <h1 className="text-2xl font-bold">Edit Quotation {quoteNo || ''}</h1>
         <div>
             <Button variant="outline" onClick={() => router.push("/dashboard/quotations")} className="mr-2">Cancel</Button>
-            <Button onClick={handleSubmit} disabled={saveQuotationMutation.isLoading} className="mr-2">
-                {saveQuotationMutation.isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            <Button onClick={handleSubmit} disabled={isSavingQuotation || isLoadingExisting} className="mr-2">
+                {isSavingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Update Quotation
             </Button>
-            <Button variant="destructive" onClick={handleDelete}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isSavingQuotation || isLoadingExisting}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
         </div>
       </div>
 
       <Card className="mb-4">
         <CardHeader><CardTitle>Client</CardTitle></CardHeader>
         <CardContent>
-          <ClientSearch selectedClient={selectedClient} onSelectClient={setSelectedClient} />
+          {/* The ClientSearch component in edit/page.tsx did not have onCreateNewClient. CreateClientDialog is present but seems orphaned. */}
+          {/* For now, rendering ClientSearch as it was. If dialog needs to be triggered, ClientSearch props or another button is needed. */}
+          <ClientSearch selectedClient={selectedClient} onSelectClient={setSelectedClient} onCreateNewClient={() => {
+            // This function was missing in the original ClientSearch wiring for edit page.
+            // If a CreateClientDialog is intended to be used, its trigger mechanism needs to be defined.
+            // For now, this will do nothing, or you can hook it up to a dialog state if one exists.
+            toast({ title: "Info", description: "Create new client functionality not fully wired on this page."});
+          }} />
         </CardContent>
       </Card>
 

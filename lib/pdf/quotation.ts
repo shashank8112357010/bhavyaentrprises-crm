@@ -1,7 +1,8 @@
 // lib/pdf/quotation.ts
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
-export async function generateQuotationPdf({ name, rateCards }: { name: string, rateCards: any[] }) {
+// Renamed function to generatePDF to match import attempts
+export async function generatePDF({ name, rateCards }: { name: string, rateCards: any[] }) {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
