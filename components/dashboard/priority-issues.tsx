@@ -54,7 +54,7 @@ export default function PriorityIssues() {
   return (
     <div className="space-y-4">
       {priorityIssues.map((issue) => (
-        <Link href={`/ticket/${issue.id}`} key={issue.id} legacyBehavior>
+        <Link href={`/dashboard/ticket/${issue.id}`} key={issue.id} legacyBehavior>
           <a className="flex items-start justify-between p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/50 transition-colors cursor-pointer">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
