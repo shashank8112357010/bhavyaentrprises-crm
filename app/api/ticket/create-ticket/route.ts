@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const currentMonth = new Date().toLocaleString("default", { month: "short" }); // e.g., "May"
     const yearShort = new Date().getFullYear().toString().slice(-2); // e.g., "25"
     const sanitizedClientName = client.name.replace(/\s+/g, "-").replace(/[^\w-]/g, "").toUpperCase();
-    const newId = `BE${yearShort}${currentMonth}${serial.toString().padStart(4, "0")}-${sanitizedClientName}`;
+    const newId = `T-BE${yearShort}${currentMonth}${serial.toString().padStart(4, "0")}-${sanitizedClientName}`;
     console.log(newId);
     
     
