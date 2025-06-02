@@ -23,24 +23,39 @@ import { useTicketStore } from "@/store/ticketStore";
 import { useEffect } from "react";
 // import { useUserStore } from "@/store/crmStore"; // Replaced by useAuthStore
 import { useAuthStore } from "@/store/authStore"; // Import useAuthStore
+import TotalAgentsCard from "@/components/dashboard/total-agents-card"; // Import TotalAgentsCard
 
 
 export default function Home() {
-  const {  fetchTickets } = useTicketStore();
+  const {
+    fetchTickets, // Keep for other components like StatusSummary, PriorityIssues
+    fetchDashboardCounts, // New action for all dashboard counts
+    openTicketsCount,
+    scheduledTodayCount,
+    clientUpdatesNeededCount,
+    completedThisWeekCount,
+    isLoadingDashboardCounts, // New loading state for these counts
+  } = useTicketStore();
   // const { user } = useUserStore(); // Replaced by useAuthStore
   const { user } = useAuthStore(); // Get user from useAuthStore
  console.log("User from authStore:", user);
  
 
   useEffect(() => {
-    fetchTickets();
-    
-  }, [fetchTickets]);
+    fetchTickets(); // Still needed for other parts of the dashboard
+    fetchDashboardCounts(); // Call the new consolidated fetch action
+  }, [
+    fetchTickets,
+    fetchDashboardCounts
+    // Removed individual count fetchers from dependency array
+  ]);
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {user && user.name ? `Welcome, ${user.name}` : 'Dashboard'}
+          </h1>
           <p className="text-muted-foreground">Monitor repairs, track progress, and manage client requests</p>
         </div>
         <div className="flex items-center gap-2">
@@ -55,7 +70,9 @@ export default function Home() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Open Tickets</CardDescription>
-            <CardTitle className="text-2xl">42</CardTitle>
+            <CardTitle className="text-2xl">
+              {isLoadingDashboardCounts ? "Loading..." : (openTicketsCount ?? 'N/A')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
@@ -67,7 +84,9 @@ export default function Home() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Scheduled Today</CardDescription>
-            <CardTitle className="text-2xl">8</CardTitle>
+            <CardTitle className="text-2xl">
+              {isLoadingDashboardCounts ? "Loading..." : (scheduledTodayCount ?? 'N/A')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
@@ -79,7 +98,9 @@ export default function Home() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Client Updates Needed</CardDescription>
-            <CardTitle className="text-2xl">15</CardTitle>
+            <CardTitle className="text-2xl">
+              {isLoadingDashboardCounts ? "Loading..." : (clientUpdatesNeededCount ?? 'N/A')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
@@ -91,7 +112,9 @@ export default function Home() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Completed This Week</CardDescription>
-            <CardTitle className="text-2xl">23</CardTitle>
+            <CardTitle className="text-2xl">
+              {isLoadingDashboardCounts ? "Loading..." : (completedThisWeekCount ?? 'N/A')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
@@ -100,6 +123,8 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
+        {/* Conditionally rendered TotalAgentsCard */}
+        {user?.role === 'ADMIN' && <TotalAgentsCard />}
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">

@@ -121,8 +121,31 @@ interface TicketState {
   createTicket: (ticketData: CreateTicketInput) => Promise<void>;
   fetchTicketById: (id: string) => Ticket | undefined;
   updateTicket: (updatedTicket: any) => Promise<void>;  // <-- Add this here
+
+  // New state and actions for dashboard counts
+  openTicketsCount: number | null;
+  scheduledTodayCount: number | null;
+  clientUpdatesNeededCount: number | null;
+  completedThisWeekCount: number | null;
+  isLoadingDashboardCounts: boolean;
+  fetchDashboardCounts: () => Promise<void>;
 }
 
+// Placeholder for the actual service call.
+// In a real application, this would likely be in '../lib/services/ticket.ts'
+const getDashboardTicketCountsService = async (): Promise<{
+  openTicketsCount: number;
+  scheduledTodayCount: number;
+  clientUpdatesNeededCount: number;
+  completedThisWeekCount: number;
+}> => {
+  const response = await fetch('/api/ticket/counts');
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to fetch dashboard ticket counts');
+  }
+  return response.json();
+};
 
 export const useTicketStore = create<TicketState>((set) => ({
   tickets: {
@@ -136,6 +159,14 @@ export const useTicketStore = create<TicketState>((set) => ({
   all_tickets : [],
   loading: false,
   error: null,
+
+  // Initialize new dashboard count states
+  openTicketsCount: null,
+  scheduledTodayCount: null,
+  clientUpdatesNeededCount: null,
+  completedThisWeekCount: null,
+  isLoadingDashboardCounts: false,
+
   fetchTickets: async (filters?: { status?: Status; startDate?: string; endDate?: string }) => {
     set({ loading: true, error: null });
     try {
@@ -280,6 +311,28 @@ export const useTicketStore = create<TicketState>((set) => ({
       });
     } catch (error: any) {
       set({ error: error.message, loading: false });
+    }
+  },
+  fetchDashboardCounts: async () => {
+    set({ isLoadingDashboardCounts: true, error: null });
+    try {
+      const counts = await getDashboardTicketCountsService();
+      set({
+        openTicketsCount: counts.openTicketsCount,
+        scheduledTodayCount: counts.scheduledTodayCount,
+        clientUpdatesNeededCount: counts.clientUpdatesNeededCount,
+        completedThisWeekCount: counts.completedThisWeekCount,
+        isLoadingDashboardCounts: false,
+      });
+    } catch (error: any) {
+      set({
+        error: error.message || 'Failed to fetch dashboard counts',
+        isLoadingDashboardCounts: false,
+        openTicketsCount: null,
+        scheduledTodayCount: null,
+        clientUpdatesNeededCount: null,
+        completedThisWeekCount: null,
+      });
     }
   },
 }));

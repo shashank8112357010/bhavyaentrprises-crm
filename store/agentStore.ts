@@ -5,18 +5,36 @@ import {
   createAgent as createAgentService, // Renamed for clarity
   updateAgent as updateAgentService, // Renamed for clarity
   deleteAgent as deleteAgentService // Renamed to avoid conflict with action name
+  // Assume getTotalAgentCount will be added to services, similar to others.
+  // For now, we define a placeholder directly in this file.
 } from "../lib/services/agent";
 
 import { Agent , CreateAgentPayload } from "@/components/agent/types";
 
+// Placeholder for the actual service call.
+// In a real application, this would likely be in '../lib/services/agent.ts'
+// and imported.
+const getTotalAgentCountService = async (): Promise<{ count: number }> => {
+  const response = await fetch('/api/agent/count');
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to fetch total agent count');
+  }
+  return response.json();
+};
+
 interface AgentState {
   agents: Agent[];
-  loading: boolean;
+  loading: boolean; // For general agent list loading (fetchAgents)
   error: string | null;
   currentPage: number;
   itemsPerPage: number;
-  totalAgents: number;
+  totalAgents: number; // For paginated list from fetchAgents
   searchQuery: string;
+
+  totalAgentCount: number | null; // Total count of all agents with specific roles
+  isLoadingTotalAgentCount: boolean; // Loading state specifically for totalAgentCount
+
   fetchAgents: (params?: { page?: number; limit?: number; query?: string }) => Promise<void>;
   fetchAgentById: (id: string) => Promise<Agent | undefined>;
   addAgent: (agent: CreateAgentPayload) => Promise<void>;
@@ -24,7 +42,8 @@ interface AgentState {
   deleteAgent: (id: string) => Promise<void>;
   setCurrentPage: (page: number) => void;
   setSearchQuery: (query: string) => void;
-  setItemsPerPage: (newLimit: number) => void; // Added new action
+  setItemsPerPage: (newLimit: number) => void;
+  fetchTotalAgentCount: () => Promise<void>; // New action
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
@@ -33,10 +52,14 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   error: null,
   currentPage: 1,
   itemsPerPage: 5, // Updated default items per page to 5
-  totalAgents: 0,
+  totalAgents: 0, // This is for the paginated list
   searchQuery: "",
+
+  totalAgentCount: null, // Initialize new state
+  isLoadingTotalAgentCount: false, // Initialize new state
+
   fetchAgents: async (params = {}) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null }); // This loading is for the main agent list
     const S = get();
     const pageToFetch = params.page ?? S.currentPage;
     const limitToFetch = params.limit ?? S.itemsPerPage;
@@ -121,5 +144,23 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   setItemsPerPage: (newLimit: number) => {
     set({ itemsPerPage: newLimit, currentPage: 1, loading: true }); // Update state and set loading
     get().fetchAgents({ page: 1, limit: newLimit, query: get().searchQuery });
+  },
+  fetchTotalAgentCount: async () => {
+    set({ isLoadingTotalAgentCount: true, error: null });
+    try {
+      const response = await getTotalAgentCountService(); // Call the service function
+      set({
+        totalAgentCount: response.count,
+        isLoadingTotalAgentCount: false,
+      });
+    } catch (error: any) {
+      set({
+        error: error.message || 'Failed to fetch total agent count',
+        isLoadingTotalAgentCount: false,
+        totalAgentCount: null, // Optionally reset or keep previous value on error
+      });
+      // Optionally rethrow or handle the error further if needed by the caller
+      // console.error("Error in fetchTotalAgentCount:", error);
+    }
   },
 }));

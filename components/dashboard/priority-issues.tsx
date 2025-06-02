@@ -3,99 +3,96 @@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
-  AlertCircle, 
   ArrowUpRight, 
   Building, 
   Calendar,
-  Clock
+  Clock,
+  AlertTriangle // For priority icon
 } from "lucide-react";
+import { useTicketStore } from "@/store/ticketStore";
+import Link from "next/link"; // For the "View all" button
+import { format } from 'date-fns'; // For date formatting
 
-const priorityIssues = [
-  {
-    id: "1",
-  title: "Site visit with client",
-  client: "ABC Corp",
-  branch: "Delhi",
-  priority: "Critical",
-  assignee: {
-    name: "John Doe",
-    avatar: "/avatars/john.jpg",
-    initials: "JD"
-  },
-  issue : "hard",
-  timeReported : "",
-  dueDate: "2025-05-20",
-  createdAt: "2025-05-10",
-  scheduledFor : "",
-  description: "Follow-up for quote discussion",
-  comments: 3,
-  workStage: {
-    stateName: "Delhi",
-    adminName: "Admin1",
-    clientName: "ABC Corp",
-    siteName: "Site 12",
-    quoteNo: "Q1234",
-    dateReceived: "2025-05-08",
-    quoteTaxable: 180000,
-    quoteAmount: 212400,
-    workStatus: "Pending",
-    approval: "Approved",
-    poStatus: "Generated",
-    poNumber: "PO4567",
-    jcrStatus: "Initiated",
-    agentName: "John Doe"
-  }
-}
-]
+// Helper to get initials from name
+const getInitials = (name: string = "") => {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase() || 'N/A';
+};
 
 export default function PriorityIssues() {
+  const { tickets, isLoadingTickets } = useTicketStore();
+
+  if (isLoadingTickets) {
+    return <div className="space-y-4 p-3 rounded-lg border bg-card text-card-foreground">Loading priority issues...</div>;
+  }
+
+  const priorityIssues = tickets
+    .filter(ticket => ticket.priority === "High" || ticket.priority === "Critical")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Sort by newest first
+    .slice(0, 5); // Show top 5
+
+  if (priorityIssues.length === 0) {
+    return (
+      <div className="p-3 rounded-lg border bg-card text-card-foreground text-center text-muted-foreground">
+        <AlertTriangle className="mx-auto h-8 w-8 mb-2 text-green-500" />
+        No priority issues at the moment.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {priorityIssues.map((issue) => (
-        <div 
-          key={issue.id}
-          className="flex items-start justify-between p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/50 transition-colors"
-        >
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant={issue.priority === "Critical" ? "destructive" : "secondary"}>
-                {issue.priority}
-              </Badge>
-              <span className="text-sm font-medium">{issue.id}</span>
-            </div>
-            <h4 className="font-medium">{issue.issue}</h4>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Building className="mr-1 h-4 w-4" />
-              <span>{issue.client} - {issue.branch}</span>
-            </div>
-            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-              <div className="flex items-center">
-                <Clock className="mr-1 h-3 w-3" />
-                <span>Reported: {issue.timeReported}</span>
+        <Link href={`/tickets/${issue.id}`} key={issue.id} legacyBehavior>
+          <a className="flex items-start justify-between p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/50 transition-colors cursor-pointer">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge variant={issue.priority === "Critical" ? "destructive" : "secondary"}>
+                  {issue.priority}
+                </Badge>
+                <span className="text-sm font-medium text-muted-foreground">#{issue.id.substring(0, 6)}...</span>
               </div>
-              <div className="flex items-center">
-                <Calendar className="mr-1 h-3 w-3" />
-                <span>Scheduled: {issue.scheduledFor}</span>
+              <h4 className="font-medium leading-tight">{issue.title || "No Title"}</h4>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Building className="mr-1 h-4 w-4 flex-shrink-0" />
+                <span>{issue.client?.companyName || "N/A Client"} - {issue.client?.branch || "N/A Branch"}</span>
+              </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <div className="flex items-center">
+                  <Clock className="mr-1 h-3 w-3" />
+                  <span>Reported: {issue.createdAt ? format(new Date(issue.createdAt), 'MMM dd, yyyy') : 'N/A'}</span>
+                </div>
+                {issue.scheduledDate && (
+                  <div className="flex items-center">
+                    <Calendar className="mr-1 h-3 w-3" />
+                    <span>Scheduled: {format(new Date(issue.scheduledDate), 'MMM dd, yyyy')}</span>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={issue.assignee.avatar} alt={issue.assignee.name} />
-              <AvatarFallback>{issue.assignee.initials}</AvatarFallback>
-            </Avatar>
-            <button className="flex items-center text-xs font-medium text-primary">
-              <span>View details</span>
-              <ArrowUpRight className="ml-1 h-3 w-3" />
-            </button>
-          </div>
-        </div>
+            <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+              {issue.assignedToUser && (
+                <Avatar className="h-8 w-8">
+                  {issue.assignedToUser.image && <AvatarImage src={issue.assignedToUser.image} alt={issue.assignedToUser.name || 'Assignee'} />}
+                  <AvatarFallback>{getInitials(issue.assignedToUser.name)}</AvatarFallback>
+                </Avatar>
+              )}
+              <div className="flex items-center text-xs font-medium text-primary">
+                <span>View</span>
+                <ArrowUpRight className="ml-1 h-3 w-3" />
+              </div>
+            </div>
+          </a>
+        </Link>
       ))}
-      <div className="text-center">
-        <button className="text-sm text-primary font-medium hover:underline">
-          View all priority issues
-        </button>
-      </div>
+      {tickets.filter(ticket => ticket.priority === "High" || ticket.priority === "Critical").length > 5 && (
+         <div className="text-center mt-4">
+           <Link href="/tickets?priority=High,Critical" legacyBehavior>
+             <a className="text-sm text-primary font-medium hover:underline">
+               View all priority issues
+             </a>
+           </Link>
+         </div>
+      )}
     </div>
   );
 }
