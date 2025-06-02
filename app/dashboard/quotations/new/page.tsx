@@ -1,451 +1,632 @@
 "use client";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { FileText, Search, Plus, Trash2, Download, Send, Save, Package } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-// Modified Code for NewQuotationPage
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-// import { useParams } from "next/navigation"; // No longer needed for 'new' page
-import { useRouter } from "next/navigation"; // Changed from wouter
-// TanStack Query imports removed as per refactor
-import { Button } from "@/components/ui/button"; // Corrected path
-import { Input } from "@/components/ui/input"; // Corrected path
-import { Textarea } from "@/components/ui/textarea"; // Corrected path
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Corrected path
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Corrected path
-// import { DatePicker } from "@/components/ui/date-picker"; // Assuming this exists, corrected path
-import { useToast } from "@/hooks/use-toast"; // Corrected path
-import { Loader2, Save, PlusCircle, MinusCircle, Printer, Mail, UserPlus } from "lucide-react"; // Added UserPlus, removed Trash2
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog"; // For CreateClientDialog
-import { Label } from "@/components/ui/label"; // For CreateClientDialog form
+import { getAllRateCards } from "@/lib/services/rate-card";
+import { getAllClients } from "@/lib/services/client"; // Assuming you have a service for fetching clients
+import { Client } from "@/components/clients/types";
+import { RateCard } from "@prisma/client";
+import { rateCardSchema } from "@/lib/validations/rateCardSchema";
 
-// Service and schema for client creation
-import { createClient } from "@/lib/services/client"; // Assuming path
-import { createClientSchema } from "@/lib/validations/clientSchema"; // Assuming path
-import { z } from "zod"; // For form validation and type inference
+// Form schemas
+const quotationFormSchema = z.object({
+  clientId: z.number().optional(),
+  serialNumber: z.string().optional(),
+  salesType: z.string().default("Interstate"),
+  quotationNumber: z.string().min(1, "Quote number is required"),
+  validUntil: z.string().optional(),
+  admin: z.string().optional(),
+  quoteBy: z.string().optional(),
+  discount: z.string().default("0"),
+});
 
-// Placeholder types as @shared/schema is invalid and structure is unknown
-interface Client {
-  id: string;
-  name: string;
-  email?: string;
-}
-
-interface InsertQuotationItem {
-  id?: string;
-  description: string;
+interface QuotationItem {
+  id?: number;
+  sno: number;
+  rateCard: RateCard;
   quantity: number;
-  unitPrice: number;
-  total: number;
-  rateCardItemId: string | null; // from original
+  totalValue: number;
+  isEditable?: boolean;
 }
 
-interface InsertQuotation {
-  serialNo: number;
-  quoteNo: string;
-  clientId: string;
-  date: Date;
-  expiryDate?: Date;
-  items: InsertQuotationItem[];
-  status: string; // Consider a more specific enum type if available
-  subTotal: number;
-  taxAmount: number;
-  grandTotal: number;
-  currency: string;
-  notes?: string;
-}
-
-// QuotationWithDetails would be more comprehensive, for now, use InsertQuotation as a base for what PDF might need
-interface QuotationWithDetails extends InsertQuotation {
-  id: string; // Typically, a full quotation object would have an ID
-  client?: Client; // And potentially the resolved client object
-}
-
-
-// Corrected import paths
-import { generatePDF } from "@/lib/pdf/quotation"; // Corrected path
-import apiRequest from "@/lib/axios"; // Corrected import for apiRequest, queryClient removed
-
-// Define type for client creation form data
-type CreateClientFormData = z.infer<typeof createClientSchema>;
-
-// Placeholder components if actual ones are not found at these paths
-// Modified ClientSearch to include a "Create New Client" button trigger
-const ClientSearch = ({
-  selectedClient,
-  onSelectClient,
-  onCreateNewClient,
-}: {
-  selectedClient: Client | null;
-  onSelectClient: (client: Client) => void;
-  onCreateNewClient: () => void;
-}) => (
-  <div className="flex flex-col space-y-2">
-    <div className="flex space-x-2 items-center">
-      <div className="flex-grow">Client Search Placeholder (To be replaced with actual search component)</div>
-      <Button onClick={() => onSelectClient({ id: "dummy-client-1", name: "Dummy Client Inc.", email: "dummy@example.com" })}>Select Dummy</Button>
-      <Button variant="outline" onClick={onCreateNewClient}>
-        <UserPlus className="mr-2 h-4 w-4" /> Create New Client
-      </Button>
-    </div>
-    {selectedClient && (
-      <div className="p-2 border rounded-md bg-gray-50">
-        <p className="font-medium">Selected Client:</p>
-        <p><strong>Name:</strong> {selectedClient.name}</p>
-        {selectedClient.email && <p><strong>Email:</strong> {selectedClient.email}</p>}
-      </div>
-    )}
-  </div>
-);
-
-const QuotationTable = ({ items, setItems, currency } : {items: InsertQuotationItem[], setItems: (items: InsertQuotationItem[]) => void, currency: string}) => <div>Rate Card Items Placeholder</div>; // Changed "Quotation Table" to "Rate Card Items"
-const Calculations = ({ subTotal, tax, total, currency } : {subTotal: number, tax: number, total: number, currency: string}) => <div>Calculations Placeholder: {currency} {total}</div>;
-// AUBankImport is removed as per instruction "no need for bank"
-
-
-// CreateClientDialog Component (defined within the same file for simplicity)
-interface CreateClientDialogProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  onClientCreated: (client: Client) => void; // Callback to update selected client
-}
-
-const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenChange, onClientCreated }) => {
+export default function Quotations() {
   const { toast } = useToast();
-  // const reactQueryClient = useReactQueryClient(); // Removed: reactQueryClient not used directly for mutation
-  const [isSubmitting, setIsSubmitting] = useState(false); // Added for loading state
-  const [formData, setFormData] = useState<Partial<CreateClientFormData>>({
-    type: "Bank", // Default value
-    contractStatus: "Active", // Default value
-    lastServiceDate: new Date().toISOString().split('T')[0] // Default to today
-  });
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateClientFormData, string>>>({});
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseInt(value, 10) : value,
-    }));
-    // Clear error for this field on change
-    setErrors(prev => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleSelectChange = (name: keyof CreateClientFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: undefined }));
-  };
-
-  // Removed useMutation block for createClientMutation
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({}); // Clear previous errors
-    setIsSubmitting(true); // Set loading state
-
-    try {
-      const validatedData = createClientSchema.parse(formData);
-      // Directly call the createClient service
-      const newClient = await createClient(validatedData);
-
-      // Success handling
-      toast({ title: "Success", description: "New client created successfully." });
-      // reactQueryClient.invalidateQueries(["clients"]); // Removed: Was used to refetch client list. Handle via callback or state if needed.
-      onClientCreated(newClient as Client); // Pass the new client up
-      onOpenChange(false); // Close dialog
-      setFormData({ type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0] }); // Reset form
-      setErrors({});
-
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldErrors: Partial<Record<keyof CreateClientFormData, string>> = {};
-        error.errors.forEach(err => {
-          if (err.path[0]) {
-            fieldErrors[err.path[0] as keyof CreateClientFormData] = err.message;
-          }
-        });
-        setErrors(fieldErrors);
-        toast({ title: "Validation Error", description: "Please check the form fields.", variant: "destructive"});
-      } else {
-        // API error or other unexpected error
-        toast({ title: "Error", description: `Failed to create client: ${(error as Error).message}`, variant: "destructive" });
-      }
-    } finally {
-      setIsSubmitting(false); // Reset loading state
-    }
-  };
-
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create New Client</DialogTitle>
-          <DialogDescription>Fill in the details below to add a new client.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div>
-            <Label htmlFor="name">Client Name</Label>
-            <Input id="name" name="name" value={formData.name || ""} onChange={handleInputChange} />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="type">Client Type</Label>
-            <Select name="type" value={formData.type || "Bank"} onValueChange={(value) => handleSelectChange("type", value)}>
-              <SelectTrigger><SelectValue placeholder="Select client type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Bank">Bank</SelectItem>
-                <SelectItem value="NBFC">NBFC</SelectItem>
-                <SelectItem value="Insurance">Insurance</SelectItem>
-                <SelectItem value="Corporate">Corporate</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="totalBranches">Total Branches</Label>
-            <Input id="totalBranches" name="totalBranches" type="number" value={formData.totalBranches || ""} onChange={handleInputChange} />
-            {errors.totalBranches && <p className="text-red-500 text-xs mt-1">{errors.totalBranches}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="contactPerson">Contact Person</Label>
-            <Input id="contactPerson" name="contactPerson" value={formData.contactPerson || ""} onChange={handleInputChange} />
-            {errors.contactPerson && <p className="text-red-500 text-xs mt-1">{errors.contactPerson}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="contactPhone">Contact Phone</Label>
-            <Input id="contactPhone" name="contactPhone" value={formData.contactPhone || ""} onChange={handleInputChange} />
-            {errors.contactPhone && <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="contactEmail">Contact Email (Optional)</Label>
-            <Input id="contactEmail" name="contactEmail" type="email" value={formData.contactEmail || ""} onChange={handleInputChange} />
-            {errors.contactEmail && <p className="text-red-500 text-xs mt-1">{errors.contactEmail}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="contractStatus">Contract Status</Label>
-            <Select name="contractStatus" value={formData.contractStatus || "Active"} onValueChange={(value) => handleSelectChange("contractStatus", value)}>
-              <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.contractStatus && <p className="text-red-500 text-xs mt-1">{errors.contractStatus}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="lastServiceDate">Last Service Date</Label>
-            <Input id="lastServiceDate" name="lastServiceDate" type="date" value={formData.lastServiceDate || ""} onChange={handleInputChange} />
-            {errors.lastServiceDate && <p className="text-red-500 text-xs mt-1">{errors.lastServiceDate}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="gstn">GSTN (Optional)</Label>
-            <Input id="gstn" name="gstn" value={formData.gstn || ""} onChange={handleInputChange} />
-          </div>
-
-          <div>
-            <Label htmlFor="avatar">Avatar URL (Optional)</Label>
-            <Input id="avatar" name="avatar" value={formData.avatar || ""} onChange={handleInputChange} />
-          </div>
-
-          <div>
-            <Label htmlFor="initials">Initials (Optional)</Label>
-            <Input id="initials" name="initials" value={formData.initials || ""} onChange={handleInputChange} />
-          </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Client
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-
-const NewQuotationPage = () => {
-  const router = useRouter();
-  const { toast } = useToast();
-  // const reactQueryClient = useReactQueryClient(); // Removed
-
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false); // State for dialog
-  const [quotationDate, setQuotationDate] = useState<Date | undefined>(new Date());
-  const [expiryDate, setExpiryDate] = useState<Date | undefined>();
-  const [items, setItems] = useState<InsertQuotationItem[]>([{ description: "", quantity: 1, unitPrice: 0, total: 0, rateCardItemId: null }]);
-  const [status, setStatus] = useState<string>("DRAFT");
-  const [notes, setNotes] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [clientSearch, setClientSearch] = useState("");
+  const [rateCardSearch, setRateCardSearch] = useState("");
+  const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
+  const [showClientSearch, setShowClientSearch] = useState(false);
+  const [showRateCardSearch, setShowRateCardSearch] = useState(false);
+  const [editableRows, setEditableRows] = useState<number[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [rateCards, setRateCards] = useState<RateCard[]>([]);
 
-  // State for serial number fetching
-  const [quoteNo, setQuoteNo] = useState("");
-  const [serialNo, setSerialNo] = useState(0);
-  const [isLoadingSerial, setIsLoadingSerial] = useState(true);
-  const [serialError, setSerialError] = useState<string | null>(null);
+  // Form setup
+  const form = useForm({
+    resolver: zodResolver(quotationFormSchema),
+    defaultValues: {
+      serialNumber: "",
+      salesType: "Interstate",
+      quotationNumber: `Q${Date.now()}`,
+      validUntil: "",
+      admin: "",
+      quoteBy: "",
+      discount: "0",
+    },
+  });
 
-  // State for quotation saving
-  const [isSavingQuotation, setIsSavingQuotation] = useState(false);
+  // Rate card form setup
+  const rateCardForm = useForm({
+    resolver: zodResolver(rateCardSchema),
+    defaultValues: {
+      productDescription: "",
+      rcSno: "",
+      make: "",
+      whereInUse: "",
+      unit: "",
+      unitPrice: "",
+      bankName: "Bhavya Enterprises",
+      isActive: true,
+    },
+  });
 
-  // Effect to fetch next serial number on component mount
+  // Fetch clients
   useEffect(() => {
-    const fetchSerial = async () => {
-      setIsLoadingSerial(true);
-      setSerialError(null);
-      try {
-        const data = await apiRequest<{ serialNo: number; quoteNo: string }>("/api/next-serial");
-        setQuoteNo(data.quoteNo);
-        setSerialNo(data.serialNo);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error fetching serial";
-        setSerialError(errorMessage);
-        toast({ title: "Error Fetching Serial", description: errorMessage, variant: "destructive" });
-        console.error("Error fetching serial:", error);
-      } finally {
-        setIsLoadingSerial(false);
+    const fetchClients = async () => {
+      if (clientSearch.length > 0) {
+        try {
+          const response = await getAllClients({ searchQuery: clientSearch });
+          // console.log(responseclients);
+          
+          setClients(response.clients);
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch clients",
+            variant: "destructive",
+          });
+        }
       }
     };
-    fetchSerial();
-  }, [toast]); // Added toast to dependency array as it's used in the effect
 
-  const subTotal = useMemo(() => items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0), [items]);
-  const taxRate = 0.10; // Example: 10%
-  const taxAmount = subTotal * taxRate;
-  const grandTotal = subTotal + taxAmount;
+    fetchClients();
+  }, [clientSearch]);
 
-  // saveQuotationMutation removed
+  // Fetch rate cards
+  useEffect(() => {
+    const fetchRateCards = async () => {
+      if (rateCardSearch.length > 0) {
+        try {
+          const response = await getAllRateCards({ searchQuery: rateCardSearch });
+          console.log(response);
+          
+          setRateCards(response.data);
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch rate cards",
+            variant: "destructive",
+          });
+        }
+      }
+    };
 
-  const handleSubmit = async () => {
-    if (!selectedClient) {
-      toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
-      return;
-    }
-    if (!quoteNo || serialNo === 0) { // Check if serialNo is still initial value
-        toast({ title: "Error", description: "Serial number not loaded or invalid.", variant: "destructive"});
-        return;
-    }
+    fetchRateCards();
+  }, [rateCardSearch]);
 
-    setIsSavingQuotation(true);
-    try {
-      const quotationData: InsertQuotation = {
-        serialNo,
-        quoteNo,
-        clientId: selectedClient.id,
-        date: quotationDate || new Date(),
-        expiryDate,
-        items,
-        status,
-        subTotal,
-        taxAmount,
-        grandTotal,
-        currency,
-        notes,
-      };
+  // Calculations
+  const subtotal = quotationItems.reduce((sum, item) => sum + item.totalValue, 0);
+  const discountAmount = (subtotal * parseFloat(form.watch("discount") || "0")) / 100;
+  const taxableValue = subtotal - discountAmount;
+  const igst = taxableValue * 0.18; // 18% IGST
+  const netGrossAmount = taxableValue + igst;
 
-      const savedQuotation = await apiRequest("/api/quotations", {
-        method: "POST",
-        body: JSON.stringify(quotationData),
-      });
-
-      toast({ title: "Success", description: `Quotation saved: ${savedQuotation.quoteNo}` });
-      // reactQueryClient.invalidateQueries(["/api/quotations"]); // Removed
-      // Optionally navigate:
-      // router.push(`/dashboard/quotations/${savedQuotation.id}`);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error saving quotation";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
-      console.error("Error saving quotation:", error);
-    } finally {
-      setIsSavingQuotation(false);
-    }
+  // Add rate card to quotation
+  const addRateCard = (rateCard: RateCard) => {
+    const newItem: QuotationItem = {
+      sno: quotationItems.length + 1,
+      rateCard,
+      quantity: 1,
+      totalValue: parseFloat(rateCard.rate),
+    };
+    setQuotationItems([...quotationItems, newItem]);
+    setRateCardSearch("");
+    setShowRateCardSearch(false);
   };
 
-  if (isLoadingSerial) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /> Loading initial data...</div>;
-  }
+  // Remove rate card from quotation
+  const removeRateCard = (index: number) => {
+    const updated = quotationItems.filter((_, i) => i !== index);
+    // Update serial numbers
+    const reNumbered = updated.map((item, i) => ({ ...item, sno: i + 1 }));
+    setQuotationItems(reNumbered);
+  };
 
-  if (serialError) {
-    return <div className="text-red-500 p-4">Error loading initial data: {serialError}. Please try refreshing.</div>;
-  }
+  // Update quantity
+  const updateQuantity = (index: number, quantity: number) => {
+    if (quantity < 1) quantity = 1; // Ensure minimum quantity is 1
+    const updated = [...quotationItems];
+    updated[index].quantity = quantity;
+    updated[index].totalValue = quantity * parseFloat(updated[index].rateCard?.rate);
+    setQuotationItems(updated);
+  };
+
+  // Save quotation
+  const saveQuotation = (status: "draft" | "sent" = "draft") => {
+    const formData = form.getValues();
+    const quotationData = {
+      ...formData,
+      clientId: selectedClient?.id,
+      date: new Date().toISOString(),
+      validUntil: formData.validUntil ? new Date(formData.validUntil).toISOString() : undefined,
+      subtotal: subtotal.toString(),
+      discount: formData.discount,
+      taxableValue: taxableValue.toString(),
+      igst: igst.toString(),
+      netGrossAmount: netGrossAmount.toString(),
+      status,
+      items: quotationItems,
+    };
+
+    // Implement save quotation logic here
+    toast({
+      title: "Success",
+      description: "Quotation saved successfully",
+    });
+  };
+
+  // Export to PDF (placeholder)
+  const exportToPDF = () => {
+    toast({
+      title: "Export to PDF",
+      description: "PDF export functionality will be implemented",
+    });
+  };
 
   return (
-    <div className="container mx-auto p-4">
-      {/* Title changed to always be "New Quotation" */}
-      <h1 className="text-2xl font-bold mb-4">New Quotation {quoteNo || '(loading serial...)'}</h1>
+    <div className="min-h-screen p-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-xl font-bold mb-2">Bhavya Enterprises</h2>
+              <p className="text-sm mb-1">
+                Regd Office: SCO 393 2nd Floor, Sector 37-D, Chandigarh 160036
+              </p>
+              <p className="text-sm mb-1">
+                B.O. : Plot No. 1025, Rani Sati Nagar, Nirman Nagar, Jaipur-302019
+              </p>
+              <p className="text-sm">
+                Helpdesk No: +919988818489, +919815922428
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* <AUBankImport /> // Removed */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Client Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Client Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Client Search</Label>
+                  <div className="relative">
+                    <Input
+                      placeholder="Type client name or code..."
+                      value={clientSearch}
+                      onChange={(e) => {
+                        setClientSearch(e.target.value);
+                        setShowClientSearch(true);
+                      }}
+                      onFocus={() => setShowClientSearch(true)}
+                    />
+                    {showClientSearch && clientSearch && clients.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1  border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {clients.map((client: Client) => (
+                          <div
+                            key={client.id}
+                            className="p-2  cursor-pointer"
+                            onClick={() => {
+                              setSelectedClient(client);
+                              setClientSearch(client.name);
+                              setShowClientSearch(false);
+                            }}
+                          >
+                            <div className="font-medium">{client.name}</div>
+                            <div className="text-sm ">{client.code}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-      <Card className="mb-4">
-        <CardHeader><CardTitle>Client</CardTitle></CardHeader>
-        <CardContent>
-          <ClientSearch
-            selectedClient={selectedClient}
-            onSelectClient={setSelectedClient}
-            onCreateNewClient={() => setIsCreateClientDialogOpen(true)}
-          />
-        </CardContent>
-      </Card>
+                {selectedClient && (
+                  <div className="p-3  rounded-lg">
+                    <h4 className="font-medium text-blue-900">{selectedClient.name}</h4>
+                    <p className="text-sm text-blue-700">{selectedClient.code}</p>
+                    {selectedClient.email && (
+                      <p className="text-sm text-blue-600">{selectedClient.email}</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-      <CreateClientDialog
-        isOpen={isCreateClientDialogOpen}
-        onOpenChange={setIsCreateClientDialogOpen}
-        onClientCreated={(newClient) => {
-          setSelectedClient(newClient); // Set the newly created client as selected
-        }}
-      />
+            {/* Quotation Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quotation Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Serial Number</Label>
+                  <Input {...form.register("serialNumber")} />
+                </div>
 
-      {/* Other form sections */}
-      {/* Ensure these components are correctly defined or replaced with actual implementations */}
-      <Card className="mb-4">
-        <CardHeader><CardTitle>Rate Card Items</CardTitle></CardHeader>{/* Changed "Items" to "Rate Card Items" */}
-        <CardContent>
-          <QuotationTable items={items} setItems={setItems} currency={currency} />
-        </CardContent>
-      </Card>
-      <Calculations subTotal={subTotal} tax={taxAmount} total={grandTotal} currency={currency} />
+                <div>
+                  <Label>Date</Label>
+                  <Input
+                    type="date"
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
 
-      <Button onClick={handleSubmit} disabled={isSavingQuotation || isLoadingSerial}>
-        {isSavingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-        Save Quotation
-      </Button>
-      {/* PDF and Send buttons could be enabled after saving, or use current (unsaved) data */}
-      <Button variant="outline" onClick={() => {
-          if (!selectedClient || !quoteNo) {
-              toast({title: "Cannot generate PDF", description: "Client and quotation number required.", variant: "destructive"});
-              return;
-          }
-          // Create a temporary QuotationWithDetails-like object for the PDF
-          const currentDataForPdf: QuotationWithDetails = {
-              id: "new-unsaved", // Placeholder ID
-              serialNo, quoteNo, clientId: selectedClient.id, client: selectedClient, date: quotationDate || new Date(),
-              expiryDate, items, status, subTotal, taxAmount, grandTotal, currency, notes
-          };
-          generatePDF(currentDataForPdf);
-      }}> <Printer className="mr-2 h-4 w-4" /> PDF</Button>
-      <Button variant="outline"> <Mail className="mr-2 h-4 w-4" /> Send</Button>
-      {/* Delete button removed as it's for existing quotations */}
+                <div>
+                  <Label>Sales Type</Label>
+                  <Select value={form.watch("salesType")} onValueChange={(value) => form.setValue("salesType", value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Interstate">Interstate</SelectItem>
+                      <SelectItem value="Intrastate">Intrastate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-      {/* This is a basic representation. The actual issue code would be more detailed. */}
+                <div>
+                  <Label>Quote Number</Label>
+                  <Input {...form.register("quotationNumber")} />
+                </div>
+
+                <div>
+                  <Label>Valid Until</Label>
+                  <Input type="date" {...form.register("validUntil")} />
+                </div>
+
+                <div>
+                  <Label>Admin</Label>
+                  <Input {...form.register("admin")} />
+                </div>
+
+                <div>
+                  <Label>Quote By</Label>
+                  <Input {...form.register("quoteBy")} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Products & Services */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5 text-blue-600" />
+                    Rate Cards & Services
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-blue-600 border-blue-600"
+                      onClick={() => setShowRateCardSearch(!showRateCardSearch)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Search Rate Cards
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={() => {
+                        const newItem: QuotationItem = {
+                          sno: quotationItems.length + 1,
+                          rateCard: {
+                            id: `new-${Date.now()}`,
+                            srNo: quotationItems.length + 1,
+                            description: "Type to search",
+                            unit: "Unit",
+                            rate: "0",
+                            bankName: "Bhavya Enterprises",
+                            bankRcNo: "",
+                            uploadedAt: new Date()
+                          },
+                          quantity: 1,
+                          totalValue: 0,
+                          isEditable: true
+                        };
+                        setQuotationItems([...quotationItems, newItem]);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Rate Card
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+
+              {/* Search Interface */}
+              {showRateCardSearch && (
+                <div className="px-6 pb-4">
+                  <div className="p-4 rounded-lg">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" />
+                      <Input
+                        placeholder="Type rate card name, code, or description..."
+                        value={rateCardSearch}
+                        onChange={(e) => setRateCardSearch(e.target.value)}
+                        className="pl-10 border-0 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    {rateCardSearch && rateCards.length > 0 && (
+                      <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                        {rateCards.map((rateCard: any) => (
+                          <div
+                            key={rateCard.id}
+                            className="p-3 rounded border cursor-pointer transition-colors"
+                            onClick={() => addRateCard(rateCard)}
+                          >
+                            <div className="text-sm">{rateCard.description} {rateCard.srNo} • {rateCard.unit} • ₹{rateCard.rate} </div>
+                          
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b border-gray-200">
+                      <TableHead className="w-16 text-gray-600 text-sm">S.NO</TableHead>
+                      <TableHead className="text-gray-600 text-sm">DESCRIPTION</TableHead>
+                      <TableHead className="text-gray-600 text-sm">RC-SNO</TableHead>
+                      <TableHead className="text-gray-600 text-sm">UNIT</TableHead>
+                      <TableHead className="text-gray-600 text-sm">QTY</TableHead>
+                      <TableHead className="text-gray-600 text-sm">UNIT PRICE</TableHead>
+                      <TableHead className="text-gray-600 text-sm">TOTAL VALUE</TableHead>
+                      <TableHead className="text-gray-600 text-sm">ACTION</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {quotationItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={10} className="text-center py-12">
+                          <div className="flex flex-col items-center justify-center space-y-3">
+                            <Package className="h-12 w-12 text-gray-300" />
+                            <div className="text-gray-500 font-medium">No rate cards added yet</div>
+                            <div className="text-sm text-gray-400">Add your first rate card</div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      quotationItems.map((item, index) => (
+                        <TableRow key={index} className="border-b border-gray-100">
+                          <TableCell className="font-medium">{item.sno}</TableCell>
+                          <TableCell className="font-medium ">
+                            {item.isEditable ? (
+                              <Input
+                                value={item.rateCard.description}
+                                onChange={(e) => {
+                                  const updated = [...quotationItems];
+                                  updated[index].rateCard.description = e.target.value;
+                                  setQuotationItems(updated);
+                                }}
+                                placeholder="Type to search"
+                                className="border-none p-0 h-auto focus:ring-0"
+                              />
+                            ) : (
+                              item.rateCard.description
+                            )}
+                          </TableCell>
+                          <TableCell className="">
+                            {item.isEditable ? (
+                              <Input
+                                value={item.rateCard.bankRcNo}
+                                onChange={(e) => {
+                                  const updated = [...quotationItems];
+                                  updated[index].rateCard.bankRcNo = e.target.value;
+                                  setQuotationItems(updated);
+                                }}
+                                placeholder=""
+                                className="w-20 h-8 text-sm"
+                              />
+                            ) : (
+                              item.rateCard.bankRcNo
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Select value={item.rateCard.unit} disabled={!item.isEditable}>
+                              <SelectTrigger className="w-20 h-8 text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Unit">Unit</SelectItem>
+                                <SelectItem value="Piece">Piece</SelectItem>
+                                <SelectItem value="Set">Set</SelectItem>
+                                <SelectItem value="Meter">Meter</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.quantity.toString()}
+                              onChange={(e) => {
+                                const newQuantity = parseInt(e.target.value) || 1;
+                                updateQuantity(index, newQuantity);
+                              }}
+                              className="w-16 h-8 text-center"
+                              min="1"
+                              step="1"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {item.isEditable ? (
+                              <Input
+                                type="number"
+                                value={item.rateCard.rate}
+                                onChange={(e) => {
+                                  const updated = [...quotationItems];
+                                  updated[index].rateCard.rate = e.target.value;
+                                  updated[index].totalValue = item.quantity * parseFloat(e.target.value || "0");
+                                  setQuotationItems(updated);
+                                }}
+                                placeholder="0"
+                                className="w-20 h-8 text-sm"
+                                step="0.01"
+                              />
+                            ) : (
+                              `₹${item.rateCard.rate}`
+                            )}
+                          </TableCell>
+                          <TableCell>₹{item.totalValue.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeRateCard(index)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Calculations & Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Calculations & Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Quotation Summary */}
+                  <div>
+                    <h4 className="font-medium mb-3">Quotation Summary</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Total Items:</span>
+                        <span>{quotationItems.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Quantity:</span>
+                        <span>{quotationItems.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>₹{subtotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <Label>Total Value (In Words)</Label>
+                      <div className="text-sm mt-1">
+                        {subtotal === 0 ? "Zero Only" : `Rupees ${subtotal.toFixed(2)} Only`}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tax Calculations */}
+                  <div className="p-4 rounded-lg">
+                    <h4 className="font-medium mb-3">Tax Calculations</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>₹{subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Discount:</span>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            {...form.register("discount")}
+                            className="w-16 h-6 text-xs"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                          />
+                          <span>%</span>
+                          <span className="text-red-600">-₹{discountAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Taxable Value:</span>
+                        <span>₹{taxableValue.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>IGST (18%):</span>
+                        <span>₹{igst.toFixed(2)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-medium text-blue-600">
+                        <span>Net Gross Amount:</span>
+                        <span>₹{netGrossAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-4">
+              <Button variant="outline" onClick={() => saveQuotation("draft")}>
+                <Save className="h-4 w-4 mr-2" />
+                Save Draft
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => saveQuotation("sent")}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send Quotation
+              </Button>
+              <Button variant="outline" className="bg-green-50 text-green-700" onClick={exportToPDF}>
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default NewQuotationPage; // Exporting renamed component
+}
