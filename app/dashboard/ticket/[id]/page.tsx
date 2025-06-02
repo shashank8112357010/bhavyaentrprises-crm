@@ -30,7 +30,6 @@ import {
 // This function should parse your JWT token / session cookie
 // and return the authenticated user's ID.
 const getCurrentUserIdFromAuth = (): string | null => {
-  
   return localStorage.getItem("userId")
 };
 

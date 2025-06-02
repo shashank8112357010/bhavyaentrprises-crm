@@ -48,7 +48,6 @@ interface KanbanBoardProps {
 
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [role, setRole] = useState<Role | null>(null);
   const { user } = useAuthStore();
   console.log(tickets);
 
@@ -59,10 +58,6 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     })
   );
 
-  useEffect(() => {
-    const storedRole = localStorage.getItem("role") as Role | null;
-    setRole(storedRole);
-  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);

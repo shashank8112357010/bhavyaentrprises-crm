@@ -31,10 +31,7 @@ export default function Sidebar({ className }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const { role, isLoading, user } = useAuthStore()
 
-  // useEffect(() => {
-  //   const storedRole = localStorage.getItem("role") as Role | null;
-  //   setRole(storedRole);
-  // }, []); // No longer needed as role is reactive from Zustand store
+
 
   const allNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },

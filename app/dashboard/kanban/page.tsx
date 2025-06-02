@@ -137,13 +137,6 @@ export default function KanbanPage() {
   const [isLoadingHold, setLoadingHold] = useState(false);
   const { user } = useAuthStore();
 
-  // Assume you have a way to get the current user's role, e.g., from a context or store
-  const [userRole, setUserRole] = useState<Role | null>(null); // Default role, replace with actual logic to get the user's role
-
-  useEffect(() => {
-    const storedRole = localStorage.getItem("role") as Role | null;
-    setUserRole(storedRole);
-  }, []);
 
   useEffect(() => {
     fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
