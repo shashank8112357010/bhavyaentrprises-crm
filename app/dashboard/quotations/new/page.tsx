@@ -4,7 +4,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 // import { useParams } from "next/navigation"; // No longer needed for 'new' page
 import { useRouter } from "next/navigation"; // Changed from wouter
-import { useQuery, useMutation, useQueryClient as useReactQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button"; // Corrected path
 import { Input } from "@/components/ui/input"; // Corrected path
 import { Textarea } from "@/components/ui/textarea"; // Corrected path
@@ -117,13 +116,13 @@ interface CreateClientDialogProps {
 
 const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenChange, onClientCreated }) => {
   const { toast } = useToast();
-  const reactQueryClient = useReactQueryClient();
   const [formData, setFormData] = useState<Partial<CreateClientFormData>>({
     type: "Bank", // Default value
     contractStatus: "Active", // Default value
     lastServiceDate: new Date().toISOString().split('T')[0] // Default to today
   });
   const [errors, setErrors] = useState<Partial<Record<keyof CreateClientFormData, string>>>({});
+  const [isCreatingClient, setIsCreatingClient] = useState(false); // New state for loading
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -140,31 +139,21 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
     setErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
-
-  const createClientMutation = useMutation(
-    (clientData: CreateClientFormData) => createClient(clientData),
-    {
-      onSuccess: (newClient) => {
-        toast({ title: "Success", description: "New client created successfully." });
-        reactQueryClient.invalidateQueries(["clients"]); // Assuming a query key for a client list
-        onClientCreated(newClient as Client); // Pass the new client up, ensure type compatibility
-        onOpenChange(false); // Close dialog
-        setFormData({ type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0] }); // Reset form
-        setErrors({});
-      },
-      onError: (error: Error) => {
-        toast({ title: "Error", description: `Failed to create client: ${error.message}`, variant: "destructive" });
-      },
-    }
-  );
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({}); // Clear previous errors
 
     try {
       const validatedData = createClientSchema.parse(formData);
-      createClientMutation.mutate(validatedData);
+      setIsCreatingClient(true);
+      const newClient = await createClient(validatedData); // Direct API call
+
+      toast({ title: "Success", description: "New client created successfully." });
+      onClientCreated(newClient as Client);
+      onOpenChange(false); // Close dialog
+      setFormData({ type: "Bank", contractStatus: "Active", lastServiceDate: new Date().toISOString().split('T')[0] }); // Reset form
+      setErrors({});
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof CreateClientFormData, string>> = {};
@@ -176,8 +165,10 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
         setErrors(fieldErrors);
         toast({ title: "Validation Error", description: "Please check the form fields.", variant: "destructive"});
       } else {
-        toast({ title: "Submission Error", description: (error as Error).message, variant: "destructive"});
+        toast({ title: "Error", description: `Failed to create client: ${(error as Error).message}`, variant: "destructive" });
       }
+    } finally {
+      setIsCreatingClient(false);
     }
   };
 
@@ -271,8 +262,8 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
             <DialogClose asChild>
               <Button type="button" variant="outline">Cancel</Button>
             </DialogClose>
-            <Button type="submit" disabled={createClientMutation.isLoading}>
-              {createClientMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={isCreatingClient}>
+              {isCreatingClient && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Client
             </Button>
           </DialogFooter>
@@ -286,7 +277,6 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
 const NewQuotationPage = () => {
   const router = useRouter();
   const { toast } = useToast();
-  const reactQueryClient = useReactQueryClient();
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false); // State for dialog
@@ -308,54 +298,36 @@ const NewQuotationPage = () => {
   //   }
   // );
 
-  // Fetch next serial number (always for new quotation page)
-  const { data: serialData, isLoading: isLoadingSerial } = useQuery<{ serialNo: number; quoteNo: string }>(
-    ["/api/next-serial"],
-    async () => apiRequest("/api/next-serial"),
-    {
-      // enabled: !id, // This condition is now always true as id is removed. Keep enabled or remove condition.
-      // For a new page, we always want to fetch this.
-      enabled: true,
-    }
-  );
+  // New state for managing serial number loading
+  const [isLoadingSerial, setIsLoadingSerial] = useState(true);
 
-  // Effect to load data for new serials
   useEffect(() => {
-    // if (id && existingQuotation) { ... } // REMOVED: This part is for existing quotations
-    // else if (!id && serialData) { // Simplified: only serialData logic remains
-    if (serialData) { // Load serial data when available
-      setQuoteNo(serialData.quoteNo);
-      setSerialNo(serialData.serialNo);
-    }
-  }, [serialData]); // Removed id and existingQuotation from dependencies
+    const fetchSerialData = async () => {
+      setIsLoadingSerial(true);
+      try {
+        const data = await apiRequest<{ serialNo: number; quoteNo: string }>("/api/next-serial");
+        if (data) {
+          setQuoteNo(data.quoteNo);
+          setSerialNo(data.serialNo);
+        }
+      } catch (error) {
+        console.error("Failed to fetch serial data:", error);
+        toast({ title: "Error", description: "Failed to load serial number.", variant: "destructive" });
+      } finally {
+        setIsLoadingSerial(false);
+      }
+    };
+    fetchSerialData();
+  }, [toast]); // Assuming toast is stable
 
   const subTotal = useMemo(() => items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0), [items]); // Type for item updated
   const taxRate = 0.10; // Example: 10%
   const taxAmount = subTotal * taxRate;
   const grandTotal = subTotal + taxAmount;
 
-  const saveQuotationMutation = useMutation(
-    async (quotationData: InsertQuotation) => { // Type updated
-      // if (id) { ... } // REMOVED: Update logic
-      // Always CREATE for NewQuotationPage
-      return apiRequest("/api/quotations", { // Assuming /api/quotations is the POST endpoint
-        method: "POST",
-        body: JSON.stringify(quotationData),
-      });
-    },
-    {
-      onSuccess: (data: any) => { // data type might need to be more specific if known
-        toast({ title: "Success", description: `Quotation saved: ${data.quoteNo}` }); // Message simplified
-        reactQueryClient.invalidateQueries(["/api/quotations"]); // Invalidate list
-        // router.push(`/dashboard/quotations/${data.id}`); // Navigate to view/edit the new quotation, using Next router
-      },
-      onError: (error: Error) => {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      },
-    }
-  );
+  const [isSavingQuotation, setIsSavingQuotation] = useState(false); // Manage loading state
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedClient) {
       toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
       return;
@@ -378,7 +350,22 @@ const NewQuotationPage = () => {
       currency,
       notes,
     };
-    saveQuotationMutation.mutate(quotationData);
+
+    setIsSavingQuotation(true);
+    try {
+      const data = await apiRequest("/api/quotations", { // Assuming /api/quotations is the POST endpoint
+        method: "POST",
+        body: JSON.stringify(quotationData),
+      });
+      toast({ title: "Success", description: `Quotation saved: ${data.quoteNo}` });
+      // router.push(`/dashboard/quotations/${data.id}`); // Navigate to view/edit the new quotation
+      // If `queryClient.invalidateQueries` was important for other parts of the app,
+      // that logic would need to be handled differently. For now, it's removed.
+    } catch (error) {
+      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setIsSavingQuotation(false);
+    }
   };
 
   // if (isLoadingExisting || (isLoadingSerial && !id)) { // isLoadingExisting removed, !id condition removed
@@ -422,8 +409,8 @@ const NewQuotationPage = () => {
       </Card>
       <Calculations subTotal={subTotal} tax={taxAmount} total={grandTotal} currency={currency} />
 
-      <Button onClick={handleSubmit} disabled={saveQuotationMutation.isLoading}>
-        {saveQuotationMutation.isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+      <Button onClick={handleSubmit} disabled={isSavingQuotation}>
+        {isSavingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
         Save Quotation {/* Button text simplified */}
       </Button>
       {/* PDF and Send buttons could be enabled after saving, or use current (unsaved) data */}
