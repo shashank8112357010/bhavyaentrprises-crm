@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { prisma } from '@/lib/prisma';
 
 // Define the expected structure of the JWT payload
 interface TokenPayload {
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const totalAgentCount = await prisma.user.count({
       where: {
         role: {
-          in: agentRoles,
+          in: agentRoles as any,
         },
       },
     });

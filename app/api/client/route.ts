@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
     // Upsert client by id (or create new)
     const client = await prisma.client.create({
-      data: clientData,
+      data: {...clientData , initials : clientData.initials ? clientData.initials : clientData.name.split(" ").map((n) => n[0]).join("")}
     });
 
     return NextResponse.json(client, { status: 201 });

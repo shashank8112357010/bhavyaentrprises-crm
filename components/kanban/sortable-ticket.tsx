@@ -32,6 +32,7 @@ import type { Ticket } from "./types";
 import { updateTicket, deleteTicket } from "@/lib/services/ticket";
 import EditTicketDialog from "../tickets/edit-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
 
 interface SortableTicketProps {
   ticket: Ticket;
@@ -46,6 +47,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   const [isUploadingPo, setIsUploadingPo] = useState(false);
   const jcrInputRef = useRef<HTMLInputElement>(null);
   const poInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
 
   const {
     attributes,
@@ -103,24 +105,29 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   const handleJcrUploadClick = () => jcrInputRef.current?.click();
   const handlePoUploadClick = () => poInputRef.current?.click();
 
-  const handleJcrFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleJcrFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploadingJcr(true);
     const formData = new FormData();
-    formData.append('jcrFile', file);
+    formData.append("jcrFile", file);
 
     try {
       const response = await fetch(`/api/ticket/${ticket.id}/upload-jcr`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'JCR Upload failed');
+        throw new Error(errorData.message || "JCR Upload failed");
       }
-      toast({ title: "Success", description: "JCR file uploaded successfully." });
+      toast({
+        title: "Success",
+        description: "JCR file uploaded successfully.",
+      });
       router.refresh();
     } catch (error: any) {
       toast({
@@ -136,24 +143,29 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     }
   };
 
-  const handlePoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePoFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploadingPo(true);
     const formData = new FormData();
-    formData.append('poFile', file);
+    formData.append("poFile", file);
 
     try {
       const response = await fetch(`/api/ticket/${ticket.id}/upload-po`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'PO Upload failed');
+        throw new Error(errorData.message || "PO Upload failed");
       }
-      toast({ title: "Success", description: "PO file uploaded successfully." });
+      toast({
+        title: "Success",
+        description: "PO file uploaded successfully.",
+      });
       router.refresh();
     } catch (error: any) {
       toast({
@@ -171,8 +183,20 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
 
   return (
     <>
-      <input type="file" ref={jcrInputRef} onChange={handleJcrFileChange} style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
-      <input type="file" ref={poInputRef} onChange={handlePoFileChange} style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
+      <input
+        type="file"
+        ref={jcrInputRef}
+        onChange={handleJcrFileChange}
+        style={{ display: "none" }}
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+      />
+      <input
+        type="file"
+        ref={poInputRef}
+        onChange={handlePoFileChange}
+        style={{ display: "none" }}
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+      />
       <Card
         ref={setNodeRef}
         style={{ ...style }}
@@ -192,21 +216,33 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           >
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete();
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {user?.role === "ADMIN" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         <CardContent className="p-3 pb-0" {...listeners}>
-          <Badge variant='outline' >{ticket.ticketId}</Badge>
+          <Button onClick={(e) => {
+              // e.stopPropagation();
+              if (ticket?.id) {
+                router.push(`/dashboard/ticket/${ticket.id}`);
+              } else {
+                console.error("Navigation failed: Ticket ID is undefined.");
+              }
+            }}> <Badge variant="outline" >{ ticket.ticketId}</Badge>
+
+          </Button>
+         
 
           <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
 
@@ -242,8 +278,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                   <Calendar className="mr-1 h-3 w-3" />
                   <span>
                     {formatDateString(
-                      ticket.workStage?.dateReceived ||
-                        new Date().toISOString()
+                      ticket.workStage?.dateReceived || new Date().toISOString()
                     )}
                   </span>
                 </div>
@@ -260,9 +295,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 {ticket.dueDate && !ticket.completedDate && (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <Calendar className="mr-1 h-3 w-3" />
-                    <span>
-                      Due: {formatDateString(ticket.dueDate)}
-                    </span>
+                    <span>Due: {formatDateString(ticket.dueDate)}</span>
                   </div>
                 )}
 
@@ -276,7 +309,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 {ticket.completedDate !== "N/A" && (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
-                    <span>{formatDateString(ticket.completedDate || '')}</span>
+                    <span>{formatDateString(ticket.completedDate || "")}</span>
                   </div>
                 )}
               </div>
@@ -295,14 +328,11 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               variant="outline"
               className={`text-xs ${
                 ticket?.workStage?.poStatus
-                  ?"bg-green-500 text-white"  
+                  ? "bg-green-500 text-white"
                   : "bg-yellow-400 text-black"
               }`}
             >
-              PO:{" "}
-              {ticket?.workStage?.poStatus
-                ? "Submitted"
-                : "Pending"}
+              PO: {ticket?.workStage?.poStatus ? "Submitted" : "Pending"}
             </Badge>
 
             <Badge
@@ -319,43 +349,64 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             <Badge variant="secondary" className="text-xs">
               Quotation: ₹
               {ticket?.quotations
-                ?.reduce((total: any, exp: any) => total + (Number(exp.grandTotal) || 0), 0)
+                ?.reduce(
+                  (total: any, exp: any) =>
+                    total + (Number(exp.grandTotal) || 0),
+                  0
+                )
                 .toLocaleString()}
             </Badge>
 
             <Badge variant="secondary" className="text-xs">
               Expense: ₹
               {ticket?.expenses
-                ?.reduce((total: any, exp: any) => total + (Number(exp.amount) || 0), 0)
+                ?.reduce(
+                  (total: any, exp: any) => total + (Number(exp.amount) || 0),
+                  0
+                )
                 .toLocaleString()}
             </Badge>
           </div>
 
           <div className="flex flex-wrap gap-2 mt-3">
-            {ticket.expenses && ticket.expenses.length > 0 &&
-              ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) !==
+            {ticket.expenses &&
+              ticket.expenses.length > 0 &&
+              ticket.expenses.reduce(
+                (sum, e) => sum + (Number(e.amount) || 0),
+                0
+              ) !==
                 ticket?.quotations?.reduce(
-                  (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
+                  (total: any, exp: any) =>
+                    total + (Number(exp.grandTotal) || 0),
                   0
                 ) && (
                 <Badge
                   variant="secondary"
                   className={`text-xs ${
-                    ticket.expenses && 
-                    ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) <
-                    ticket?.quotations?.reduce(
-                      (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
+                    ticket.expenses &&
+                    ticket.expenses.reduce(
+                      (sum, e) => sum + (Number(e.amount) || 0),
                       0
-                    )
+                    ) <
+                      ticket?.quotations?.reduce(
+                        (total: any, exp: any) =>
+                          total + (Number(exp.grandTotal) || 0),
+                        0
+                      )
                       ? "bg-green-500 text-white"
                       : "bg-red-400 text-white"
                   }`}
                 >
-                  { ticket.expenses && ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) <
-                  ticket?.quotations?.reduce(
-                    (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
+                  {ticket.expenses &&
+                  ticket.expenses.reduce(
+                    (sum, e) => sum + (Number(e.amount) || 0),
                     0
-                  )
+                  ) <
+                    ticket?.quotations?.reduce(
+                      (total: any, exp: any) =>
+                        total + (Number(exp.grandTotal) || 0),
+                      0
+                    )
                     ? "Profit"
                     : "Loss"}
                 </Badge>
@@ -363,45 +414,52 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="p-3 flex justify-between items-center"> {/* Changed to justify-between */}
-          <div className="flex gap-2"> {/* Container for left-aligned buttons */}
+        <CardFooter className="p-3 flex justify-between items-center">
+          {" "}
+          {/* Changed to justify-between */}
+          <div className="flex gap-5">
+            {" "}
+            {/* Container for left-aligned buttons */}
             <Button
               variant="outline"
               size="sm"
               className="h-7 px-2 text-xs"
               onClick={handleJcrUploadClick}
-              disabled={isUploadingJcr || !!ticket.workStage?.jcrFilePath || !ticket.workStage}
+              disabled={
+                isUploadingJcr ||
+                !!ticket.workStage?.jcrFilePath ||
+                !ticket.workStage
+              }
             >
               <UploadCloud className="mr-1 h-3 w-3" />
-              {isUploadingJcr ? 'Uploading JCR...' : ticket.workStage?.jcrFilePath ? 'JCR Uploaded' : 'Upload JCR'}
+              {isUploadingJcr
+                ? "Uploading JCR..."
+                : ticket.workStage?.jcrFilePath
+                ? "JCR Uploaded"
+                : "Upload JCR"}
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="h-7 px-2 text-xs"
               onClick={handlePoUploadClick}
-              disabled={isUploadingPo || !!ticket.workStage?.poFilePath || !ticket.workStage}
+              disabled={
+                isUploadingPo ||
+                !!ticket.workStage?.poFilePath ||
+                !ticket.workStage
+              }
             >
               <UploadCloud className="mr-1 h-3 w-3" />
-              {isUploadingPo ? 'Uploading PO...' : ticket.workStage?.poFilePath ? 'PO Uploaded' : 'Upload PO'}
+              {isUploadingPo
+                ? "Uploading PO..."
+                : ticket.workStage?.poFilePath
+                ? "PO Uploaded"
+                : "Upload PO"}
             </Button>
+          
+           
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (ticket?.id) {
-                router.push(`/dashboard/ticket/${ticket.id}`);
-              } else {
-                console.error("Navigation failed: Ticket ID is undefined.");
-              }
-            }}
-          >
-            <ArrowUpRight className="mr-1 h-3 w-3" />
-            Details
-          </Button>
+    
         </CardFooter>
       </Card>
 

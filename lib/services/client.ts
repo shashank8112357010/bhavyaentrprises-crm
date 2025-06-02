@@ -142,7 +142,7 @@ export async function exportClientsToCsv() {
       ContactPhone: client.contactPhone,
       ContractStatus: client.contractStatus,
       LastServiceDate: client.lastServiceDate
-        ? (client.lastServiceDate instanceof Date ? client.lastServiceDate.toISOString().split('T')[0] : String(client.lastServiceDate).split('T')[0])
+        ? (client.lastServiceDate as any ? client.lastServiceDate?.toString().split('T')[0] : String(client.lastServiceDate).split('T')[0])
         : "", // Handle if date can be null/undefined
       GSTN: client.gstn || "", // Ensure GSTN is string, provide empty if null/undefined
       Initials: client.initials,

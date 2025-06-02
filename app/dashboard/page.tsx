@@ -50,7 +50,7 @@ export default function Home() {
     // Removed individual count fetchers from dependency array
   ]);
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 h-[100px]">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">

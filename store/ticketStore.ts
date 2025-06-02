@@ -50,6 +50,7 @@ type Ticket = {
     id: string;
     name: string;
     type: string;
+    
     contactPerson: string;
   };
   dueDate: string | undefined;
@@ -77,6 +78,7 @@ type Status =
   | "completed"
   | "billing_pending"
   | "billing_completed";
+
 interface CreateTicketInput {
   title: string;
   clientId: string;

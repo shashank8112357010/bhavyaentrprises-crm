@@ -23,7 +23,12 @@ import { useToast } from "@/hooks/use-toast";
  * UploadRateCardDialog – handles CSV file selection, client‑side validation (.csv),
  * calls the backend API, and surfaces basic success / error feedback.
  */
-export function UploadRateCardDialog() {
+
+interface UploadRateCardProps {
+  onUploadSuccess: () => void;
+}
+
+export function UploadRateCardDialog({onUploadSuccess} :UploadRateCardProps ) {
     const [open, setOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,7 @@ export function UploadRateCardDialog() {
           const response = await createRateCard(file);
           setOpen(false);
           reset();
+          onUploadSuccess()
       
           // Example response: { message: "Upload completed", successCount, duplicateCount, created }
           const { successCount, duplicateCount } = response;

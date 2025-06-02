@@ -62,6 +62,8 @@ type Ticket = {
     poNumber: string;
     jcrStatus: Boolean;
     agentName: string;
+    jcrFilePath : string;
+    poFilePath : string
   };
   expenses: {
     id: string;

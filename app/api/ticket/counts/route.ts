@@ -1,5 +1,6 @@
+import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { TicketStatus } from '@prisma/client'; // Import the TicketStatus enum
 
 export async function GET() {
   try {
@@ -13,18 +14,16 @@ export async function GET() {
     threeDaysAgo.setDate(now.getDate() - 3);
 
     // For "Completed This Week": determine start of the week (assuming Sunday is the first day)
-    // and end of the week (which is 'now' for "this week so far")
     const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
     const diffToSunday = dayOfWeek; // Number of days to subtract to get to the previous Sunday
     const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToSunday, 0, 0, 0, 0);
 
-
-    // 1. Open Tickets Count: Not 'completed' or 'billing_completed'
+    // 1. Open Tickets Count: Not 'completed', 'billing_completed', 'closed', or 'cancelled'
     const openTicketsCount = await prisma.ticket.count({
       where: {
         NOT: {
           status: {
-            in: ['completed', 'billing_completed', 'closed', 'cancelled'], // Added closed & cancelled as not "open"
+            in: [TicketStatus.completed, TicketStatus.billing_completed],
           },
         },
       },
@@ -37,10 +36,6 @@ export async function GET() {
           gte: todayStart,
           lte: todayEnd,
         },
-        // Optionally, filter out completed/cancelled tickets if they shouldn't be counted
-        // NOT: {
-        //   status: { in: ['completed', 'billing_completed', 'closed', 'cancelled'] }
-        // }
       },
     });
 
@@ -48,10 +43,10 @@ export async function GET() {
     const clientUpdatesNeededCount = await prisma.ticket.count({
       where: {
         OR: [
-          { status: 'onHold' },
+          { status: TicketStatus.onHold },
           {
-            status: 'inProgress',
-            updatedAt: {
+            status: TicketStatus.inProgress,
+            completedDate: {
               lt: threeDaysAgo,
             },
           },
@@ -62,13 +57,22 @@ export async function GET() {
     // 4. Completed This Week Count: 'completed' or 'billing_completed' AND completedDate is this week
     const completedThisWeekCount = await prisma.ticket.count({
       where: {
-        status: {
-          in: ['completed', 'billing_completed'],
-        },
-        completedDate: {
-          gte: startOfWeek,
-          lte: now, // up to the current moment this week
-        },
+        OR: [
+          {
+            status: TicketStatus.completed,
+            completedDate: {
+              gte: startOfWeek,
+              lte: now,
+            },
+          },
+          {
+            status: TicketStatus.billing_completed,
+            completedDate: {
+              gte: startOfWeek,
+              lte: now,
+            },
+          },
+        ],
       },
     });
 

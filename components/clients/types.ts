@@ -11,6 +11,7 @@ export interface Client {
     contractStatus: string; // e.g., "Active"
     lastServiceDate: string;
     avatar?: string;
+    gstn : string
     initials: string;
   }
   

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { prisma, Prisma } from "@/lib/prisma"; // Added Prisma import for types
+import { prisma } from "@/lib/prisma"; // Added Prisma import for types
+import { Prisma } from "@prisma/client";
 
 // GET /api/agents
 export async function GET(req: NextRequest) {

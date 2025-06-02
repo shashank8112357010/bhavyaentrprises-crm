@@ -17,17 +17,17 @@ const STATUS_COLORS: { [key: string]: string } = {
 };
 
 export default function StatusSummary() {
-  const { ticketsByStatus, isLoadingTicketsByStatus } = useTicketStore();
+  const { tickets, loading } = useTicketStore();
 
-  if (isLoadingTicketsByStatus) {
+  if (loading) {
     return <div className="w-full h-[300px] flex items-center justify-center">Loading status summary...</div>;
   }
 
-  if (!ticketsByStatus || Object.keys(ticketsByStatus).length === 0) {
+  if (!tickets || Object.keys(tickets).length === 0) {
     return <div className="w-full h-[300px] flex items-center justify-center">No ticket data available.</div>;
   }
 
-  const chartData = Object.entries(ticketsByStatus)
+  const chartData = Object.entries(tickets)
     .map(([statusName, ticketsArray]) => ({
       name: statusName,
       value: ticketsArray.length,

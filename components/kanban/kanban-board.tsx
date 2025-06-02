@@ -49,9 +49,8 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [role, setRole] = useState<Role | null>(null);
-  const {user} = useAuthStore()
+  const { user } = useAuthStore();
   console.log(tickets);
-  
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -64,9 +63,6 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     const storedRole = localStorage.getItem("role") as Role | null;
     setRole(storedRole);
   }, []);
-
-
-  
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -147,59 +143,58 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     // alert(user?.role)
     // console.log(user , "while render");
 
-    if(user?.role === "ADMIN"){
+    if (user?.role === "ADMIN") {
       console.log("TEst passed");
-      
     }
-    
-    
+
     const allColumns = Object.keys(tickets) as Array<keyof TicketsState>;
 
     if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
       return allColumns;
     } else {
       return allColumns.filter(
-        (column) => column !== "billing_pending" && column !== "billing_completed"
+        (column) =>
+          column !== "billing_pending" && column !== "billing_completed"
       );
     }
   };
 
-  useEffect(()=>{
-    getVisibleColumns()
-  },[user?.role])
-
-  
+  useEffect(() => {
+    getVisibleColumns();
+  }, [user?.role]);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex overflow-x-auto gap-4 p-4">
-        {getVisibleColumns().map((status) => (
-          <KanbanColumn
-            key={status}
-            id={status}
-            title={getColumnTitle(status)}
-            icon={getColumnIcon(status)}
-            tickets={tickets[status]}
-          />
-        ))}
-      </div>
+    <div className="w-[calc(100vw-15rem)]">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="  flex overflow-x-auto gap-4 p-4">
+          {getVisibleColumns().map((status) => (
+            <KanbanColumn
+              key={status}
+              id={status}
+              title={getColumnTitle(status)}
+              icon={getColumnIcon(status)}
+              tickets={tickets[status]}
+            />
+          ))}
+        </div>
 
-      <DragOverlay>
-        {activeId &&
-          (() => {
-            const activeTicket = Object.values(tickets)
-              .flat()
-              .find((t) => t.id === activeId);
-            return activeTicket ? (
-              <SortableTicket key={activeTicket.id} ticket={activeTicket} />
-            ) : null;
-          })()}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {activeId &&
+            (() => {
+              const activeTicket = Object.values(tickets)
+                .flat()
+                .find((t) => t.id === activeId);
+              return activeTicket ? (
+                <SortableTicket key={activeTicket.id} ticket={activeTicket} />
+              ) : null;
+            })()}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 }

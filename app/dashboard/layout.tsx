@@ -27,7 +27,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          'min-h-screen bg-background font-sans antialiased',
+          ' bg-background font-sans antialiased',
           fontSans.variable
         )}
       >
@@ -42,7 +42,7 @@ export default function RootLayout({
                  <Header />
                  <div className="flex flex-1">
                    <Sidebar />
-                   <main className="flex-1 p-4 md:p-6">{children}</main>
+                   <main className="flex-1 p-4 md:p-6 h-[calc(100vh-5rem)] overflow-y-auto">{children}</main>
                  </div>
                </div>
                <Toaster />

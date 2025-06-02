@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const responseUser: Partial<User> = { // Ensure this matches what authStore expects
          userId: user.id,
          email: user.email,
-         initials : user?.initials,
+         initials : user?.initials ? user?.initials : '',
          role: user.role, // Use DB role as source of truth after verification
          name: user.name, // Example: if 'name' is part of your User type in store
     };

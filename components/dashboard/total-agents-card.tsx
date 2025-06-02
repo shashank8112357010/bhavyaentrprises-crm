@@ -32,7 +32,7 @@ export default function TotalAgentsCard() {
       <CardContent>
         <div className="flex items-center text-sm text-muted-foreground">
           <Users className="mr-1 h-4 w-4 text-primary" />
-          <span>Reflects all operational staff (RM, MST, Backend, Accounts).</span>
+          <span>(RM, MST, Backend, Accounts).</span>
         </div>
       </CardContent>
     </Card>

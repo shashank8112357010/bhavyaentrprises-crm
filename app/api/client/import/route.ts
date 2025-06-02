@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (results.errors && results.errors.length > 0) {
-      results.errors.forEach((err) => {
+      results.errors.forEach((err:any) => {
         importErrors.push({
           row: err.row + 1, // PapaParse is 0-indexed for rows if header is true
           error: err.message,
