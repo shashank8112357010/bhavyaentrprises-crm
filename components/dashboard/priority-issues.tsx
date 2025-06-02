@@ -50,6 +50,8 @@ export default function PriorityIssues() {
       </div>
     );
   }
+  console.log(priorityIssues , "priorityIssues");
+  
 
   return (
     <div className="space-y-4">
@@ -59,14 +61,12 @@ export default function PriorityIssues() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge
-                  variant={
-                    issue.priority === "Critical" ? "destructive" : "secondary"
-                  }
+                  variant="destructive"
                 >
                   {issue.priority}
                 </Badge>
                 <span className="text-sm font-medium text-muted-foreground">
-                  #{issue.id.substring(0, 6)}...
+                  #{issue.ticketId}
                 </span>
               </div>
               <h4 className="font-medium leading-tight">

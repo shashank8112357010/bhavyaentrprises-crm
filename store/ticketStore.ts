@@ -9,6 +9,7 @@ import {
 
 type Ticket = {
   id: string;
+  ticketId : string;
   title: string;
 
   branch: string;

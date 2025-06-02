@@ -5,14 +5,16 @@ import { useTicketStore } from "@/store/ticketStore"; // Import the store
 
 // Define a consistent color mapping for statuses
 const STATUS_COLORS: { [key: string]: string } = {
-  New: "#3b82f6", // blue-500
+  new: "#3b82f6", // blue-500
   "In Progress": "#eab308", // yellow-500
-  Scheduled: "#8b5cf6", // violet-500
-  "On Hold": "#ef4444", // red-500
-  Completed: "#22c55e", // green-500
-  Billing: "#10b981", // emerald-500
+  inProgress: "#8b5cf6", // violet-500
+
+  onHold: "#ef4444", // red-500
+  completed: "#22c55e", // green-500
+  billing_pending: "#d4e747", // emerald-500
+
+  billing_completed: "#10b981", // emerald-500
   Closed: "#6b7280", // gray-500
-  Cancelled: "#d97706" // amber-600
   // Add more statuses and colors as needed
 };
 
@@ -31,7 +33,7 @@ export default function StatusSummary() {
     .map(([statusName, ticketsArray]) => ({
       name: statusName,
       value: ticketsArray.length,
-      color: STATUS_COLORS[statusName] || "#8884d8", // Default color if status not in map
+      color: STATUS_COLORS[statusName], // Default color if status not in map
     }))
     .filter(item => item.value > 0); // Only include statuses with tickets
 
@@ -39,8 +41,11 @@ export default function StatusSummary() {
     return <div className="w-full h-[300px] flex items-center justify-center">No tickets with current statuses.</div>;
   }
 
+  console.log(tickets);
+  
+
   return (
-    <div className="w-full h-[300px]">
+    <div className="w-full h-[300px] capitalize">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
