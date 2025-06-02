@@ -32,6 +32,8 @@ import { Spinner } from "../ui/spinner";
 
 interface NewQuotationDialogProps {
   onSuccess?: () => void;
+  initialTicketId?: string; // Added
+  initialClientId?: string; // Added
 }
 
 interface RateCardDetail {
@@ -40,14 +42,14 @@ interface RateCardDetail {
   gstType: number;
 }
 
-export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
+export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId }: NewQuotationDialogProps) {
   const [open, setOpen] = useState(false);
-  const [clientId, setClientId] = useState<string>("");
+  const [clientId, setClientId] = useState<string>(initialClientId || "");
   const [rateCards, setRateCards] = useState<any[]>([]);
   const [rateCardsBackup, setRateCardsBackup] = useState<any[]>([]);
   const [selectedRates, setSelectedRates] = useState<RateCardDetail[]>([]);
   const { clients, fetchClients } = useClientStore();
-  const [ticketId, setTicketId] = useState<string>("");
+  const [ticketId, setTicketId] = useState<string>(initialTicketId || "");
   const { all_tickets, fetchTickets } = useTicketStore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,9 +59,18 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
   const endDate = "2100-12-31";
 
   useEffect(() => {
-    fetchClients();
-    fetchTickets({ startDate, endDate });
-  }, [fetchClients, fetchTickets]);
+    const shouldFetchTickets = !initialTicketId || (initialTicketId && !all_tickets.some((t: any) => t.id === initialTicketId));
+    if (shouldFetchTickets) {
+      fetchTickets({ startDate, endDate });
+    }
+
+    const clientIsSetByInitialTicket = initialTicketId && clientId;
+    const shouldFetchClients = !clientIsSetByInitialTicket && (!initialClientId || (initialClientId && !clients.some((c: any) => c.id === initialClientId)));
+
+    if (shouldFetchClients) {
+      fetchClients();
+    }
+  }, [fetchClients, fetchTickets, initialTicketId, initialClientId, clientId, all_tickets, clients]);
 
   useEffect(() => {
     fetchRateCards(debouncedSearch);
@@ -171,13 +182,39 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
   };
 
   useEffect(() => {
-    if (ticketId) {
+    if (initialTicketId) {
+      // Always set ticketId state if initialTicketId is provided
+      setTicketId(initialTicketId);
+      const selectedTicket = all_tickets?.find((ticket: any) => ticket.id === initialTicketId);
+      if (selectedTicket?.client?.id) {
+        setClientId(selectedTicket.client.id);
+      } else if (initialClientId) {
+        // If ticket not in all_tickets (e.g. list is stale/not loaded yet) but initialClientId was given
+        setClientId(initialClientId);
+      } else {
+        // Ticket not found and no initialClientId given, clear client or wait for all_tickets to load.
+        // Setting to "" might be premature if all_tickets is loading.
+        // However, if all_tickets has loaded and ticket not found, then "" is correct.
+        if(all_tickets && all_tickets.length > 0 || !initialTicketId) setClientId("");
+      }
+    } else if (initialClientId) {
+      // Only initialClientId is provided (no initialTicketId)
+      setClientId(initialClientId);
+      // ticketId remains user-selectable or empty, so clear it if it's not meant to be set.
+      // setTicketId(""); // Or not, if user might have selected one before client was initialised.
+    } else if (ticketId) {
+      // This is for manual ticket selection when dialog is not pre-filled
       const selectedTicket = all_tickets?.find((ticket: any) => ticket.id === ticketId);
       if (selectedTicket?.client?.id) {
         setClientId(selectedTicket.client.id);
+      } else {
+        setClientId(""); // Reset client if selected ticket has no client
       }
+    } else {
+      // No initial values, no manual selection, so client should be empty
+      setClientId("");
     }
-  }, [ticketId, all_tickets]);
+  }, [initialTicketId, initialClientId, ticketId, all_tickets]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -208,7 +245,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="ticket">Ticket</Label>
-              <Select value={ticketId} onValueChange={setTicketId}>
+              <Select value={ticketId} onValueChange={setTicketId} disabled={!!initialTicketId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select ticket" />
                 </SelectTrigger>
@@ -223,7 +260,7 @@ export function NewQuotationDialog({ onSuccess }: NewQuotationDialogProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="client">Client</Label>
-              <Select value={clientId} onValueChange={setClientId} disabled={true}>
+              <Select value={clientId} onValueChange={setClientId} disabled={!!initialTicketId || !!initialClientId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>

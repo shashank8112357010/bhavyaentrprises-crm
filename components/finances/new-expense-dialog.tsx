@@ -29,18 +29,21 @@ import { Spinner } from "../ui/spinner";
 
 type PaymentType = "VCASH" | "REST" | "ONLINE";
 
-interface NewExpenseDialogProps {
-  onSuccess?: () => void;
+interface QuotationForDialog {
+  id: string;
+  name: string;
 }
 
-export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
+interface NewExpenseDialogProps {
+  onSuccess?: () => void;
+  ticketId?: string; // Added
+  ticketQuotations?: QuotationForDialog[]; // Added
+}
+
+export function NewExpenseDialog({ onSuccess, ticketId, ticketQuotations }: NewExpenseDialogProps) {
   const [open, setOpen] = useState(false);
-  const [quotations, setQuotations] = useState<{ id: string; name: string }[]>(
-    []
-  );
-  const [selectedQuotation, setSelectedQuotation] = useState<
-    string | undefined
-  >(undefined);
+  const [quotationsToDisplay, setQuotationsToDisplay] = useState<QuotationForDialog[]>([]);
+  const [selectedQuotation, setSelectedQuotation] = useState<string | undefined>(undefined);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [description, setDescription] = useState("");
@@ -54,24 +57,46 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchQuotations() {
+    async function fetchAllQuotations() {
       try {
-        const data = await getAllQuotations({ limit: 50 });
-        setQuotations(data.quotations || []);
+        // This limit might need to be adjusted if users have many quotations
+        const data = await getAllQuotations({ limit: 100, searchQuery: "" });
+        setQuotationsToDisplay(data.quotations || []);
       } catch (error) {
         console.error("Failed to fetch quotations", error);
         toast({
           title: "Error",
-          description: "Failed to load quotations",
+          description: "Failed to load all quotations",
           variant: "destructive",
         });
       }
     }
 
     if (open) {
-      fetchQuotations();
+      if (ticketQuotations && ticketQuotations.length > 0) {
+        setQuotationsToDisplay(ticketQuotations);
+        // If there's only one quotation related to the ticket, pre-select it.
+        if (ticketQuotations.length === 1) {
+          setSelectedQuotation(ticketQuotations[0].id);
+        } else {
+          setSelectedQuotation(undefined); // Clear selection if multiple options
+        }
+      } else if (ticketId) {
+        // Ticket ID is provided, but no specific ticketQuotations.
+        // This case implies we should probably still fetch ALL quotations,
+        // as the dialog's original behavior was to show all.
+        // Or, it could mean "no quotations for this ticket, so don't show any/disable expense creation".
+        // Given the button on ticket page is conditional on ticket.Quotation.length > 0,
+        // this 'else if' branch where ticketQuotations is empty but ticketId exists, shouldn't be hit often.
+        // If it is, it means the ticket *has* quotations, but they weren't passed.
+        // For safety, fetch all if specific ones aren't passed.
+        fetchAllQuotations();
+      } else {
+        // No ticket context, fetch all quotations (original behavior)
+        fetchAllQuotations();
+      }
     }
-  }, [open]);
+  }, [open, ticketId, ticketQuotations, toast]); // Ensure toast is in dependency array
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,9 +226,9 @@ export function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
                   <SelectValue placeholder="Select a quotation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {quotations.map((q) => (
+                  {quotationsToDisplay.map((q) => (
                     <SelectItem key={q.id} value={q.id}>
-                      {q.name}
+                      {q.name} {/* Assuming 'name' is the display field */}
                     </SelectItem>
                   ))}
                 </SelectContent>

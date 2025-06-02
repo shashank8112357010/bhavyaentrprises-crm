@@ -22,6 +22,8 @@ import {
   User,
   MessageSquare // For comments/timeline
 } from "lucide-react";
+import { NewQuotationDialog } from "@/components/finances/new-quotation-dialog";
+import { NewExpenseDialog } from "@/components/finances/new-expense-dialog"; // Added import
 
 // Placeholder for ticket store or service - replace with actual later
 // import { useTicketStore } from "@/store/ticketStore";
@@ -162,6 +164,24 @@ export default function TicketDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const loadTicketData = async () => { // Ensure loadTicketData is defined before it's used in useEffect or passed as prop
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getTicketById(ticketId); // Use the actual service
+      if (data) {
+        setTicket(data);
+      } else {
+        setError("Ticket not found.");
+      }
+    } catch (err: any) {
+      console.error("Error fetching ticket:", err);
+      setError(err.message || "An error occurred while fetching ticket details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // State for new comment
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -220,26 +240,9 @@ export default function TicketDetailsPage() {
 
   useEffect(() => {
     if (ticketId) {
-      const loadTicketData = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const data = await getTicketById(ticketId); // Use the actual service
-          if (data) {
-            setTicket(data);
-          } else {
-            setError("Ticket not found.");
-          }
-        } catch (err: any) {
-          console.error("Error fetching ticket:", err);
-          setError(err.message || "An error occurred while fetching ticket details.");
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadTicketData();
+      loadTicketData(); // Call the defined loadTicketData
     }
-  }, [ticketId]);
+  }, [ticketId]); // Removed loadTicketData from dependency array as it's stable now
 
   // The old placeholder fetchTicketById and its associated useEffect have been removed.
   // The new useEffect uses getTicketById directly.
@@ -372,6 +375,20 @@ export default function TicketDetailsPage() {
 
         {/* Financials Tab Content */}
         <TabsContent value="financials" className="space-y-4 mt-4">
+          <div className="mb-4 flex gap-2 flex-wrap">
+            <NewQuotationDialog
+              onSuccess={loadTicketData}
+              initialTicketId={ticket.id}
+              initialClientId={ticket.client?.id}
+            />
+            {ticket.Quotation && ticket.Quotation.length > 0 && (
+              <NewExpenseDialog
+                onSuccess={loadTicketData}
+                ticketId={ticket.id}
+                ticketQuotations={ticket.Quotation.map(q => ({ id: q.id, name: q.name }))}
+              />
+            )}
+          </div>
           {ticket.Quotation && ticket.Quotation.length > 0 ? (
             ticket.Quotation.map(quotation => (
               <Card key={quotation.id}>

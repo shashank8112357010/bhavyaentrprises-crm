@@ -9,7 +9,8 @@ export const navRoleAccess: Record<Role, string[]> = {
     "Kanban Board",
     "Clients",
     "Agents",
-    "Finances",
+    "Quotations",
+    "Expenses",
     "Rate Card",
     "Calls",
     "Email Templates",
@@ -18,7 +19,12 @@ export const navRoleAccess: Record<Role, string[]> = {
   BACKEND: ["Dashboard", "Settings" , "Kanban Board"],
   RM: ["Dashboard", "Kanban Board", "Clients", "Agents", "Calls", "Email Templates"],
   MST: ["Dashboard", "Kanban Board", "Agents", "Calls"],
-  ACCOUNTS: ["Dashboard", "Finances", "Rate Card"],
+  ACCOUNTS: [
+    "Dashboard",
+    "Quotations",
+    "Expenses",
+    "Rate Card"
+  ],
 };
 
 // Define the role-based access configuration for paths
@@ -28,7 +34,8 @@ export const pathRoleAccess: Record<Role, string[]> = {
     "/dashboard/kanban",
     "/dashboard/clients",
     "/dashboard/agents",
-    "/dashboard/finances",
+    "/dashboard/quotations",
+    "/dashboard/expenses",
     "/dashboard/rate-card",
     "/dashboard/calls",
     "/dashboard/email-template",
@@ -38,5 +45,10 @@ export const pathRoleAccess: Record<Role, string[]> = {
   BACKEND: ["/dashboard", "/dashboard/settings" , "/dashboard/kanban"],
   RM: ["/dashboard", "/dashboard/kanban", "/dashboard/clients", "/dashboard/agents", "/dashboard/calls", "/dashboard/email-template"],
   MST: ["/dashboard", "/dashboard/kanban", "/dashboard/agents", "/dashboard/calls"],
-  ACCOUNTS: ["/dashboard", "/dashboard/finances", "/dashboard/rate-card"],
+  ACCOUNTS: [
+    "/dashboard",
+    "/dashboard/quotations",
+    "/dashboard/expenses",
+    "/dashboard/rate-card"
+  ],
 };
