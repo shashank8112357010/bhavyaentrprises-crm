@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import a loading spinner icon
-// import { useUserStore } from "@/store/crmStore"; // Will be replaced by authStore for user data
 import { useAuthStore } from "@/store/authStore";
 
 export default function LoginPage() {
@@ -23,7 +22,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   // const [isLoading, setIsLoading] = useState(false); // Will use isLoading from authStore
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter(); // Can be used for navigation instead of window.location.href
   const { toast } = useToast();
   // const { setUser } = useUserStore(); // Replaced by authStore actions
 
@@ -63,7 +61,7 @@ export default function LoginPage() {
       if (!window.location.pathname.startsWith("/dashboard")) {
          // Using router.push for client-side navigation is generally preferred in Next.js
          // but window.location.href is fine if full page reload is intended or if service layer used it.
-        router.push("/dashboard");
+         window.location.href = "/dashboard";
         // Alternatively, to ensure full page reload: window.location.href = "/dashboard";
       }
     } else {
