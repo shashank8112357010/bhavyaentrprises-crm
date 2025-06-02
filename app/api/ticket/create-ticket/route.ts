@@ -27,12 +27,12 @@ export async function POST(req: NextRequest) {
 
     let serial = 1; // Default serial number if no tickets exist
 
-    if (latestTicket) {
-      // Extract the serial number from the latest ticket ID
-      const latestIdParts = latestTicket?.ticketId?.split("-");
-      const serialStr = latestIdParts && latestIdParts[1]?.match(/\d{4}/)?.[0];
-      if (serialStr) {
-        const latestSerial = parseInt(serialStr);
+    if (latestTicket && latestTicket.ticketId) {
+      const idParts = latestTicket.ticketId.split("-");
+      const firstPart = idParts[0]; // Should be something like BE25May0001
+      const serialMatch = firstPart.match(/(\d{4})$/); // Matches the last 4 digits in the first part
+      if (serialMatch && serialMatch[1]) {
+        const latestSerial = parseInt(serialMatch[1]);
         if (!isNaN(latestSerial)) {
           serial = latestSerial + 1;
         }

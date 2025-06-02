@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Added useRef
 import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
@@ -17,6 +17,7 @@ import {
   User,
   Pencil,
   Trash2,
+  UploadCloud, // Added for upload buttons
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/components/ui/use-toast"; // Added useToast
 import type { Ticket } from "./types";
 import { updateTicket, deleteTicket } from "@/lib/services/ticket";
 import EditTicketDialog from "../tickets/edit-ticket-dialog";
@@ -45,7 +47,13 @@ interface SortableTicketProps {
 
 export function SortableTicket({ ticket }: SortableTicketProps) {
   const router = useRouter();
+  const { toast } = useToast(); // Initialized useToast
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const [isUploadingJcr, setIsUploadingJcr] = useState(false);
+  const [isUploadingPo, setIsUploadingPo] = useState(false);
+  const jcrInputRef = useRef<HTMLInputElement>(null);
+  const poInputRef = useRef<HTMLInputElement>(null);
 
   const {
     attributes,
@@ -100,8 +108,79 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     console.log("isEditDialogOpen", isEditDialogOpen);
   }, [isEditDialogOpen]);
 
+  const handleJcrUploadClick = () => jcrInputRef.current?.click();
+  const handlePoUploadClick = () => poInputRef.current?.click();
+
+  const handleJcrFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingJcr(true);
+    const formData = new FormData();
+    formData.append('jcrFile', file);
+
+    try {
+      const response = await fetch(`/api/ticket/${ticket.id}/upload-jcr`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'JCR Upload failed');
+      }
+      toast({ title: "Success", description: "JCR file uploaded successfully." });
+      router.refresh();
+    } catch (error: any) {
+      toast({
+        title: "Error uploading JCR file",
+        description: error.message || "An unknown error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingJcr(false);
+      if (jcrInputRef.current) {
+        jcrInputRef.current.value = ""; // Reset file input
+      }
+    }
+  };
+
+  const handlePoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingPo(true);
+    const formData = new FormData();
+    formData.append('poFile', file);
+
+    try {
+      const response = await fetch(`/api/ticket/${ticket.id}/upload-po`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'PO Upload failed');
+      }
+      toast({ title: "Success", description: "PO file uploaded successfully." });
+      router.refresh();
+    } catch (error: any) {
+      toast({
+        title: "Error uploading PO file",
+        description: error.message || "An unknown error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPo(false);
+      if (poInputRef.current) {
+        poInputRef.current.value = ""; // Reset file input
+      }
+    }
+  };
+
   return (
     <>
+      <input type="file" ref={jcrInputRef} onChange={handleJcrFileChange} style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
+      <input type="file" ref={poInputRef} onChange={handlePoFileChange} style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
       <Card
         ref={setNodeRef}
         style={{ ...style }}
@@ -292,7 +371,29 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="p-3 flex justify-end">
+        <CardFooter className="p-3 flex justify-between items-center"> {/* Changed to justify-between */}
+          <div className="flex gap-2"> {/* Container for left-aligned buttons */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handleJcrUploadClick}
+              disabled={isUploadingJcr || !!ticket.workStage?.jcrFilePath || !ticket.workStage}
+            >
+              <UploadCloud className="mr-1 h-3 w-3" />
+              {isUploadingJcr ? 'Uploading JCR...' : ticket.workStage?.jcrFilePath ? 'JCR Uploaded' : 'Upload JCR'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handlePoUploadClick}
+              disabled={isUploadingPo || !!ticket.workStage?.poFilePath || !ticket.workStage}
+            >
+              <UploadCloud className="mr-1 h-3 w-3" />
+              {isUploadingPo ? 'Uploading PO...' : ticket.workStage?.poFilePath ? 'PO Uploaded' : 'Upload PO'}
+            </Button>
+          </div>
           <Button
             variant="ghost"
             size="sm"

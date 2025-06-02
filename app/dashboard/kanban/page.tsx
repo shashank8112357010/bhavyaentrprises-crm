@@ -41,6 +41,7 @@ type Ticket = {
   branch: string;
   priority: string;
   assignee: {
+    id: string; // ADDED
     name: string;
     avatar: string;
     initials: string;

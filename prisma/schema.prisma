@@ -194,6 +194,8 @@ model WorkStage {
   agentName    String
   ticketId     String?
   ticket       Ticket?  @relation(name: "TicketToWorkStage")
+  jcrFilePath  String? // New field
+  poFilePath   String? // New field
 
   @@unique([ticketId])
 }
