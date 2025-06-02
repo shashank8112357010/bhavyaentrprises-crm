@@ -1,5 +1,10 @@
 import axios from "@/lib/axios";
+import { z } from "zod";
+import { rateCardSchema } from "@/lib/validations/rateCardSchema"; // Import the schema
 
+// Define the type for the input data based on the schema
+// This effectively matches Omit<RateCard, 'id' | 'uploadedAt'> if RateCard is the Prisma model
+export type CreateRateCardData = z.infer<typeof rateCardSchema>;
 
 export async function createRateCard(file: File) {
   try {
@@ -28,7 +33,7 @@ interface GetAllRateCardsParams {
 
 export async function getAllRateCards(params: GetAllRateCardsParams = {}) {
   try {
-    const { page = 1, limit = 5, searchQuery = "" } = params; // Changed default limit to 5
+    const { page = 1, limit = 5, searchQuery = "" } = params;
 
     const response = await axios.get("/rate-cards", {
       withCredentials: true,
@@ -42,6 +47,27 @@ export async function getAllRateCards(params: GetAllRateCardsParams = {}) {
     return response.data;
   } catch (error: any) {
     const message = error.response?.data?.error || "Failed to fetch rate cards.";
+    throw new Error(message);
+  }
+}
+
+/**
+ * Creates a single rate card entry.
+ * @param rateCardData The data for the new rate card, matching the rateCardSchema.
+ * @returns The created rate card object.
+ */
+export async function createSingleRateCard(rateCardData: CreateRateCardData) {
+  try {
+    const response = await axios.post("/api/rate-cards/create", rateCardData, {
+      withCredentials: true, // Assuming this is needed like other requests in this file
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data; // Assuming the API returns the created RateCard
+  } catch (error: any) {
+    console.error("Error creating single rate card:", error);
+    const message = error.response?.data?.error || error.response?.data?.details || error.message || "Failed to create rate card.";
     throw new Error(message);
   }
 }

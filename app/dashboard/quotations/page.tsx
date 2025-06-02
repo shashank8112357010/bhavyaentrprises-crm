@@ -16,11 +16,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, Download, MoreHorizontal, FileText, Plus } from "lucide-react";
+import { Search, Download, MoreHorizontal, FileText, Plus, FileEdit } from "lucide-react"; // Added FileEdit
 import { useDebounce } from "@/hooks/useDebounce";
 import { Spinner } from "@/components/ui/spinner";
 import { getAllQuotations } from "@/lib/services/quotations";
-import { NewQuotationDialog } from "@/components/finances/new-quotation-dialog";
+// import { NewQuotationDialog } from "@/components/finances/new-quotation-dialog"; // Removed
 import { useToast } from "@/hooks/use-toast";
 
 // Interfaces
@@ -120,14 +120,14 @@ export default function QuotationsPage() {
     console.log("Attempting to send mail for quotation ID:", quotationId);
   };
 
-  const onQuotationCreated = () => {
-    setPage(0); // Reset to first page
-    fetchQuotationsList(); // Refetch data
-    toast({
-      title: "Success",
-      description: "New quotation created. List updated.",
-    });
-  };
+  // const onQuotationCreated = () => { // Removed as navigation to new page handles creation
+  //   setPage(0); // Reset to first page
+  //   fetchQuotationsList(); // Refetch data
+  //   toast({
+  //     title: "Success",
+  //     description: "New quotation created. List updated.",
+  //   });
+  // };
 
   const pageCount = Math.ceil(totalCount / itemsPerPage);
   const currentPageStart = totalCount > 0 ? page * itemsPerPage + 1 : 0;
@@ -143,10 +143,16 @@ export default function QuotationsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <NewQuotationDialog onSuccess={onQuotationCreated} />
+          {/* Replaced NewQuotationDialog with a Link to the new page */}
+          <Link href="/dashboard/quotations/new" passHref>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Quotation
+            </Button>
+          </Link>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Export 
+            Export
           </Button>
         </div>
       </div>
@@ -231,6 +237,11 @@ export default function QuotationsPage() {
                             </>
                           )}
                           <DropdownMenuSeparator />
+                          <Link href={`/dashboard/quotations/${q.id}/edit`} passHref>
+                            <DropdownMenuItem>
+                              <FileEdit className="mr-2 h-4 w-4" /> Edit Quotation
+                            </DropdownMenuItem>
+                          </Link>
                           <DropdownMenuItem onClick={() => handleSendMail(q.id)}>
                             Send Mail
                           </DropdownMenuItem>
