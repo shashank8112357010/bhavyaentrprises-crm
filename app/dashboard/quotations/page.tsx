@@ -142,7 +142,7 @@ export default function QuotationsPage() {
           <NewQuotationDialog onSuccess={onQuotationCreated} />
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Export (Placeholder)
+            Export 
           </Button>
         </div>
       </div>

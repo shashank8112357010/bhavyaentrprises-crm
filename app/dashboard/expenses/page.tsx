@@ -151,7 +151,7 @@ export default function ExpensesPage() {
           <NewExpenseDialog onSuccess={onExpenseCreated} />
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Export (Placeholder)
+            Export
           </Button>
         </div>
       </div>
