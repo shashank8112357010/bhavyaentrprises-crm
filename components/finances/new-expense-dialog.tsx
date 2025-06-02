@@ -28,10 +28,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "../ui/spinner";
 
 type PaymentType = "VCASH" | "REST" | "ONLINE";
-
+type ClientDetail = {
+  name: string;
+};
 interface QuotationForDialog {
   id: string;
   name: string;
+  client: ClientDetail;
 }
 
 interface NewExpenseDialogProps {
@@ -40,10 +43,18 @@ interface NewExpenseDialogProps {
   ticketQuotations?: QuotationForDialog[]; // Added
 }
 
-export function NewExpenseDialog({ onSuccess, ticketId, ticketQuotations }: NewExpenseDialogProps) {
+export function NewExpenseDialog({
+  onSuccess,
+  ticketId,
+  ticketQuotations,
+}: NewExpenseDialogProps) {
   const [open, setOpen] = useState(false);
-  const [quotationsToDisplay, setQuotationsToDisplay] = useState<QuotationForDialog[]>([]);
-  const [selectedQuotation, setSelectedQuotation] = useState<string | undefined>(undefined);
+  const [quotationsToDisplay, setQuotationsToDisplay] = useState<
+    QuotationForDialog[]
+  >([]);
+  const [selectedQuotation, setSelectedQuotation] = useState<
+    string | undefined
+  >(undefined);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [description, setDescription] = useState("");
@@ -62,6 +73,7 @@ export function NewExpenseDialog({ onSuccess, ticketId, ticketQuotations }: NewE
         // This limit might need to be adjusted if users have many quotations
         const data = await getAllQuotations({ limit: 100, searchQuery: "" });
         setQuotationsToDisplay(data.quotations || []);
+        console.log(data, "quotationsToDisplay");
       } catch (error) {
         console.error("Failed to fetch quotations", error);
         toast({
@@ -228,7 +240,8 @@ export function NewExpenseDialog({ onSuccess, ticketId, ticketQuotations }: NewE
                 <SelectContent>
                   {quotationsToDisplay.map((q) => (
                     <SelectItem key={q.id} value={q.id}>
-                      {q.name} {/* Assuming 'name' is the display field */}
+                      {q.id}-{q?.client?.name}
+                      {/* Assuming 'name' is the display field */}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -314,7 +327,6 @@ export function NewExpenseDialog({ onSuccess, ticketId, ticketQuotations }: NewE
               <Input
                 id="file"
                 type="file"
-                accept="application/pdf"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
             </div>

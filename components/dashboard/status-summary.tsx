@@ -1,6 +1,13 @@
 "use client";
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 import { useTicketStore } from "@/store/ticketStore"; // Import the store
 
 // Define a consistent color mapping for statuses
@@ -22,26 +29,36 @@ export default function StatusSummary() {
   const { tickets, loading } = useTicketStore();
 
   if (loading) {
-    return <div className="w-full h-[300px] flex items-center justify-center">Loading status summary...</div>;
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center">
+        Loading status summary...
+      </div>
+    );
   }
 
   if (!tickets || Object.keys(tickets).length === 0) {
-    return <div className="w-full h-[300px] flex items-center justify-center">No ticket data available.</div>;
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center">
+        No ticket data available.
+      </div>
+    );
   }
 
   const chartData = Object.entries(tickets)
     .map(([statusName, ticketsArray]) => ({
       name: statusName,
-      value: ticketsArray.length,
+      value: Number(ticketsArray.length),
       color: STATUS_COLORS[statusName], // Default color if status not in map
     }))
-    .filter(item => item.value > 0); // Only include statuses with tickets
+    .filter((item) => item.value > 0); // Only include statuses with tickets
 
   if (chartData.length === 0) {
-    return <div className="w-full h-[300px] flex items-center justify-center">No tickets with current statuses.</div>;
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center">
+        No tickets with current statuses.
+      </div>
+    );
   }
-
-  
 
   return (
     <div className="w-full h-[300px] capitalize">
@@ -61,8 +78,8 @@ export default function StatusSummary() {
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip 
-            formatter={(value, name, props) => [`${value} Tickets (${(props.payload.percent * 100).toFixed(1)}%)`, props.payload.name]}
+          <Tooltip
+              formatter={(value) => [`${value} Tickets`, 'Count']}
           />
           <Legend />
         </PieChart>

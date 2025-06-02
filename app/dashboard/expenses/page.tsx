@@ -222,10 +222,10 @@ export default function ExpensesPage() {
                           {exp.pdfUrl && (
                             <>
                               <DropdownMenuItem onClick={() => handleViewPdf(exp.pdfUrl)}>
-                                <Receipt className="mr-2 h-4 w-4" /> View PDF
+                                <Receipt className="mr-2 h-4 w-4" /> View File
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDownloadPdf(exp.pdfUrl, exp.customId || exp.description || `expense-${exp.id}.pdf`)}>
-                                <Download className="mr-2 h-4 w-4" /> Download PDF
+                                <Download className="mr-2 h-4 w-4" /> Download File
                               </DropdownMenuItem>
                             </>
                           )}
