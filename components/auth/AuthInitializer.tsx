@@ -9,11 +9,7 @@ interface AuthInitializerProps {
 }
 
 export function AuthInitializer({ children }: AuthInitializerProps) {
-  const { user, fetchCurrentUser, isLoading } = useAuthStore((state) => ({
-    user: state.user,
-    fetchCurrentUser: state.fetchCurrentUser,
-    isLoading: state.isLoading,
-  }));
+  const { user, fetchCurrentUser, isLoading } = useAuthStore()
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {

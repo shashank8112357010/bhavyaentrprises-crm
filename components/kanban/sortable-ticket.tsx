@@ -105,17 +105,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       <Card
         ref={setNodeRef}
         style={{ ...style }}
-        className={`relative mb-3 transition-all duration-200
-          ${
-            ticket.expenses &&  ticket.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) <
-            ticket?.quotations?.reduce(
-              (total: any, exp: any) => total + (Number(exp.grandTotal) || 0),
-              0
-            )
-              ? "border-[0.25px] border-green-500"
-              : "border-[0.25px] border-red-500"
-          }
-        `}
+        className={`relative mb-3 transition-all duration-200`}
         {...attributes}
       >
         {/* Edit/Delete buttons */}
@@ -123,7 +113,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 p-0"
+            className="h-5 w-5 p-0"
             onClick={(e) => {
               e.stopPropagation();
               setIsEditDialogOpen(true);
@@ -134,7 +124,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+            className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
             onClick={(e) => {
               e.stopPropagation();
               handleDelete();
@@ -145,6 +135,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         </div>
 
         <CardContent className="p-3 pb-0" {...listeners}>
+          <Badge variant='outline' >{ticket.ticketId}</Badge>
+
           <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
 
           <div className="flex items-center mt-2 text-sm text-muted-foreground">

@@ -71,6 +71,8 @@ export default function NewTicketDialog() {
         scheduledDate: new Date(formData.scheduledDate).toISOString(),
       };
       await createTicket(ticketData);
+
+      
       setOpen(false);
       setFormData({
         title: "",

@@ -220,7 +220,7 @@ export const useTicketStore = create<TicketState>((set) => ({
       set((state) => ({
         tickets: {
           ...state.tickets,
-          new: [...state.tickets.new, { ...ticket, status: "new" }],
+          new: [...state.tickets.new, { ...ticket, status: "new" , expenses :[], client : {name  : "" , } }],
         },
         loading: false,
       }));
@@ -238,6 +238,8 @@ export const useTicketStore = create<TicketState>((set) => ({
     set({ loading: true, error: null });
     try {
       const ticketFromServer = await updateTicket(updatedTicket);
+      console.log(ticketFromServer , "ticketFromServer");
+      
 
       set((state) => {
         const { tickets, all_tickets } = state;

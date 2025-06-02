@@ -15,20 +15,21 @@ export async function GET(request: NextRequest) {
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
+    console.log(payload);
+    
 
-    if (!payload.sub || typeof payload.sub !== 'string' || !payload.role) {
-      return NextResponse.json({ message: 'Invalid token payload.' }, { status: 401 });
-    }
+ 
 
-    const userId = payload.sub;
+    const userId = payload.userId;
     const userRole = payload.role as User['role']; // Cast to the Role type
 
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userId as any },
       select: {
         id: true,
         email: true,
         role: true,
+        initials : true ,
         // Add any other fields needed by the client-side authStore's User type
         name: true,
         // Assuming 'initials' might be derived or stored, or not strictly needed by /me
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
     const responseUser: Partial<User> = { // Ensure this matches what authStore expects
          userId: user.id,
          email: user.email,
+         initials : user?.initials,
          role: user.role, // Use DB role as source of truth after verification
          name: user.name, // Example: if 'name' is part of your User type in store
     };

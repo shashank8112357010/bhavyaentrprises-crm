@@ -29,11 +29,7 @@ interface SidebarProps {
 export default function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const { role, isLoading, user } = useAuthStore((state) => ({
-    role: state.role,
-    isLoading: state.isLoading,
-    user: state.user, // To check if user object exists, indicating successful load
-  }));
+  const { role, isLoading, user } = useAuthStore()
 
   // useEffect(() => {
   //   const storedRole = localStorage.getItem("role") as Role | null;

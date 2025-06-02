@@ -343,7 +343,7 @@ export default function KanbanPage() {
         <NewTicketDialog />
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="flex flex-col md:flex-row gap-2 items-center justify-between">
         <div className="relative w-full md:w-auto">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -395,7 +395,7 @@ export default function KanbanPage() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="flex flex-col md:flex-row gap-2 items-center justify-between">
         <div className="flex items-center gap-2">
           <Label className="text-muted-foreground">From:</Label>
           <Input

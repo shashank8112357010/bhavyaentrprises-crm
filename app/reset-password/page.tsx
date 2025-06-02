@@ -15,13 +15,7 @@ function ResetPasswordFormComponent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const { resetPassword, isLoading, error, setError, setLoading } = useAuthStore((state) => ({
-    resetPassword: state.resetPassword,
-    isLoading: state.isLoading,
-    error: state.error,
-    setError: state.setError,
-    setLoading: state.setLoading,
-  }));
+  const { resetPassword, isLoading, error, setError, setLoading } = useAuthStore()
 
   const [token, setToken] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
@@ -78,7 +72,7 @@ function ResetPasswordFormComponent() {
         description: "Your password has been reset successfully. You can now login.",
         variant: "default",
       });
-      router.push("/login");
+      router.push("/");
     } else {
       // Error is set in the store by resetPassword action, use it or a fallback
       toast({

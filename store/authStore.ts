@@ -1,16 +1,17 @@
+
+import axiosInstance from '@/lib/axios';
 import { create } from 'zustand';
 
-// Copied from store/crmStore.ts
+// Define your User interface and Role type
 export interface User {
   userId: string;
   email: string;
   role: Role;
-  initials?: string;
-  name?: string; // Added name as it's returned by /api/auth/me
-  [key: string]: any; // For any other user properties you want to add dynamically
+  initials: string;
+  name?: string;
+  [key: string]: any;
 }
 
-// Copied from store/crmStore.ts
 export type Role = 'ADMIN' | 'BACKEND' | 'RM' | 'MST' | 'ACCOUNTS';
 
 interface AuthState {
@@ -30,175 +31,100 @@ interface AuthState {
   fetchCurrentUser: () => Promise<{ success: boolean; user?: User }>;
 }
 
-// Import login and logout functions from lib/services/auth
-import { login as apiLogin, logout as apiLogout, LoginPayload } from '@/lib/services/auth';
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isLoading: false,
   error: null,
   role: null,
+
   setUserAndToken: (user, token) => set({ user, token, role: user.role, isLoading: false, error: null }),
   clearAuth: () => set({ user: null, token: null, role: null, isLoading: false, error: null }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error, isLoading: false }),
+
   forgotPassword: async (email: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        set({ isLoading: false, error: data.message || 'Failed to send password reset link.' });
-        return { success: false, message: data.message || 'Failed to send password reset link.' };
-      }
-
+      const response = await axiosInstance.post('/auth/forgot-password', { email });
       set({ isLoading: false });
-      return { success: true, message: data.message };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       set({ isLoading: false, error: errorMessage });
       return { success: false, message: errorMessage };
     }
   },
+
   resetPassword: async (token: string, newPassword: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, newPassword }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        set({ isLoading: false, error: data.message || 'Failed to reset password.' });
-        return { success: false, message: data.message || 'Failed to reset password.' };
-      }
-
+      const response = await axiosInstance.post('/auth/reset-password', { token, newPassword });
       set({ isLoading: false });
-      return { success: true, message: data.message };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       set({ isLoading: false, error: errorMessage });
       return { success: false, message: errorMessage };
     }
   },
-  login: async (email, password) => {
+
+  login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiLogin({ email, password });
-      // Assuming the response.data contains { user: User, token: string } upon successful login
-      // The current apiLogin from services/auth.ts returns the whole axios response and handles redirection
-      // We need to adapt this. For now, let's assume it's modified or we extract from response.data
-      // The service login function seems to return response, not response.data directly.
-      // And user/token are expected to be in response.data if login is not a redirect.
+      const response = await axiosInstance.post('/login', { email, password });
+      const { user, token } = response.data;
 
-      if (response.status === 200 && response.data) { // Successful login, not a redirect
-        const { user, token } = response.data; // This structure is an assumption
-
-        if (!user || !token) {
-          // If the actual login service doesn't return user and token directly,
-          // this part needs adjustment. Maybe the token is httpOnly and user is returned.
-          // For now, proceeding with the assumption that user and token are available.
-          // If token is HttpOnly, it won't be available here.
-          // The task asks to store user.role and user.userId in localStorage.
-
-          set({ isLoading: false, error: "Login successful, but user data or token was not provided in the expected format." });
-          return { success: false, error: "Login successful, but user data or token was not provided in the expected format." };
-        }
-
-        set({ user, token, role: user.role, isLoading: false, error: null });
-
-        if (typeof window !== "undefined") {
-          localStorage.setItem("userRole", user.role);
-          localStorage.setItem("userId", user.userId);
-        }
-        return { success: true, user };
-      } else if (response.status === 302) {
-        // If it's a redirect, the service layer already handles window.location.href
-        // We might not get user/token here directly if it's a pure redirect.
-        // The store state might not be updated with user/token if backend only sends redirect.
-        // This indicates that the session is likely handled by HttpOnly cookies.
-        // We might need a separate call to fetch user details after redirect, or expect user details in a redirect response.
-        // For now, assume that if a redirect happens, the session is set.
-        // We still need user data for the store.
-        // This part is tricky with HttpOnly cookies and redirects.
-        // Let's assume for now that if status is 302, it's handled and we don't get data directly here.
-        // The component will redirect.
-        set({ isLoading: false }); // Stop loading
-        return { success: true }; // Indicate success, component will redirect
-      } else {
-        // Handle other non-successful statuses if not thrown as error by axios
-        const errorMessage = response.data?.message || "Login failed due to an unexpected server response.";
-        set({ isLoading: false, error: errorMessage });
-        return { success: false, error: errorMessage };
+      if (!user || !token) {
+        set({ isLoading: false, error: "Login successful, but user data or token was not provided in the expected format." });
+        return { success: false, error: "Login successful, but user data or token was not provided in the expected format." };
       }
 
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred during login.';
-      set({ isLoading: false, error: errorMessage });
-      return { success: false, error: errorMessage };
-    }
-  },
-  logout: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      await apiLogout(); // apiLogout handles localStorage clear and redirect
-      get().clearAuth(); // Clear auth state in the store
-      // No need to set isLoading false here as clearAuth does it and redirect happens
-      return { success: true };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred during logout.';
-      set({ isLoading: false, error: errorMessage }); // Ensure loading is false on error
-      return { success: false, error: errorMessage };
-    }
-  },
-  fetchCurrentUser: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await fetch('/api/auth/me'); // GET request
-      const data = await response.json();
+      set({ user, token, role: user.role, isLoading: false, error: null });
 
-      if (!response.ok) {
-        // If /me returns 401, it means token is bad, so clear client state.
-        if (response.status === 401) {
-         get().clearAuth();
-        }
-        set({ isLoading: false, error: data.message || 'Failed to fetch user details.' });
-        return { success: false };
-      }
-
-      const { user } = data; // Token is httpOnly, not expected in /me response body for client
-
-      set({ user, role: user.role, isLoading: false, error: null }); // Token in store is separate concern
-
-      // Persist role/userId to localStorage if other parts of app still rely on it directly
-      // It's better if they rely on useAuthStore().
-      if (typeof window !== "undefined" && user) {
-          localStorage.setItem("userRole", user.role);
-          localStorage.setItem("userId", user.userId);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userId", user.userId);
       }
 
       return { success: true, user };
-    } catch (err) {
-      // On network error etc, might not want to clear auth if user was previously logged in.
-      // Error will be set, UI can show message.
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during login.';
       set({ isLoading: false, error: errorMessage });
-      // Consider if clearAuth() is appropriate here. If /api/auth/me fails due to network,
-      // user might still have a valid session.
+      return { success: false, error: errorMessage };
+    }
+  },
+
+  logout: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await axiosInstance.post('/auth/logout');
+      get().clearAuth();
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during logout.';
+      set({ isLoading: false, error: errorMessage });
+      return { success: false, error: errorMessage };
+    }
+  },
+
+  fetchCurrentUser: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axiosInstance.get('/auth/me');
+      const { user } = response.data;
+
+      set({ user, role: user.role, isLoading: false, error: null });
+
+      if (typeof window !== "undefined" && user) {
+        localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userId", user.userId);
+      }
+
+      return { success: true, user };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+      set({ isLoading: false, error: errorMessage });
       return { success: false };
     }
   },

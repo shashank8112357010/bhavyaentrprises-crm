@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { createAgentSchema } from "@/lib/validations/agentSchema";
 import { sendMail } from "@/lib/mailer";
 
-
 export async function POST(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
 
@@ -13,7 +12,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { role } = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
+  const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
+    role: string;
+  };
   if (role !== "ADMIN") {
     return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
   }
@@ -24,7 +25,9 @@ export async function POST(req: NextRequest) {
   if (validation.error) {
     const fieldErrors = validation.error.flatten().fieldErrors;
     const firstFieldKey = Object.keys(fieldErrors)[0];
-    const firstErrorMessage = firstFieldKey && fieldErrors[firstFieldKey as keyof typeof fieldErrors]?.[0];
+    const firstErrorMessage =
+      firstFieldKey &&
+      fieldErrors[firstFieldKey as keyof typeof fieldErrors]?.[0];
 
     return NextResponse.json(
       { message: `${firstFieldKey}: ${firstErrorMessage}` },
@@ -42,14 +45,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const existingUserMobile = await prisma.user.findUnique({ where: { mobile } });
+  const existingUserMobile = await prisma.user.findUnique({
+    where: { mobile },
+  });
   if (existingUserMobile) {
     return NextResponse.json(
       { message: "User with this phone no  already exists" },
       { status: 409 }
     );
   }
-
 
   const rawPassword = "welcome@crm";
   const hashedPassword = await bcrypt.hash(rawPassword, 10);
@@ -58,7 +62,11 @@ export async function POST(req: NextRequest) {
     data: {
       name,
       email,
-      mobile ,
+      initials: name
+        .split(" ")
+        .map((n: any) => n[0])
+        .join(""),
+      mobile,
       password: hashedPassword,
       role: userRole,
     },

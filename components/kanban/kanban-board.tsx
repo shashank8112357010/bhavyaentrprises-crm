@@ -154,7 +154,7 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex w-screen overflow-x-auto gap-4 p-4">
+      <div className="flex overflow-x-auto gap-4 p-4">
         {getVisibleColumns().map((status) => (
           <KanbanColumn
             key={status}
