@@ -233,12 +233,14 @@ export default function QuotationsPage() {
         </CardContent>
       </Card>
 
-      {pageCount > 1 && (
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-4">
-          <div className="text-sm text-muted-foreground">
-            Showing {currentPageStart} to {currentPageEnd} of {totalCount} entries
-          </div>
-          <div className="flex items-center gap-2">
+      {/* Pagination */}
+      <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
+        <div className="text-sm text-muted-foreground mb-2 md:mb-0">
+          Showing {currentPageStart} to {currentPageEnd} of {totalCount} entries
+        </div>
+        {totalCount > itemsPerPage && (
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-muted-foreground">Rows:</span>
             <Select
               value={itemsPerPage.toString()}
               onValueChange={(value) => {
@@ -246,38 +248,36 @@ export default function QuotationsPage() {
                 setPage(0); // Reset to first page
               }}
             >
-              <SelectTrigger className="w-[80px]">
-                <SelectValue placeholder={`${itemsPerPage} rows`} />
+              <SelectTrigger className="w-[75px] h-9">
+                <SelectValue placeholder={itemsPerPage} />
               </SelectTrigger>
               <SelectContent>
-                {[5, 10, 20, 50, 100].map((size) => (
+                {[5, 10, 15].map((size) => (
                   <SelectItem key={size} value={size.toString()}>
-                    {size} rows
+                    {size}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <ReactPaginate
-              previousLabel={"Previous"}
-              nextLabel={"Next"}
+              previousLabel={"← Previous"}
+              nextLabel={"Next →"}
               breakLabel={"..."}
               pageCount={pageCount}
-              marginPagesDisplayed={2}
-              pageRangeDisplayed={5}
+              marginPagesDisplayed={1}
+              pageRangeDisplayed={2}
               onPageChange={handlePageChange}
-              containerClassName={"flex items-center gap-1"}
-              pageClassName={"h-9 w-9 flex items-center justify-center rounded-md text-sm"}
-              pageLinkClassName={"h-full w-full flex items-center justify-center"}
-              previousClassName={"h-9 px-3 flex items-center justify-center rounded-md text-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground"}
-              nextClassName={"h-9 px-3 flex items-center justify-center rounded-md text-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground"}
-              breakClassName={"h-9 w-9 flex items-center justify-center rounded-md text-sm"}
-              activeClassName={"bg-primary text-primary-foreground"}
-              disabledClassName={"opacity-50 cursor-not-allowed"}
+              containerClassName={"flex items-center space-x-1 text-sm select-none"}
+              pageLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
+              previousLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
+              nextLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
+              activeLinkClassName={"bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"}
+              disabledLinkClassName={"opacity-50 cursor-not-allowed"}
               forcePage={page}
             />
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
