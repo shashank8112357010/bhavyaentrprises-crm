@@ -146,7 +146,7 @@ export async function exportClientsToCsv() {
         : "", // Handle if date can be null/undefined
       GSTN: client.gstn || "", // Ensure GSTN is string, provide empty if null/undefined
       Initials: client.initials,
-    }));cke
+    }));
 
     const csvString = Papa.unparse(clientsToExport, {
         header: true, // Ensure headers are included based on keys of objects in clientsToExport
