@@ -378,13 +378,13 @@ const NewQuotationPage = () => {
     }
   };
 
-  if (isLoadingSerial) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /> Loading initial data...</div>;
-  }
+  // if (isLoadingSerial) {
+  //   return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /> Loading initial data...</div>;
+  // }
 
-  if (serialError) {
-    return <div className="text-red-500 p-4">Error loading initial data: {serialError}. Please try refreshing.</div>;
-  }
+  // if (serialError) {
+  //   return <div className="text-red-500 p-4">Error loading initial data: {serialError}. Please try refreshing.</div>;
+  // }
 
   return (
     <div className="container mx-auto p-4">
