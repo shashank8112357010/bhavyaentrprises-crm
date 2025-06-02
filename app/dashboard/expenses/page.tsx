@@ -50,9 +50,12 @@ interface ExpenseItem {
 
 interface PaginatedExpensesResponse {
   expenses: ExpenseItem[];
-  total: number;
-  page: number;
-  limit: number;
+  pagination :{
+    total: number;
+    page: number;
+    limit: number;
+  }
+
 }
 
 export default function ExpensesPage() {
@@ -76,7 +79,7 @@ export default function ExpensesPage() {
         searchQuery: debouncedSearchQuery,
       });
       setExpenses(response.expenses || []);
-      setTotalCount(response.total || 0);
+      setTotalCount(response.pagination.total || 0);
     } catch (err: any) {
       console.error("Error fetching expenses:", err);
       setError(err.message || "Failed to fetch expenses.");
@@ -172,9 +175,9 @@ export default function ExpensesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Expense List</CardTitle>
-          <CardDescription>
+          {/* <CardDescription>
             Showing {currentPageStart} - {currentPageEnd} of {totalCount} expenses.
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
         <CardContent>
           {loading && <div className="flex justify-center items-center py-10"><Spinner size="8" /></div>}

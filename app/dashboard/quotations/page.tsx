@@ -49,9 +49,12 @@ interface QuotationItem {
 
 interface PaginatedQuotationsResponse {
   quotations: QuotationItem[];
-  total: number;
-  page: number;
-  limit: number;
+  pagination : {
+    total: number;
+    page: number;
+    limit: number;
+  }
+ 
 }
 
 export default function QuotationsPage() {
@@ -75,7 +78,7 @@ export default function QuotationsPage() {
         searchQuery: debouncedSearchQuery,
       });
       setQuotations(response.quotations || []);
-      setTotalCount(response.total || 0);
+      setTotalCount(response?.pagination.total || 0);
     } catch (err: any) {
       console.error("Error fetching quotations:", err);
       setError(err.message || "Failed to fetch quotations.");
@@ -163,9 +166,9 @@ export default function QuotationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Quotation List</CardTitle>
-          <CardDescription>
+          {/* <CardDescription>
             Showing {currentPageStart} - {currentPageEnd} of {totalCount} quotations.
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
         <CardContent>
           {loading && <div className="flex justify-center items-center py-10"><Spinner size="8" /></div>}

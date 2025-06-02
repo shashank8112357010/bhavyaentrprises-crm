@@ -15,7 +15,8 @@ import {
   User,
   Pencil,
   Trash2,
-  UploadCloud, // Added for upload buttons
+  UploadCloud,
+  Check, // Added for upload buttons
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { updateTicket, deleteTicket } from "@/lib/services/ticket";
 import EditTicketDialog from "../tickets/edit-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
+import Link from "next/link";
 
 interface SortableTicketProps {
   ticket: Ticket;
@@ -97,8 +99,6 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       }
     }
   };
-
-
 
   const handleJcrUploadClick = () => jcrInputRef.current?.click();
   const handlePoUploadClick = () => poInputRef.current?.click();
@@ -202,11 +202,11 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         {...attributes}
       >
         {/* Edit/Delete buttons */}
-        <div className="absolute top-2 right-2 flex gap-2 z-10">
+        <div className="absolute top-4 right-1 flex gap-2 z-10">
           <Button
             variant="ghost"
             size="icon"
-            className="h-5 w-5 p-0"
+            className="h-4 w-4 p-0 "
             onClick={(e) => {
               e.stopPropagation();
               setIsEditDialogOpen(true);
@@ -229,150 +229,169 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           )}
         </div>
 
-        <CardContent className="p-3 pb-0" {...listeners}>
-        <Badge variant="outline" >{ ticket.ticketId}</Badge>
+        <CardContent className="p-3 pb-0">
+        <Link className="hover:cursor-wait" href={`/dashboard/ticket/${ticket.id}`} key={ticket.id} legacyBehavior>
+        <Badge variant="outline">{ticket.ticketId}</Badge>
+        </Link>
          
+          <div {...listeners} >
+            <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
 
-          <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
+            <div className="flex items-center mt-2 text-sm text-muted-foreground">
+              <Building className="mr-1 h-4 w-4" />
+              <span className="truncate">
+                {ticket.client.name} - {ticket.branch}
+              </span>
+            </div>
 
-          <div className="flex items-center mt-2 text-sm text-muted-foreground">
-            <Building className="mr-1 h-4 w-4" />
-            <span className="truncate">
-              {ticket.client.name} - {ticket.branch}
-            </span>
-          </div>
-
-          <div className="mt-3 space-y-2">
-            <TooltipProvider>
-              <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
-                <Tooltip>
-                  <TooltipTrigger className="flex items-center">
-                    <Receipt className="mr-1 h-3 w-3" />
-                    <span className="flex gap-2">
-                      Quote:{" "}
-                      {ticket?.quotations && ticket?.quotations?.length > 0
-                        ? ticket?.quotations.map((i) => i.id).join(", ")
-                        : "N/A"}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Amount: ₹{ticket.workStage?.quoteAmount || "N/A"}</p>
-                    <p>Taxable: ₹{ticket.workStage?.quoteTaxable || "N/A"}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                <div className="flex items-center">
-                  <Calendar className="mr-1 h-3 w-3" />
-                  <span>
-                    {formatDateString(
-                      ticket.workStage?.dateReceived || new Date().toISOString()
-                    )}
-                  </span>
+            <div className="mt-3 space-y-2">
+              <TooltipProvider>
+                <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
+                  <Tooltip>
+                    <TooltipTrigger className="flex items-center">
+                      <Receipt className="mr-1 h-3 w-3" />
+                      <span className="flex gap-2">
+                        Quote:{" "}
+                        {ticket?.quotations && ticket?.quotations?.length > 0
+                          ? ticket?.quotations.map((i) => i.id).join(", ")
+                          : "N/A"}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Amount: ₹{ticket.workStage?.quoteAmount || "N/A"}</p>
+                      <p>Taxable: ₹{ticket.workStage?.quoteTaxable || "N/A"}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {ticket.comments.length > 0 && (
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <MessageSquare className="mr-1 h-3 w-3" />
-                    <span>{ticket.comments.length}</span>
-                  </div>
-                )}
-
-                {ticket.dueDate && !ticket.completedDate && (
-                  <div className="flex items-center text-xs text-muted-foreground">
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center">
                     <Calendar className="mr-1 h-3 w-3" />
-                    <span>Due: {formatDateString(ticket.dueDate)}</span>
+                    <span>
+                      {formatDateString(
+                        ticket.workStage?.dateReceived ||
+                          new Date().toISOString()
+                      )}
+                    </span>
                   </div>
-                )}
-
-                {ticket.scheduledDate && (
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Clock className="mr-1 h-3 w-3" />
-                    <span>{formatDateString(ticket.scheduledDate)}</span>
-                  </div>
-                )}
-
-                {ticket.completedDate !== "N/A" && (
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
-                    <span>{formatDateString(ticket.completedDate || "")}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
-                <div className="flex items-center">
-                  <User className="mr-1 h-3 w-3" />
-                  <span>Agent: {ticket?.assignee?.name || "N/A"}</span>
                 </div>
-              </div>
-            </TooltipProvider>
-          </div>
 
-          <div className="flex flex-wrap gap-2 mt-3">
-            <Badge
-              variant="outline"
-              className={`text-xs ${
-                ticket?.workStage?.poStatus
-                  ? "bg-green-500 text-white"
-                  : "bg-yellow-400 text-black"
-              }`}
-            >
-              PO: {ticket?.workStage?.poStatus ? "Submitted" : "Pending"}
-            </Badge>
+                <div className="flex items-center gap-2">
+                  {ticket.comments.length > 0 && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <MessageSquare className="mr-1 h-3 w-3" />
+                      <span>{ticket.comments.length}</span>
+                    </div>
+                  )}
 
-            <Badge
-              variant="outline"
-              className={`text-xs ${
-                ticket.workStage?.jcrStatus
-                  ? "bg-green-500 text-white"
-                  : "bg-yellow-400 text-black"
-              }`}
-            >
-              JCR: {ticket.workStage?.jcrStatus ? "Done" : "Pending"}
-            </Badge>
+                  {ticket.dueDate && !ticket.completedDate && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Calendar className="mr-1 h-3 w-3" />
+                      <span>Due: {formatDateString(ticket.dueDate)}</span>
+                    </div>
+                  )}
 
-            <Badge variant="secondary" className="text-xs">
-              Quotation: ₹
-              {ticket?.quotations
-                ?.reduce(
-                  (total: any, exp: any) =>
-                    total + (Number(exp.grandTotal) || 0),
+                  {ticket.scheduledDate && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Clock className="mr-1 h-3 w-3" />
+                      <span>{formatDateString(ticket.scheduledDate)}</span>
+                    </div>
+                  )}
+
+                  {ticket.completedDate !== "N/A" && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
+                      <span>
+                        {formatDateString(ticket.completedDate || "")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center">
+                    <User className="mr-1 h-3 w-3" />
+                    <span>Agent: {ticket?.assignee?.name || "N/A"}</span>
+                  </div>
+                </div>
+              </TooltipProvider>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Badge
+                variant="outline"
+                className={`text-xs ${
+                  ticket?.workStage?.poStatus
+                    ? "bg-green-500 text-white"
+                    : "bg-yellow-400 text-black"
+                }`}
+              >
+                PO: {ticket?.workStage?.poStatus ? "Submitted" : "Pending"}
+              </Badge>
+
+              <Badge
+                variant="outline"
+                className={`text-xs ${
+                  ticket.workStage?.jcrStatus
+                    ? "bg-green-500 text-white"
+                    : "bg-yellow-400 text-black"
+                }`}
+              >
+                JCR: {ticket.workStage?.jcrStatus ? "Done" : "Pending"}
+              </Badge>
+
+              <Badge variant="secondary" className="text-xs">
+                Quotation: ₹
+                {ticket?.quotations
+                  ?.reduce(
+                    (total: any, exp: any) =>
+                      total + (Number(exp.grandTotal) || 0),
+                    0
+                  )
+                  .toLocaleString()}
+              </Badge>
+
+              <Badge variant="secondary" className="text-xs">
+                Expense: ₹
+                {ticket?.expenses
+                  ?.reduce(
+                    (total: any, exp: any) => total + (Number(exp.amount) || 0),
+                    0
+                  )
+                  .toLocaleString()}
+              </Badge>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              {ticket.expenses &&
+                ticket.expenses.length > 0 &&
+                ticket.expenses.reduce(
+                  (sum, e) => sum + (Number(e.amount) || 0),
                   0
-                )
-                .toLocaleString()}
-            </Badge>
-
-            <Badge variant="secondary" className="text-xs">
-              Expense: ₹
-              {ticket?.expenses
-                ?.reduce(
-                  (total: any, exp: any) => total + (Number(exp.amount) || 0),
-                  0
-                )
-                .toLocaleString()}
-            </Badge>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-3">
-            {ticket.expenses &&
-              ticket.expenses.length > 0 &&
-              ticket.expenses.reduce(
-                (sum, e) => sum + (Number(e.amount) || 0),
-                0
-              ) !==
-                ticket?.quotations?.reduce(
-                  (total: any, exp: any) =>
-                    total + (Number(exp.grandTotal) || 0),
-                  0
-                ) && (
-                <Badge
-                  variant="secondary"
-                  className={`text-xs ${
-                    ticket.expenses &&
+                ) !==
+                  ticket?.quotations?.reduce(
+                    (total: any, exp: any) =>
+                      total + (Number(exp.grandTotal) || 0),
+                    0
+                  ) && (
+                  <Badge
+                    variant="secondary"
+                    className={`text-xs ${
+                      ticket.expenses &&
+                      ticket.expenses.reduce(
+                        (sum, e) => sum + (Number(e.amount) || 0),
+                        0
+                      ) <
+                        ticket?.quotations?.reduce(
+                          (total: any, exp: any) =>
+                            total + (Number(exp.grandTotal) || 0),
+                          0
+                        )
+                        ? "bg-green-500 text-white"
+                        : "bg-red-400 text-white"
+                    }`}
+                  >
+                    {ticket.expenses &&
                     ticket.expenses.reduce(
                       (sum, e) => sum + (Number(e.amount) || 0),
                       0
@@ -382,37 +401,23 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                           total + (Number(exp.grandTotal) || 0),
                         0
                       )
-                      ? "bg-green-500 text-white"
-                      : "bg-red-400 text-white"
-                  }`}
-                >
-                  {ticket.expenses &&
-                  ticket.expenses.reduce(
-                    (sum, e) => sum + (Number(e.amount) || 0),
-                    0
-                  ) <
-                    ticket?.quotations?.reduce(
-                      (total: any, exp: any) =>
-                        total + (Number(exp.grandTotal) || 0),
-                      0
-                    )
-                    ? "Profit"
-                    : "Loss"}
-                </Badge>
-              )}
+                      ? "Profit"
+                      : "Loss"}
+                  </Badge>
+                )}
+            </div>
           </div>
         </CardContent>
 
         <CardFooter className="p-3 flex justify-between items-center">
           {" "}
           {/* Changed to justify-between */}
-          <div className="flex gap-5">
-            {" "}
+          <div className="flex gap-1">
             {/* Container for left-aligned buttons */}
             <Button
               variant="outline"
               size="sm"
-              className="h-7 px-2 text-xs"
+              className="h-6 px-1.5 text-xs"
               onClick={handleJcrUploadClick}
               disabled={
                 isUploadingJcr ||
@@ -420,7 +425,11 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 !ticket.workStage
               }
             >
-              <UploadCloud className="mr-1 h-3 w-3" />
+              {ticket.workStage?.jcrFilePath ? (
+                <Check className=" text-green-300 mr-1 h-3 w-3" />
+              ) : (
+                <UploadCloud className="mr-1 h-3 w-3" />
+              )}
               {isUploadingJcr
                 ? "Uploading JCR..."
                 : ticket.workStage?.jcrFilePath
@@ -430,7 +439,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 px-2 text-xs"
+              className="h-6 px-1.5 text-xs"
               onClick={handlePoUploadClick}
               disabled={
                 isUploadingPo ||
@@ -438,17 +447,19 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 !ticket.workStage
               }
             >
-              <UploadCloud className="mr-1 h-3 w-3" />
+              {ticket.workStage?.poFilePath ? (
+                <Check className=" text-green-300 mr-1 h-3 w-3" />
+              ) : (
+                <UploadCloud className="mr-1 h-3 w-3" />
+              )}
+
               {isUploadingPo
                 ? "Uploading PO..."
                 : ticket.workStage?.poFilePath
                 ? "PO Uploaded"
                 : "Upload PO"}
             </Button>
-          
-           
           </div>
-    
         </CardFooter>
       </Card>
 
