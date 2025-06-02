@@ -1,145 +1,75 @@
-// app/api/quotation/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { quotationSchema } from "@/lib/validations/quotationSchema";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
-import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
-import { writeFileSync, mkdirSync, existsSync } from "fs";
-import path from "path";
+import { quotationSchema } from "@/lib/validations/quotationSchema";
+import { QuotationStatus } from "@prisma/client";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const token = req.cookies.get("token")?.value;
-    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const body = await request.json();
+    const validation = quotationSchema.safeParse(body);
 
-    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
-    if (role !== "ADMIN") return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
-
-    const body = await req.json();
-    const parsed = quotationSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ message: "Invalid input", errors: parsed.error }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.format() },
+        { status: 400 }
+      );
     }
 
-    const { name, clientId, rateCardDetails, ticketId } = parsed.data;
+    const {
+      name,
+      clientId,
+      rateCardDetails,
+      ticketId,
+      status = QuotationStatus.DRAFT, // Default to DRAFT if not provided
+    } = validation.data;
 
-    // Extract rateCardIds from rateCardDetails
-    const rateCardIds = rateCardDetails.map((detail: { rateCardId: string }) => detail.rateCardId);
+    // Placeholder for PDF Generation
+    const pdfUrl = "/temp/quotation.pdf"; // Actual PDF generation will be handled later
 
-    // Fetch rate cards to get full details
-    const rateCards = await prisma.rateCard.findMany({
-      where: { id: { in: rateCardIds } },
-    });
+    let subtotal = 0;
+    let gst = 0;
 
-    if (rateCards.length !== rateCardIds.length) {
-      return NextResponse.json({ message: "Some RateCard entries not found" }, { status: 404 });
+    for (const item of rateCardDetails) {
+      const rateCardItem = await prisma.rateCard.findUnique({
+        where: { id: item.rateCardId },
+      });
+
+      if (!rateCardItem) {
+        return NextResponse.json(
+          { error: `RateCard with id ${item.rateCardId} not found` },
+          { status: 400 }
+        );
+      }
+
+      const itemTotal = item.quantity * rateCardItem.rate;
+      subtotal += itemTotal;
+      // Assuming gstType is a percentage like 18 or 28
+      const itemGst = itemTotal * (item.gstType / 100);
+      gst += itemGst;
     }
 
-    // Compute totals
-    const subtotal = rateCardDetails.reduce((sum, detail) => {
-      const rateCard = rateCards.find(rc => rc.id === detail.rateCardId);
-      return sum + (rateCard ? rateCard.rate * detail.quantity : 0);
-    }, 0);
-
-    const gst = subtotal * 0.18; // Assuming GST is 18%
     const grandTotal = subtotal + gst;
 
-    // Generate new quotation ID
-    const latest = await prisma.quotation.findFirst({
-      orderBy: { createdAt: "desc" },
-    });
-    const serial = latest ? parseInt(latest.id.replace("QUOT", "")) + 1 : 1;
-    const newId = `QUOT${serial.toString().padStart(2, "0")}`;
-console.log(rateCards ,"rateCards");
-
-    // Generate PDF buffer
-    const pdfBuffer = await generateQuotationPdf({
-      quotationId: newId,
-      clientId,
-      name,
-      rateCards, // Pass rateCards instead of rateCardDetails
-      subtotal,
-      gst,
-      rateCardDetails,
-      grandTotal,
-    });
-
-    // Save PDF to disk
-    const folderPath = path.join(process.cwd(), "public", "quotations");
-    if (!existsSync(folderPath)) mkdirSync(folderPath, { recursive: true });
-
-    const filename = `${newId}.pdf`;
-    const filePath = path.join(folderPath, filename);
-    writeFileSync(filePath, pdfBuffer);
-
-    // Save in DB
     const quotation = await prisma.quotation.create({
       data: {
-        id: newId,
         name,
         clientId,
+        pdfUrl,
+        rateCardDetails: rateCardDetails as any, // Prisma expects JsonValue for Json fields
         ticketId,
-        pdfUrl: `/quotations/${filename}`,
+        status,
         subtotal,
         gst,
         grandTotal,
-        rateCardDetails : rateCardDetails as any, // Store the rate card details as JSON
       },
     });
 
-    if (ticketId) {
-      const ticket = await prisma.ticket.findUnique({
-        where: { id: ticketId },
-        select: { workStageId: true },
-      });
-
-      if (ticket?.workStageId) {
-        // Update existing workStage
-        await prisma.workStage.update({
-          where: { id: ticket.workStageId },
-          data: {
-            quoteNo: newId,
-            quoteTaxable: subtotal,
-            quoteAmount: grandTotal,
-          },
-        });
-      } else {
-        // Create new workStage and link to ticket
-        const newWorkStage = await prisma.workStage.create({
-          data: {
-            ticket: {
-              connect: { id: ticketId },
-            },
-            stateName: "N/A",
-            adminName: "N/A",
-            clientName: "N/A",
-            siteName: "N/A",
-            quoteNo: newId,
-            dateReceived: new Date(),
-            quoteTaxable: subtotal,
-            quoteAmount: grandTotal,
-            workStatus: "N/A",
-            approval: "N/A",
-            poStatus: false,
-            poNumber: "N/A",
-            jcrStatus: false,
-            agentName: "N/A",
-          },
-        });
-
-        // Link the new WorkStage to the ticket
-        await prisma.ticket.update({
-          where: { id: ticketId },
-          data: {
-            workStageId: newWorkStage.id,
-          },
-        });
-      }
-    }
-
-    return NextResponse.json({ message: "Quotation created", quotation });
+    return NextResponse.json(quotation, { status: 201 });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    console.error("Error creating quotation:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

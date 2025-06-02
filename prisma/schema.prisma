@@ -27,6 +27,13 @@ enum Status {
   PENDING
 }
 
+enum QuotationStatus {
+  DRAFT
+  SENT
+  FINALIZED
+  ARCHIVED
+}
+
 model User {
   id                   String           @id @default(uuid())
   name                 String
@@ -67,19 +74,20 @@ model RateCard {
 }
 
 model Quotation {
-  id              String    @id @default(uuid())
+  id              String          @id @default(uuid())
   name            String
   pdfUrl          String
   clientId        String
-  client          Client    @relation(fields: [clientId], references: [id])
-  createdAt       DateTime  @default(now())
+  client          Client          @relation(fields: [clientId], references: [id])
+  createdAt       DateTime        @default(now())
   expenses        Expense[]
   rateCardDetails Json? // This will store an array of objects with rateCardId, quantity, and gstType
   ticketId        String?
-  ticket          Ticket?   @relation(fields: [ticketId], references: [id])
+  ticket          Ticket?         @relation(fields: [ticketId], references: [id])
   subtotal        Float
   gst             Float
   grandTotal      Float
+  status          QuotationStatus @default(DRAFT)
 }
 
 model Client {
