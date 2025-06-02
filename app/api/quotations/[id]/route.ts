@@ -97,7 +97,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         });
       }
     }
-    
+
     // If other PDF-critical fields change (e.g. client, name), you might want to set pdfUrlNeedsUpdate = true
     // For example: if (updateData.clientId && updateData.clientId !== existingQuotation.clientId) pdfUrlNeedsUpdate = true;
     // if (pdfUrlNeedsUpdate && !updateData.pdfUrl) { // If not already set by rateCardDetails change
@@ -155,7 +155,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
             }
         }
     }
-    
+
 
     // Delete related expenses
     await prisma.expense.deleteMany({
