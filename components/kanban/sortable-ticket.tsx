@@ -232,16 +232,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         </div>
 
         <CardContent className="p-3 pb-0" {...listeners}>
-          <Button onClick={(e) => {
-              // e.stopPropagation();
-              if (ticket?.id) {
-                router.push(`/dashboard/ticket/${ticket.id}`);
-              } else {
-                console.error("Navigation failed: Ticket ID is undefined.");
-              }
-            }}> <Badge variant="outline" >{ ticket.ticketId}</Badge>
-
-          </Button>
+        <Badge variant="outline" >{ ticket.ticketId}</Badge>
          
 
           <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
