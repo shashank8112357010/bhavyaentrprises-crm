@@ -67,19 +67,36 @@ model RateCard {
 }
 
 model Quotation {
-  id              String    @id @default(uuid())
-  name            String
+  id              String    @id @default(uuid()) // Remains primary key
+  quotationNumber String    @unique // Human-readable, backend-generated
+  name            String // This might be 'description' or 'work details' from the form
   pdfUrl          String
   clientId        String
   client          Client    @relation(fields: [clientId], references: [id])
   createdAt       DateTime  @default(now())
   expenses        Expense[]
-  rateCardDetails Json? // This will store an array of objects with rateCardId, quantity, and gstType
+  items           Json?     // New field for comprehensive item details from NewQuotationPage
   ticketId        String?
   ticket          Ticket?   @relation(fields: [ticketId], references: [id])
-  subtotal        Float
-  gst             Float
-  grandTotal      Float
+  status          QuotationStatus @default(DRAFT) // New enum
+  salesType     String? // Interstate, Intrastate
+  validUntil    DateTime?
+  admin         String? // "Quote By" or similar admin user name
+  quoteBy       String? // Person who prepared the quote
+  discountPercentage Float? @default(0)
+  discountAmount     Float? @default(0)
+  subtotal           Float? @default(0) // Re-evaluating based on NewQuotationPage (sum of item totals)
+  taxableValue       Float? @default(0) // Subtotal - DiscountAmount
+  igstAmount         Float? @default(0) // Tax on taxableValue
+  netGrossAmount     Float? @default(0) // TaxableValue + IGSTAmount (final amount)
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  ARCHIVED
 }
 
 model Client {

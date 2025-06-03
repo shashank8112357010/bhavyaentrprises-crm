@@ -85,13 +85,14 @@ export async function createTicket(payload: CreateTicketInput) {
   }
 }
 
-export async function getAllTickets(filters?: { status?: Status; startDate?: string; endDate?: string }) {
+export async function getAllTickets(filters?: { status?: Status; startDate?: string; endDate?: string; searchQuery?: string }) {
   try {
     const params = new URLSearchParams();
 
     if (filters?.status) params.append("status", filters.status);
     if (filters?.startDate) params.append("startDate", filters.startDate);
     if (filters?.endDate) params.append("endDate", filters.endDate);
+    if (filters?.searchQuery) params.append("search", filters.searchQuery); // Added search query param
 
     const response = await axios.get(`/ticket?${params.toString()}`, {
       withCredentials: true,
