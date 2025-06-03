@@ -32,66 +32,136 @@ interface Client {
   id: string;
   name: string;
   email?: string;
+  // Add other client fields if needed for display or selection logic
 }
 
-interface InsertQuotationItem {
-  id?: string; // id will be present for existing items
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-  rateCardItemId: string | null;
+// Represents a single item in the quotation's rateCardDetails, augmented with RateCard data for display
+interface QuotationRateCardItem {
+  rateCardId: string; // from Quotation.rateCardDetails
+  description: string; // from related RateCard
+  unit: string; // from related RateCard
+  rate: number; // from related RateCard
+  quantity: number; // from Quotation.rateCardDetails, editable
+  gstPercentage: number; // from Quotation.rateCardDetails, editable
+  lineTotal: number; // Calculated: rate * quantity * (1 + gstPercentage / 100)
 }
 
-interface InsertQuotation { // This is for "inserting", for updates, it might be Partial<Quotation> or a specific UpdateQuotationDTO
-  serialNo: number;
-  quoteNo: string;
-  clientId: string;
-  date: Date;
-  expiryDate?: Date;
-  items: InsertQuotationItem[];
-  status: string;
-  subTotal: number;
-  taxAmount: number;
-  grandTotal: number;
-  currency: string;
-  notes?: string;
-}
-
-interface QuotationWithDetails extends InsertQuotation {
+// Represents the Quotation data structure fetched and used in the form
+interface QuotationFormData {
   id: string;
-  client?: Client;
-  // Potentially other fields like createdAt, updatedAt etc.
+  name: string; // Quotation name/title
+  quoteNo?: string; // If available
+  clientId: string;
+  client?: Client; // Populated for display
+  date: string; // ISO string date
+  expiryDate?: string; // ISO string date
+  rateCardDetails: QuotationRateCardItem[];
+  status: string;
+  notes?: string;
+  currency?: string; // Assuming currency is part of quotation
+  // Calculated fields, might be updated by backend response
+  subtotal: number;
+  gst: number;
+  grandTotal: number;
+  pdfUrl?: string; // From Prisma schema, though generatePDF is client-side
+  // Include other fields from Prisma Quotation model as needed for the form
 }
+
 
 // Import paths (same as new/page.tsx)
 import { generatePDF } from "@/lib/pdf/quotation";
-import apiRequest from "@/lib/axios"; // Corrected import for apiRequest
+// import apiRequest from "@/lib/axios"; // Will use specific service functions instead
+import { getQuotationById, updateQuotation, UpdateQuotationParams } from "@/lib/services/quotations"; // Typed services
+import { getAllRateCards } from "@/lib/services/rate-card"; // To fetch rate card master data
 
 // Define type for client creation form data
 type CreateClientFormData = z.infer<typeof createClientSchema>;
 
-// Placeholder components (same as new/page.tsx)
+// Component to manage and display rate card items for the quotation
+interface RateCardItemsTableProps {
+  items: QuotationRateCardItem[];
+  onItemChange: (index: number, field: keyof QuotationRateCardItem, value: any) => void;
+  onRemoveItem: (index: number) => void; // Optional: if items can be removed
+  // currency: string; // If currency symbol is needed per line
+}
+
+const RateCardItemsTable: React.FC<RateCardItemsTableProps> = ({ items, onItemChange }) => {
+  // TODO: Implement the table UI with input fields for quantity and gstPercentage
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Description</TableHead>
+            <TableHead>Unit</TableHead>
+            <TableHead>Rate</TableHead>
+            <TableHead className="w-[100px]">Quantity</TableHead>
+            <TableHead className="w-[100px]">GST %</TableHead>
+            <TableHead>Line Total</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item, index) => (
+            <TableRow key={item.rateCardId}>
+              <TableCell>{item.description}</TableCell>
+              <TableCell>{item.unit}</TableCell>
+              <TableCell>{item.rate.toFixed(2)}</TableCell>
+              <TableCell>
+                <Input
+                  type="number"
+                  value={item.quantity}
+                  onChange={(e) => onItemChange(index, "quantity", parseFloat(e.target.value) || 0)}
+                  className="w-full"
+                />
+              </TableCell>
+              <TableCell>
+                <Input
+                  type="number"
+                  value={item.gstPercentage}
+                  onChange={(e) => onItemChange(index, "gstPercentage", parseFloat(e.target.value) || 0)}
+                  className="w-full"
+                />
+              </TableCell>
+              <TableCell>{item.lineTotal.toFixed(2)}</TableCell>
+            </TableRow>
+          ))}
+          {items.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center">
+                No rate card items added.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
+
+
 // Modified ClientSearch to include a "Create New Client" button trigger
-const ClientSearch = ({
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // For RateCardItemsTable
+
+const ClientSearch = ({ // Assuming Client type is defined elsewhere or inline
   selectedClient,
   onSelectClient,
   onCreateNewClient,
 }: {
   selectedClient: Client | null;
   onSelectClient: (client: Client) => void;
-  onCreateNewClient: () => void;
+  onCreateNewClient: () => void; // Function to trigger client creation dialog
 }) => (
   <div className="flex flex-col space-y-2">
     <div className="flex space-x-2 items-center">
-      <div className="flex-grow">Client Search Placeholder (To be replaced with actual search component)</div>
-      <Button onClick={() => onSelectClient({ id: "dummy-client-1", name: "Dummy Client Inc.", email: "dummy@example.com" })}>Select Dummy</Button>
+      {/* Simplified: Replace with actual client search component */}
+      <Input placeholder="Search Client..." disabled className="flex-grow" />
+      <Button onClick={() => onSelectClient({ id: "dummy-client-1", name: "Dummy Client Inc." })}>Select Dummy</Button>
       <Button variant="outline" onClick={onCreateNewClient}>
-        <UserPlus className="mr-2 h-4 w-4" /> Create New Client
+        <UserPlus className="mr-2 h-4 w-4" /> Create New
       </Button>
     </div>
     {selectedClient && (
-      <div className="p-2 border rounded-md bg-gray-50">
+      <div className="p-2 border rounded-md bg-muted mt-2">
         <p className="font-medium">Selected Client:</p>
         <p><strong>Name:</strong> {selectedClient.name}</p>
         {selectedClient.email && <p><strong>Email:</strong> {selectedClient.email}</p>}
@@ -100,9 +170,15 @@ const ClientSearch = ({
   </div>
 );
 
-const QuotationTable = ({ items, setItems, currency } : {items: InsertQuotationItem[], setItems: (items: InsertQuotationItem[]) => void, currency: string}) => <div>Rate Card Items Placeholder</div>; // Changed "Quotation Table" to "Rate Card Items"
-const Calculations = ({ subTotal, tax, total, currency } : {subTotal: number, tax: number, total: number, currency: string}) => <div>Calculations Placeholder: {currency} {total}</div>;
-// AUBankImport is not included.
+// const QuotationTable = ({ items, setItems, currency } : {items: InsertQuotationItem[], setItems: (items: InsertQuotationItem[]) => void, currency: string}) => <div>Rate Card Items Placeholder</div>; // Changed "Quotation Table" to "Rate Card Items"
+// Calculations component will be updated or integrated directly based on new QuotationFormData structure
+const Calculations = ({ subtotal, gst, grandTotal, currency }: { subtotal: number; gst: number; grandTotal: number; currency?: string }) => (
+  <div className="mt-4 space-y-2">
+    <div className="flex justify-between"><span>Subtotal:</span> <span>{currency} {subtotal.toFixed(2)}</span></div>
+    <div className="flex justify-between"><span>GST:</span> <span>{currency} {gst.toFixed(2)}</span></div>
+    <div className="flex justify-between font-bold"><span>Grand Total:</span> <span>{currency} {grandTotal.toFixed(2)}</span></div>
+  </div>
+);
 
 // CreateClientDialog Component (copied from new/page.tsx and adapted if needed)
 interface CreateClientDialogProps {
@@ -271,232 +347,350 @@ interface EditQuotationPageProps {
 }
 
 const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
-  const { id: quotationId } = params;
+  const { id: quotationId } = params; // From URL
   const router = useRouter();
   const { toast } = useToast();
-  // const reactQueryClient = useReactQueryClient(); // Removed
 
-  // State for existing quotation data
-  const [existingQuotation, setExistingQuotation] = useState<QuotationWithDetails | null>(null);
-  const [isLoadingExisting, setIsLoadingExisting] = useState(true);
-  const [existingQuotationError, setExistingQuotationError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<QuotationFormData>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
 
-  // State for form fields
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [quotationDate, setQuotationDate] = useState<Date | undefined>();
-  const [expiryDate, setExpiryDate] = useState<Date | undefined>();
-  const [items, setItems] = useState<InsertQuotationItem[]>([]);
-  const [status, setStatus] = useState<string>("DRAFT");
-  const [notes, setNotes] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const [quoteNo, setQuoteNo] = useState("");
-  const [serialNo, setSerialNo] = useState(0);
+  // Fetched master list of all rate cards for description/unit/rate
+  const [allRateCards, setAllRateCards] = useState<any[]>([]); // Using 'any' for now, should be RateCard[] from Prisma
 
-  // State for saving quotation
-  const [isSavingQuotation, setIsSavingQuotation] = useState(false);
-
-  // Effect to fetch existing quotation data
+  // Fetch all rate cards once on mount
   useEffect(() => {
-    if (quotationId) {
-      const fetchQuotation = async () => {
-        setIsLoadingExisting(true);
-        setExistingQuotationError(null);
-        try {
-          const data = await apiRequest<QuotationWithDetails>(`/api/quotations/${quotationId}`);
-          setExistingQuotation(data);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error fetching quotation";
-          setExistingQuotationError(errorMessage);
-          toast({ title: "Error Fetching Quotation", description: errorMessage, variant: "destructive" });
-          console.error("Error fetching quotation:", error);
-        } finally {
-          setIsLoadingExisting(false);
-        }
+    const fetchAllRateCards = async () => {
+      try {
+        // Assuming getAllRateCards returns a flat list of all rate cards without pagination,
+        // or a paginated response where we fetch all pages if necessary.
+        // For simplicity, let's assume it fetches what we need.
+        const response = await getAllRateCards({ limit: 1000 }); // Adjust limit as needed
+        setAllRateCards(response.data || []); // Assuming response.data is the array
+      } catch (err) {
+        console.error("Failed to fetch all rate cards:", err);
+        toast({ title: "Error", description: "Could not load rate card master data.", variant: "destructive" });
+      }
+    };
+    fetchAllRateCards();
+  }, [toast]);
+
+  // Fetch existing quotation data
+  useEffect(() => {
+    if (quotationId && allRateCards.length > 0) { // Ensure allRateCards are loaded
+      setIsLoading(true);
+      getQuotationById(quotationId)
+        .then((data: any) => { // data is the raw Quotation object from Prisma
+          // Transform quotation data, especially rateCardDetails
+          const transformedRateCardDetails: QuotationRateCardItem[] = (data.rateCardDetails || []).map((item: any) => {
+            const baseRateCard = allRateCards.find(rc => rc.id === item.rateCardId);
+            const quantity = Number(item.quantity) || 0;
+            const gstPercentage = Number(item.gstPercentage) || 0;
+            const rate = baseRateCard ? Number(baseRateCard.rate) : 0;
+            return {
+              ...item,
+              description: baseRateCard?.description || "N/A",
+              unit: baseRateCard?.unit || "N/A",
+              rate: rate,
+              quantity: quantity,
+              gstPercentage: gstPercentage,
+              lineTotal: quantity * rate * (1 + gstPercentage / 100),
+            };
+          });
+
+          setFormData({
+            ...data,
+            date: data.createdAt ? new Date(data.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+            expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString().split("T")[0] : undefined,
+            rateCardDetails: transformedRateCardDetails,
+            // Ensure client is at least an empty object if not present, or handle null
+            client: data.client || undefined,
+          });
+          setError(null);
+        })
+        .catch((err) => {
+          setError(err.message || "Failed to fetch quotation data.");
+          toast({ title: "Error", description: err.message, variant: "destructive" });
+        })
+        .finally(() => setIsLoading(false));
+    } else if (!quotationId) {
+        setError("No Quotation ID provided.");
+        setIsLoading(false);
+    }
+    // Add dependency on allRateCards.length to re-run if they load after initial quotation fetch attempt
+  }, [quotationId, toast, allRateCards]);
+
+
+  const handleRateCardItemChange = (index: number, field: keyof QuotationRateCardItem, value: any) => {
+    setFormData(prev => {
+      if (!prev || !prev.rateCardDetails) return prev;
+      const updatedItems = [...prev.rateCardDetails];
+      const itemToUpdate = { ...updatedItems[index] };
+
+      if (field === 'quantity' || field === 'gstPercentage') {
+        itemToUpdate[field] = Number(value);
+      } else {
+        // itemToUpdate[field] = value; // For other fields if any were directly editable
+      }
+
+      // Recalculate lineTotal
+      const quantity = field === 'quantity' ? Number(value) : itemToUpdate.quantity;
+      const gstPercentage = field === 'gstPercentage' ? Number(value) : itemToUpdate.gstPercentage;
+      itemToUpdate.lineTotal = itemToUpdate.rate * quantity * (1 + gstPercentage / 100);
+
+      updatedItems[index] = itemToUpdate;
+
+      // Recalculate overall totals (subtotal, gst, grandTotal)
+      let newSubtotal = 0;
+      let newGst = 0;
+      updatedItems.forEach(item => {
+        const itemSub = item.rate * item.quantity;
+        newSubtotal += itemSub;
+        newGst += itemSub * (item.gstPercentage / 100);
+      });
+
+      return {
+        ...prev,
+        rateCardDetails: updatedItems,
+        subtotal: newSubtotal,
+        gst: newGst,
+        grandTotal: newSubtotal + newGst,
       };
-      fetchQuotation();
-    } else {
-      setIsLoadingExisting(false);
-      setExistingQuotationError("No Quotation ID provided.");
-      toast({ title: "Error", description: "No Quotation ID provided.", variant: "destructive" });
-    }
-  }, [quotationId, toast]);
+    });
+  };
 
-  // Effect to load data from existingQuotation into form state
-  useEffect(() => {
-    if (existingQuotation) {
-      setSelectedClient(existingQuotation.client || null);
-      setQuotationDate(new Date(existingQuotation.date));
-      setExpiryDate(existingQuotation.expiryDate ? new Date(existingQuotation.expiryDate) : undefined);
-      setItems(existingQuotation.items.map(item => ({ ...item, total: item.quantity * item.unitPrice })));
-      setStatus(existingQuotation.status);
-      setNotes(existingQuotation.notes || "");
-      setCurrency(existingQuotation.currency);
-      setQuoteNo(existingQuotation.quoteNo);
-      setSerialNo(existingQuotation.serialNo);
-    }
-  }, [existingQuotation]);
+  const handleClientSelect = (client: Client) => {
+    setFormData(prev => ({ ...prev, clientId: client.id, client: client }));
+  };
 
-  // Serial number fetching logic and related useEffect removed as it's not used on edit page
-
-  const subTotal = useMemo(() => items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0), [items]);
-  const taxRate = 0.10; // Example: 10%
-  const taxAmount = subTotal * taxRate;
-  const grandTotal = subTotal + taxAmount;
-
-  // saveQuotationMutation removed
+  const handleClientCreated = (newClient: Client) => {
+    handleClientSelect(newClient); // Select the newly created client
+    setIsClientDialogOpen(false); // Close the dialog
+  };
 
   const handleSubmit = async () => {
-    if (!selectedClient) {
+    if (!formData || !formData.id) {
+      toast({ title: "Error", description: "Quotation data is not loaded.", variant: "destructive" });
+      return;
+    }
+    if (!formData.clientId) {
       toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
       return;
     }
-    if (!quotationId) {
-      toast({ title: "Error", description: "Quotation ID is missing.", variant: "destructive" });
-      return;
-    }
 
-    setIsSavingQuotation(true);
+    setIsSaving(true);
     try {
-      const quotationData: Partial<InsertQuotation> = {
-        serialNo,
-        quoteNo,
-        clientId: selectedClient.id,
-        date: quotationDate,
-        expiryDate,
-        items,
-        status,
-        subTotal,
-        taxAmount,
-        grandTotal,
-        currency,
-        notes,
+      const { client, ...payload } = formData; // Exclude client object from payload
+
+      // Ensure rateCardDetails are in the format expected by the backend
+      const rateCardDetailsForApi = formData.rateCardDetails?.map(item => ({
+        rateCardId: item.rateCardId,
+        quantity: Number(item.quantity),
+        gstPercentage: Number(item.gstPercentage),
+      }));
+
+      const updatePayload: UpdateQuotationParams = {
+        name: formData.name,
+        clientId: formData.clientId,
+        rateCardDetails: rateCardDetailsForApi,
+        // other fields like notes, status, currency if they are part of formData and updatable
       };
 
-      const updatedQuotation = await apiRequest(`/api/quotations/${quotationId}`, {
-        method: "PUT",
-        body: JSON.stringify(quotationData),
+      const updatedData = await updateQuotation(formData.id, updatePayload);
+
+      // Assuming updatedData includes recalculated totals and potentially the populated client
+      // Re-transform rateCardDetails for display if necessary, or rely on a full re-fetch/re-process
+      const transformedDetailsAfterUpdate: QuotationRateCardItem[] = (updatedData.rateCardDetails || []).map((item: any) => {
+        const baseRateCard = allRateCards.find(rc => rc.id === item.rateCardId);
+        const quantity = Number(item.quantity) || 0;
+        const gstPercentage = Number(item.gstPercentage) || 0;
+        const rate = baseRateCard ? Number(baseRateCard.rate) : 0;
+        return {
+          ...item,
+          description: baseRateCard?.description || "N/A",
+          unit: baseRateCard?.unit || "N/A",
+          rate: rate,
+          quantity: quantity,
+          gstPercentage: gstPercentage,
+          lineTotal: quantity * rate * (1 + gstPercentage / 100),
+        };
       });
 
-      toast({ title: "Success", description: `Quotation ${updatedQuotation.quoteNo} updated.` });
-      // Optionally update local state if API returns the full updated object
-      // setExistingQuotation(updatedQuotation); // If API returns the updated object
-      // reactQueryClient.invalidateQueries calls removed
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error saving quotation";
-      toast({ title: "Error updating quotation", description: errorMessage, variant: "destructive" });
-      console.error("Error saving quotation:", error);
+      setFormData(prev => ({
+        ...prev,
+        ...updatedData, // Update with response from API
+        rateCardDetails: transformedDetailsAfterUpdate, // Use re-transformed details
+        client: prev?.client, // Preserve client details if not returned or to avoid flicker
+      }));
+
+      toast({ title: "Success", description: `Quotation ${updatedData.name || updatedData.id} updated.` });
+      // router.push("/dashboard/quotations"); // Optionally navigate away
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to update quotation.", variant: "destructive" });
     } finally {
-      setIsSavingQuotation(false);
+      setIsSaving(false);
     }
   };
 
+  // handleDelete function can be adapted similarly if needed
   const handleDelete = async () => {
-    if (!quotationId) {
+    if (!formData.id) {
         toast({ title: "Error", description: "No quotation ID found to delete.", variant: "destructive" });
         return;
     }
-    // Add a confirmation dialog here in a real app
-    try {
-        await apiRequest(`/api/quotations/${quotationId}`, { method: "DELETE" });
-        toast({ title: "Success", description: "Quotation deleted." });
-        // reactQueryClient.invalidateQueries(["/api/quotations"]); // Removed
-        router.push("/dashboard/quotations"); // Navigate back to list
-    } catch (error: any) {
-        toast({ title: "Error deleting quotation", description: error.message, variant: "destructive" });
+    if (window.confirm("Are you sure you want to delete this quotation?")) {
+        try {
+            // Assuming there's a deleteQuotation service or use a generic apiRequest for DELETE
+            // For now, this is a placeholder as the original file had it.
+            // await deleteQuotation(formData.id);
+            await apiRequest(`/api/quotations/${formData.id}`, { method: "DELETE" }); // Using generic for now
+            toast({ title: "Success", description: "Quotation deleted." });
+            router.push("/dashboard/quotations");
+        } catch (error: any) {
+            toast({ title: "Error deleting quotation", description: error.message, variant: "destructive" });
+        }
     }
   };
 
-  if (isLoadingExisting) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /> Loading quotation data...</div>;
-  }
 
-  if (existingQuotationError) {
-      return <div className="text-red-500 p-4">Error loading quotation: {existingQuotationError}</div>;
-  }
-
-  if (!existingQuotation && !isLoadingExisting) { // Check error state as well
-      return <div className="text-red-500 p-4">Quotation not found. It might have been deleted or the ID is invalid.</div>;
-  }
+  if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /> Loading...</div>;
+  if (error) return <div className="text-destructive p-4">Error: {error}</div>;
+  if (!formData.id && !isLoading) return <div className="p-4">Quotation not found.</div>;
 
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Edit Quotation {quoteNo || ''}</h1>
-        <div>
-            <Button variant="outline" onClick={() => router.push("/dashboard/quotations")} className="mr-2">Cancel</Button>
-            <Button onClick={handleSubmit} disabled={isSavingQuotation || isLoadingExisting} className="mr-2">
-                {isSavingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Update Quotation
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isSavingQuotation || isLoadingExisting}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Edit Quotation {formData.name || formData.id}</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push("/dashboard/quotations")}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={isSaving || isLoading}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Update
+          </Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={isSaving || isLoading}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
         </div>
       </div>
 
-      <Card className="mb-4">
-        <CardHeader><CardTitle>Client</CardTitle></CardHeader>
-        <CardContent>
-          {/* The ClientSearch component in edit/page.tsx did not have onCreateNewClient. CreateClientDialog is present but seems orphaned. */}
-          {/* For now, rendering ClientSearch as it was. If dialog needs to be triggered, ClientSearch props or another button is needed. */}
-          <ClientSearch selectedClient={selectedClient} onSelectClient={setSelectedClient} onCreateNewClient={() => {
-            // This function was missing in the original ClientSearch wiring for edit page.
-            // If a CreateClientDialog is intended to be used, its trigger mechanism needs to be defined.
-            // For now, this will do nothing, or you can hook it up to a dialog state if one exists.
-            toast({ title: "Info", description: "Create new client functionality not fully wired on this page."});
-          }} />
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-6">
+          <Card>
+            <CardHeader><CardTitle>Client Details</CardTitle></CardHeader>
+            <CardContent>
+              <ClientSearch
+                selectedClient={formData.client || null}
+                onSelectClient={handleClientSelect}
+                onCreateNewClient={() => setIsClientDialogOpen(true)}
+              />
+            </CardContent>
+          </Card>
 
-      {/* Form sections: Details, Items, Calculations */}
-      {/* These would be similar to NewQuotationPage, ensure they are correctly wired */}
-      <Card className="mb-4">
-        <CardHeader><CardTitle>Details</CardTitle></CardHeader>
-        <CardContent className="grid md:grid-cols-3 gap-4">
-            <div><label>Quotation Date</label><Input type="date" value={quotationDate ? quotationDate.toISOString().split('T')[0] : ''} onChange={e => setQuotationDate(new Date(e.target.value))} /></div>
-            <div><label>Expiry Date</label><Input type="date" value={expiryDate ? expiryDate.toISOString().split('T')[0] : ''} onChange={e => setExpiryDate(new Date(e.target.value))} /></div>
-            <div><label>Status</label>
-                <Select value={status} onValueChange={(value: string) => setStatus(value)}>
-                    <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="DRAFT">Draft</SelectItem>
-                        <SelectItem value="SENT">Sent</SelectItem>
-                        <SelectItem value="ACCEPTED">Accepted</SelectItem>
-                        <SelectItem value="REJECTED">Rejected</SelectItem>
-                        <SelectItem value="ARCHIVED">Archived</SelectItem>
-                    </SelectContent>
+          <Card>
+            <CardHeader><CardTitle>Quotation Info</CardTitle></CardHeader>
+            <CardContent className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="quotationName">Quotation Name/Title</Label>
+                <Input
+                  id="quotationName"
+                  value={formData.name || ""}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="quotationDate">Date</Label>
+                <Input
+                  id="quotationDate"
+                  type="date"
+                  value={formData.date || ""}
+                  onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="expiryDate">Expiry Date (Optional)</Label>
+                <Input
+                  id="expiryDate"
+                  type="date"
+                  value={formData.expiryDate || ""}
+                  onChange={e => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status || "DRAFT"} onValueChange={value => setFormData(prev => ({ ...prev, status: value }))}>
+                  <SelectTrigger id="status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="SENT">Sent</SelectItem>
+                    <SelectItem value="ACCEPTED">Accepted</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                  </SelectContent>
                 </Select>
-            </div>
-            <div><label>Currency</label><Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} /></div>
-        </CardContent>
-      </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card className="mb-4">
-        <CardHeader><CardTitle>Rate Card Items</CardTitle></CardHeader>{/* Changed "Items" to "Rate Card Items" */}
-        <CardContent>
-          <QuotationTable items={items} setItems={setItems} currency={currency} />
-        </CardContent>
-      </Card>
-      <Calculations subTotal={subTotal} tax={taxAmount} total={grandTotal} currency={currency} />
+          <Card>
+            <CardHeader><CardTitle>Rate Card Items</CardTitle></CardHeader>
+            <CardContent>
+              <RateCardItemsTable
+                items={formData.rateCardDetails || []}
+                onItemChange={handleRateCardItemChange}
+                onRemoveItem={() => {}} // Placeholder if not implementing remove
+              />
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="mt-4">
+        <div className="md:col-span-1 space-y-6">
+          <Card>
+            <CardHeader><CardTitle>Summary & Actions</CardTitle></CardHeader>
+            <CardContent>
+              <Calculations
+                subtotal={formData.subtotal || 0}
+                gst={formData.gst || 0}
+                grandTotal={formData.grandTotal || 0}
+                currency={formData.currency || "INR"} // Default or from data
+              />
+              <div className="mt-6 space-y-2">
+                 <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => {
+                        if (!formData || !formData.id) {
+                            toast({title: "Error", description: "Quotation data not loaded for PDF."}); return;
+                        }
+                        // Adapt generatePDF to accept QuotationFormData or map it
+                        // generatePDF(formData as any); // May need mapping
+                        toast({title: "Info", description: "PDF generation needs to be adapted."});
+                    }}
+                  >
+                    <Printer className="mr-2 h-4 w-4" /> Generate PDF
+                </Button>
+                {/* Placeholder for other actions like "Send Mail" */}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
             <CardContent>
-                <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Internal notes or notes for client..." />
+              <Textarea
+                value={formData.notes || ""}
+                onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Internal notes or notes for client..."
+                rows={4}
+              />
             </CardContent>
           </Card>
+        </div>
       </div>
 
-      <div className="mt-6 flex justify-end gap-2">
-        {/* Action buttons moved to top */}
-        <Button variant="outline" onClick={() => {
-            if (!existingQuotation) {
-                 toast({title: "Error", description: "Quotation data not loaded for PDF."}); return;
-            }
-            generatePDF(existingQuotation);
-        }}> <Printer className="mr-2 h-4 w-4" /> Generate PDF</Button>
-        {/* Add Send Mail functionality if needed */}
-      </div>
+      <CreateClientDialog
+        isOpen={isClientDialogOpen}
+        onOpenChange={setIsClientDialogOpen}
+        onClientCreated={handleClientCreated}
+      />
     </div>
   );
 };

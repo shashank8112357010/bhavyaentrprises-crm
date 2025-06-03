@@ -25,6 +25,22 @@ export async function createRateCard(file: File) {
   }
 }
 
+export async function deleteRateCard(id: string) {
+  try {
+    const response = await axios.delete(`/api/rate-cards/${id}`, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error deleting rate card:", error);
+    const message = error.response?.data?.error || "Failed to delete rate card.";
+    throw new Error(message);
+  }
+}
+
 interface GetAllRateCardsParams {
   page?: number;
   limit?: number;

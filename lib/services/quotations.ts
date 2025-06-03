@@ -27,6 +27,35 @@ export async function createQuotation(params: CreateQuotationParams) {
   }
 }
 
+interface UpdateRateCardDetail {
+  rateCardId: string;
+  quantity: number;
+  gstPercentage: number; // Matches the backend Zod schema
+}
+
+export interface UpdateQuotationParams {
+  name?: string;
+  clientId?: string;
+  rateCardDetails?: UpdateRateCardDetail[];
+  // Include other fields that can be updated, matching the PUT route's Zod schema
+}
+
+export async function updateQuotation(id: string, data: UpdateQuotationParams) {
+  try {
+    const response = await axios.put(`/api/quotations/${id}`, data, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Quotation Update Error:", error);
+    const message = error.response?.data?.message || error.response?.data?.error || "Failed to update quotation.";
+    throw new Error(message);
+  }
+}
+
 
 interface GetAllQuotationsParams {
   page?: number;

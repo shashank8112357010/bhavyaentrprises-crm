@@ -29,9 +29,9 @@ import {
 } from "@/components/ui/select"; // Added Select imports
 import { useDebounce } from "@/hooks/useDebounce";
 
-import { Search, Download } from "lucide-react"; // Removed Filter as it's commented out
+import { Search, Download, Trash2 } from "lucide-react"; // Removed Filter as it's commented out
 import { UploadRateCardDialog } from "@/components/rate-card/UploadRateCardDialog";
-import { getAllRateCards } from "@/lib/services/rate-card";
+import { getAllRateCards, deleteRateCard } from "@/lib/services/rate-card";
 import { Spinner } from "@/components/ui/spinner"; // Added Spinner for loading state
 
 interface RateCard {
@@ -41,7 +41,7 @@ interface RateCard {
   rate: number;
   bankName: string;
   bankRcNo: string;
-  id: string; // Assuming there's an id for key prop
+  id: string;
 }
 
 interface PaginatedResponse {
@@ -62,34 +62,51 @@ export default function RateCardPage() {
   const [itemsPerPage, setItemsPerPage] = useState(5); // Replaced const limit
   const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    async function fetchRateCards() {
-      setLoading(true);
-      try {
-        const response: PaginatedResponse = await getAllRateCards({
-          page: page + 1, // API is 1-based
-          limit: itemsPerPage, // Use state variable
-          searchQuery: debouncedSearchQuery,
-        });
-  
-        setRateCards(response.data);
-        setTotalCount(response.total);
-        // It's good practice to also set itemsPerPage from response.limit if API can override it
-        // setItemsPerPage(response.limit);
-        // However, our API for rate-cards currently uses the limit from request or defaults.
-        setError(null);
-      } catch (err: any) {
-        setError(err.message || "Failed to load rate cards");
-      } finally {
-        setLoading(false);
-      }
+  // Function to fetch rate cards, can be called by useEffect or after delete
+  async function fetchRateCards() {
+    setLoading(true);
+    try {
+      const response: PaginatedResponse = await getAllRateCards({
+        page: page + 1, // API is 1-based
+        limit: itemsPerPage, // Use state variable
+        searchQuery: debouncedSearchQuery,
+      });
+
+      setRateCards(response.data);
+      setTotalCount(response.total);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "Failed to load rate cards");
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     fetchRateCards();
   }, [page, debouncedSearchQuery, itemsPerPage]); // Added itemsPerPage to dependency array
-  
+
 
   const handlePageChange = (selectedItem: { selected: number }) => {
     setPage(selectedItem.selected);
+  };
+
+  const handleDelete = async (rateCardId: string) => {
+    if (window.confirm("Are you sure you want to delete this rate card?")) {
+      try {
+        await deleteRateCard(rateCardId);
+        // alert("Rate card deleted successfully!"); // Replace with toast in real app
+        // Refresh the list
+        fetchRateCards();
+        // If the current page becomes empty after deletion, go to the previous page
+        if (rateCards.length === 1 && page > 0) {
+          setPage(page - 1);
+        }
+      } catch (error: any) {
+        console.error("Failed to delete rate card:", error);
+        alert(`Error: ${error.message || "Failed to delete rate card."}`); // Replace with toast
+      }
+    }
   };
 
   const pageCount = itemsPerPage > 0 ? Math.ceil(totalCount / itemsPerPage) : 0;
@@ -163,23 +180,28 @@ export default function RateCardPage() {
                     <TableHead>Rate</TableHead>
                     <TableHead>Bank Name</TableHead>
                     <TableHead>Bank RC Number</TableHead>
-                    {/* <TableHead>Actions</TableHead> */}
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rateCards.map((rc) => (
-                    <TableRow key={rc.id || `${rc.srNo}-${rc.bankRcNo}`}> {/* Ensure unique key */}
+                    <TableRow key={rc.id}>
                       <TableCell>{rc.srNo}</TableCell>
                       <TableCell>{rc.description}</TableCell>
                       <TableCell>{rc.unit}</TableCell>
                       <TableCell>₹{rc.rate.toLocaleString()}</TableCell>
                       <TableCell>{rc.bankName}</TableCell>
                       <TableCell>{rc.bankRcNo}</TableCell>
-                      {/* <TableCell>
-                        <Button variant="ghost" size="sm">
-                          View
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(rc.id)}
+                          aria-label="Delete rate card"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                      </TableCell> */}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
