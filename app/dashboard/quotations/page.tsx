@@ -113,12 +113,6 @@ export default function QuotationsPage() {
     document.body.removeChild(link);
   };
 
-  const handleSendMail = (quotationId: string) => {
-    // Placeholder for mail sending logic
-    alert(`Send mail for quotation ID: ${quotationId} - (Not implemented)`);
-    console.log("Attempting to send mail for quotation ID:", quotationId);
-  };
-
   // const onQuotationCreated = () => { // Removed as navigation to new page handles creation
   //   setPage(0); // Reset to first page
   //   fetchQuotationsList(); // Refetch data
@@ -188,7 +182,7 @@ export default function QuotationsPage() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Quotation No.</TableHead> {/* Changed Label */}
-                  <TableHead>Description</TableHead>
+                  {/* <TableHead>Description</TableHead> */}
                   <TableHead>Client</TableHead>
                   <TableHead>Ticket</TableHead>
                   <TableHead className="text-right">Subtotal</TableHead>
@@ -202,7 +196,7 @@ export default function QuotationsPage() {
                   <TableRow key={q.id}>
                     <TableCell>{new Date(q.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{q.quoteNo}</TableCell> {/* Use quoteNo */}
-                    <TableCell className="font-medium max-w-xs truncate">{q.name}</TableCell>
+                    {/* <TableCell className="font-medium max-w-xs truncate">{q.name}</TableCell> */}
                     <TableCell>{q.client?.name || "N/A"}</TableCell>
                     <TableCell>
                       {q.ticket && q.ticket.id ? (
@@ -241,9 +235,9 @@ export default function QuotationsPage() {
                               <FileEdit className="mr-2 h-4 w-4" /> Edit Quotation
                             </DropdownMenuItem>
                           </Link>
-                          <DropdownMenuItem onClick={() => handleSendMail(q.id)}>
+                          {/* <DropdownMenuItem onClick={() => handleSendMail(q.id)}>
                             Send Mail
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

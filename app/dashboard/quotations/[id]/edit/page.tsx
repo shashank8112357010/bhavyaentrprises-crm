@@ -150,7 +150,7 @@ const ClientSearch = ({
   <div className="flex flex-col space-y-2">
     <div className="flex space-x-2 items-center">
       <Input placeholder="Search Client..." disabled className="flex-grow" />
-      <Button onClick={() => onSelectClient({ id: "dummy-client-1", name: "Dummy Client Inc." })}>Select Dummy</Button>
+      {/* <Button onClick={() => onSelectClient({ id: "dummy-client-1", name: "Dummy Client Inc." })}>Select Dummy</Button> */}
       <Button variant="outline" onClick={onCreateNewClient}>
         <UserPlus className="mr-2 h-4 w-4" /> Create New
       </Button>
@@ -331,6 +331,13 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
   const [ticketsForSelection, setTicketsForSelection] = useState<TicketForSelection[]>([]);
   const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(true);
 
+  // State for Rate Card Search
+  const [rateCardSearchQuery, setRateCardSearchQuery] = useState<string>("");
+  const [rateCardSearchResults, setRateCardSearchResults] = useState<any[]>([]);
+  const [isSearchingRateCards, setIsSearchingRateCards] = useState<boolean>(false);
+  const rateCardSearchDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
+
+
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsLoadingTickets(true);
@@ -399,6 +406,71 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
     }
   }, [quotationId, toast, allRateCards]);
 
+  // Debounced Rate Card Search
+  useEffect(() => {
+    if (rateCardSearchDebounceRef.current) {
+      clearTimeout(rateCardSearchDebounceRef.current);
+    }
+    if (rateCardSearchQuery.trim() === "") {
+      setRateCardSearchResults([]);
+      setIsSearchingRateCards(false);
+      return;
+    }
+    setIsSearchingRateCards(true);
+    rateCardSearchDebounceRef.current = setTimeout(() => {
+      const searchLower = rateCardSearchQuery.toLowerCase();
+      const results = allRateCards.filter(rc =>
+        (rc.description && rc.description.toLowerCase().includes(searchLower)) ||
+        (rc.productDescription && rc.productDescription.toLowerCase().includes(searchLower)) ||
+        (rc.bankRcNo && rc.bankRcNo.toLowerCase().includes(searchLower))
+      );
+      setRateCardSearchResults(results);
+      setIsSearchingRateCards(false);
+    }, 500);
+
+    return () => {
+      if (rateCardSearchDebounceRef.current) {
+        clearTimeout(rateCardSearchDebounceRef.current);
+      }
+    };
+  }, [rateCardSearchQuery, allRateCards]);
+
+
+  const handleAddRateCardItemToQuotation = (rateCard: any) => {
+    const newItem: QuotationRateCardItem = {
+      rateCardId: rateCard.id,
+      description: rateCard.description || rateCard.productDescription || "N/A",
+      unit: rateCard.unit || "N/A",
+      rate: parseFloat(rateCard.rate || rateCard.unitPrice || "0"),
+      quantity: 1, // Default quantity
+      gstPercentage: 18, // Default GST
+      lineTotal: parseFloat(rateCard.rate || rateCard.unitPrice || "0") * 1 * (1 + 18 / 100),
+    };
+
+    setFormData(prev => {
+      if (!prev) return prev;
+      const updatedItems = [...(prev.rateCardDetails || []), newItem];
+
+      let newSubtotal = 0;
+      let newGst = 0;
+      updatedItems.forEach(item => {
+        const itemSub = item.rate * item.quantity;
+        newSubtotal += itemSub;
+        newGst += itemSub * (item.gstPercentage / 100);
+      });
+
+      return {
+        ...prev,
+        rateCardDetails: updatedItems,
+        subtotal: newSubtotal,
+        gst: newGst,
+        grandTotal: newSubtotal + newGst,
+      };
+    });
+    setRateCardSearchQuery(""); // Clear search query
+    setRateCardSearchResults([]); // Clear search results
+    toast({ title: "Item Added", description: `${newItem.description} added to quotation.` });
+  };
 
   const handleRateCardItemChange = (index: number, field: keyof QuotationRateCardItem, value: any) => {
     setFormData(prev => {
@@ -610,18 +682,7 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
                   onChange={e => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
                 />
               </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status || "DRAFT"} onValueChange={value => setFormData(prev => ({ ...prev, status: value }))}>
-                  <SelectTrigger id="status"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="SENT">Sent</SelectItem>
-                    <SelectItem value="ACCEPTED">Accepted</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Status field removed */}
               <div>
                 <Label htmlFor="linkedTicket">Linked Ticket (Optional)</Label>
                 <Select
@@ -655,6 +716,38 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
                 onItemChange={handleRateCardItemChange}
                 onRemoveItem={handleRemoveRateCardItem}
               />
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="rateCardSearch">Add Rate Card Item</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    id="rateCardSearch"
+                    placeholder="Search rate cards by name or description..."
+                    value={rateCardSearchQuery}
+                    onChange={(e) => setRateCardSearchQuery(e.target.value)}
+                    className="flex-grow"
+                  />
+                   {isSearchingRateCards && <Loader2 className="h-5 w-5 animate-spin self-center" />}
+                </div>
+                {rateCardSearchResults.length > 0 && (
+                  <div className="border rounded-md max-h-60 overflow-y-auto">
+                    {rateCardSearchResults.map((rc) => (
+                      <div
+                        key={rc.id}
+                        className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                        onClick={() => handleAddRateCardItemToQuotation(rc)}
+                      >
+                        <p className="font-medium">{rc.description || rc.productDescription}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Unit: {rc.unit} | Rate: {rc.rate || rc.unitPrice}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                 {rateCardSearchQuery.trim() && !isSearchingRateCards && rateCardSearchResults.length === 0 && (
+                    <div className="text-sm text-muted-foreground p-2 text-center">No rate cards found.</div>
+                  )}
+              </div>
             </CardContent>
           </Card>
         </div>

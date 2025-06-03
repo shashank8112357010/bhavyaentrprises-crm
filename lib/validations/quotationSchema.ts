@@ -14,5 +14,4 @@ export const quotationSchema = z.object({
   ticketId: z.string().optional(),
   salesType: z.string().min(1),
   validUntil: z.string().optional(),
-  status: z.string().min(1),
 });

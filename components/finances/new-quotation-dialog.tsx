@@ -157,6 +157,8 @@ export function NewQuotationDialog({ onSuccess, initialTicketId, initialClientId
         clientId,
         rateCardDetails: selectedRates,
         ticketId: ticketId || undefined,
+        salesType: "General", // Added default salesType
+        // status is removed as per previous changes to createQuotation service
       });
       toast({
         title: "Success",

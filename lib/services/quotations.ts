@@ -14,7 +14,7 @@ interface CreateQuotationParams {
   ticketId?: string;
   salesType: string;
   validUntil?: string;
-  status: string;
+  // status: string; // Removed status
 }
 interface UpdateRateCardDetail {
   rateCardId: string;
@@ -95,35 +95,6 @@ export async function getQuotationById(id: string) {
     return response.data;
   } catch (error: any) {
     const message = error.response?.data?.error || "Failed to fetch quotation.";
-    throw new Error(message);
-  }
-}
-
-
-export async function downloadDraftQuotation(params: CreateQuotationParams) {
-  try {
-    const response = await axios.post("/api/quotations/preview-pdf", params, {
-      responseType: 'blob',
-      withCredentials: true,
-    });
-
-    // Create a blob from the response
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-
-    // Create a link element and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${params.name}_draft.pdf`);
-    document.body.appendChild(link);
-    link.click();
-
-    // Clean up
-    link.parentNode?.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (error: any) {
-    console.error("Download Draft Error:", error);
-    const message = error.response?.data?.message || "Failed to download draft quotation.";
     throw new Error(message);
   }
 }

@@ -461,7 +461,7 @@ const NewQuotationPage = () => {
   const subtotalInWords = numberToWords(subtotal);
   const netGrossAmountInWords = numberToWords(netGrossAmount);
 
-  const handleSaveQuotation = async (status: "draft" | "sent") => {
+  const handleSaveQuotation = async () => {
     setIsSavingQuotation(true);
 
     if (!selectedClient) {
@@ -505,15 +505,16 @@ const NewQuotationPage = () => {
       taxableValue: taxableValue.toString(),
       igst: igstAmount.toString(),
       netGrossAmount: netGrossAmount.toString(),
-      
-      status: status,
+      // status: status, // Removed status
     };
 
-    console.log(`Saving quotation with status: ${status}`, quotationPayload);
+    // console.log(`Saving quotation with status: ${status}`, quotationPayload); // Status removed
+    console.log(`Saving quotation`, quotationPayload);
 
     try {
       const response = await createQuotation(quotationPayload); // Capture the response
-      toast({ title: "Success", description: `Quotation saved as ${status} successfully!` });
+      // toast({ title: "Success", description: `Quotation saved as ${status} successfully!` }); // Status removed
+      toast({ title: "Success", description: `Quotation saved successfully!` });
 
       // Attempt to download PDF
       if (response && response.quotation && response.quotation.pdfUrl) {
@@ -851,9 +852,10 @@ const NewQuotationPage = () => {
                         <FormItem>
                           <FormLabel>Quote Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., Q-2023-001" {...field} disabled />
+                            <Input placeholder="Auto-generated" {...field} disabled />
                           </FormControl>
                           <FormMessage />
+                          <p className="text-xs text-gray-500">This will be auto-generated upon saving.</p>
                         </FormItem>
                       )}
                     />
@@ -1194,21 +1196,14 @@ const NewQuotationPage = () => {
             </Card>
 
             <div className="flex justify-center space-x-3 pt-4">
+              {/* Save Draft button removed */}
               <Button 
-                variant="outline" 
-                onClick={() => handleSaveQuotation("draft")}
-                disabled={isSavingQuotation}
-              >
-                {isSavingQuotation && quotationForm.getValues().status !== 'sent' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Draft
-              </Button>
-              <Button 
-                onClick={() => handleSaveQuotation("sent")}
+                onClick={() => handleSaveQuotation()} // Removed "sent" parameter
                 disabled={isSavingQuotation}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {isSavingQuotation && quotationForm.getValues().status === 'sent' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                Send Quotation
+                {isSavingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} {/* Changed Icon to Save */}
+                Save Quotation {/* Changed text */}
               </Button>
               <Button 
                 variant="secondary" 

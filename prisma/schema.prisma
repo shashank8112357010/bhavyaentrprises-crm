@@ -83,7 +83,6 @@ model Quotation {
   grandTotal      Float
   salesType       String
   validUntil      DateTime?
-  status          String
 }
 
 
