@@ -44,19 +44,26 @@ export async function POST(req: NextRequest) {
     const gst = subtotal * 0.18; // Assuming GST is 18%
     const grandTotal = subtotal + gst;
 
-    // Generate new formattedId (e.g., QUOT-BE-0001)
-    const latestQuotationByFormattedId = await prisma.quotation.findFirst({
-      orderBy: { formattedId: "desc" }, // Order by formattedId
-      select: { formattedId: true }
+    // Generate new quoteNo (e.g., QUOT-BE-0001)
+    const latestQuotation = await prisma.quotation.findFirst({
+      orderBy: { quoteNo: "desc" }, // Order by quoteNo
+      select: { quoteNo: true }
     });
 
     let serial = 1;
     const prefix = "QUOT-BE-";
-    if (latestQuotationByFormattedId && latestQuotationByFormattedId.formattedId) {
-      const numericPartMatch = latestQuotationByFormattedId.formattedId.match(/\d+$/);
-      if (numericPartMatch) {
-        serial = parseInt(numericPartMatch[0], 10) + 1;
+    if (latestQuotation && latestQuotation.quoteNo) {
+      // Ensure we only attempt to parse if quoteNo actually follows the expected prefix format
+      if (latestQuotation.quoteNo.startsWith(prefix)) {
+        const numericPartMatch = latestQuotation.quoteNo.substring(prefix.length).match(/^\d+/);
+        if (numericPartMatch) {
+          serial = parseInt(numericPartMatch[0], 10) + 1;
+        }
       }
+      // If quoteNo does not start with the prefix (e.g. old data), we might want a different strategy
+      // For now, if it doesn't match, it will restart from 1 with the new prefix.
+      // Or, consider parsing non-prefixed numbers if that's a case:
+      // else if (!isNaN(parseInt(latestQuotation.quoteNo))) { serial = parseInt(latestQuotation.quoteNo) + 1; }
     }
     const newSequentialId = `${prefix}${serial.toString().padStart(4, "0")}`;
 
@@ -93,15 +100,20 @@ export async function POST(req: NextRequest) {
     // Prisma will auto-generate the UUID for 'id'
     const quotation = await prisma.quotation.create({
       data: {
-        formattedId: newSequentialId, // Store the new formatted sequential ID
-        name,                         // This is the quotation title
+        quoteNo: newSequentialId, // Store the new sequential ID in quoteNo
+        name,                     // This is the quotation title
         clientId,
         ticketId,
-        pdfUrl: `/quotations/${filename}`, // PDF URL uses the new formattedId in filename
+        pdfUrl: `/quotations/${filename}`, // PDF URL uses the new quoteNo in filename
         subtotal,
         gst,
         grandTotal,
         rateCardDetails : rateCardDetails as any, // Store the rate card details as JSON
+        // Ensure formattedId is not attempted to be saved here unless it has a different purpose
+        // If formattedId was purely for the new sequence, it's now replaced by quoteNo for that.
+        // If the prisma schema still has `formattedId` and it's mandatory, it needs a value.
+        // Assuming for this reversion, `formattedId` is either removed from schema or will be handled differently.
+        // For now, we are focusing on populating `quoteNo`.
       },
     });
 

@@ -44,7 +44,7 @@ interface QuotationItem {
   gst: number;
   grandTotal: number;
   pdfUrl: string;
-  formattedId: string; // Changed from quoteNo to formattedId
+  quoteNo: string; // Reverted from formattedId back to quoteNo
 }
 
 interface PaginatedQuotationsResponse {
@@ -201,7 +201,7 @@ export default function QuotationsPage() {
                 {quotations.map((q) => (
                   <TableRow key={q.id}>
                     <TableCell>{new Date(q.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>{q.formattedId}</TableCell> {/* Use formattedId */}
+                    <TableCell>{q.quoteNo}</TableCell> {/* Use quoteNo */}
                     <TableCell className="font-medium max-w-xs truncate">{q.name}</TableCell>
                     <TableCell>{q.client?.name || "N/A"}</TableCell>
                     <TableCell>
@@ -230,7 +230,7 @@ export default function QuotationsPage() {
                               <DropdownMenuItem onClick={() => handleViewPdf(q.pdfUrl)}>
                                 <FileText className="mr-2 h-4 w-4" /> View PDF
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDownloadPdf(q.pdfUrl, q.formattedId || q.name || `quotation-${q.id}.pdf`)}>
+                              <DropdownMenuItem onClick={() => handleDownloadPdf(q.pdfUrl, q.quoteNo || q.name || `quotation-${q.id}.pdf`)}>
                                 <Download className="mr-2 h-4 w-4" /> Download PDF
                               </DropdownMenuItem>
                             </>

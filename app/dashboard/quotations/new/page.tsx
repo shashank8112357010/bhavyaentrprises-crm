@@ -136,6 +136,9 @@ const NewQuotationPage = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(undefined);
   const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(false);
 
+  // State for PDF Export
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+
 
   // Debounce timer refs
   const clientSearchDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -514,8 +517,8 @@ const NewQuotationPage = () => {
       // Attempt to download PDF
       if (response && response.quotation && response.quotation.pdfUrl) {
         const pdfUrl = response.quotation.pdfUrl;
-        // Use formattedId from response if available, otherwise use the form's current quotationNumber for the PDF name
-        const pdfFileName = response.quotation.formattedId || formData.quotationNumber;
+        // Use quoteNo from response if available, otherwise use the form's current quotationNumber for the PDF name
+        const pdfFileName = response.quotation.quoteNo || formData.quotationNumber;
         try {
           const link = document.createElement('a');
           link.href = pdfUrl;
@@ -534,8 +537,8 @@ const NewQuotationPage = () => {
       }
 
       // Update quotation number in form if available from response
-      if (response && response.quotation && response.quotation.formattedId) {
-        quotationForm.setValue("quotationNumber", response.quotation.formattedId);
+      if (response && response.quotation && response.quotation.quoteNo) {
+        quotationForm.setValue("quotationNumber", response.quotation.quoteNo);
       }
       
       // Reset form state after successful save
@@ -552,6 +555,91 @@ const NewQuotationPage = () => {
       toast({ title: "Save Failed", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSavingQuotation(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      const quotationFormValues = quotationForm.getValues();
+      const currentClient = selectedClient;
+      const currentQuotationItems = quotationItems;
+
+      if (!currentClient) {
+        toast({ title: "Error", description: "Please select a client first.", variant: "destructive" });
+        return;
+      }
+      if (currentQuotationItems.length === 0) {
+        toast({ title: "Error", description: "Please add rate card items first.", variant: "destructive" });
+        return;
+      }
+
+      // Recalculate summary figures (ensure these are up-to-date with current items and discount)
+      const calculatedSubtotal = currentQuotationItems.reduce((acc, item) => acc + item.totalValue, 0);
+      const currentDiscountPercentage = parseFloat(quotationFormValues.discount) || 0;
+      const calculatedDiscountAmount = (calculatedSubtotal * currentDiscountPercentage) / 100;
+      const calculatedTaxableValue = calculatedSubtotal - calculatedDiscountAmount;
+      const calculatedIgstAmount = calculatedTaxableValue * igstRate; // igstRate is already defined in the component scope
+      const calculatedNetGrossAmount = calculatedTaxableValue + calculatedIgstAmount;
+
+      const payload = {
+        quotationId: quotationFormValues.quotationNumber || `PREVIEW-${Date.now()}`,
+        clientName: currentClient.name,
+        clientId: currentClient.id,
+        name: quotationFormValues.serialNumber || "Quotation Preview", // Using serialNumber as a title, or a generic one
+        rateCardDetails: currentQuotationItems.map(item => ({
+          rateCardId: item.rateCard.id,
+          quantity: item.quantity,
+          gstType: 18, // Defaulting to 18 as per plan. Adjust if item-specific GST is available.
+        })),
+        subtotal: calculatedSubtotal,
+        gst: calculatedIgstAmount,
+        grandTotal: calculatedNetGrossAmount,
+        // Consider adding discountPercentage, discountAmount, taxableValue if generateQuotationPdf uses them
+      };
+
+      const response = await apiRequest.post('/api/quotations/preview-pdf', payload, {
+        responseType: 'blob',
+      });
+
+      if (response.status === 200) {
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${payload.quotationId}_preview.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast({ title: "Success", description: "PDF preview downloaded." });
+      } else {
+        // Try to parse error if response is not OK but contains JSON
+        let errorDetail = "An unknown error occurred.";
+        try {
+            const errorData = JSON.parse(await (response.data as Blob).text());
+            errorDetail = errorData.message || errorDetail;
+        } catch (e) {
+            // Blob might not be JSON, or another error
+        }
+        toast({ title: "Error", description: `Failed to generate PDF preview. ${errorDetail}`, variant: "destructive" });
+      }
+    } catch (error: any) {
+      console.error("Error exporting PDF:", error);
+      let errorDetail = "An unexpected error occurred.";
+      if(error.response && error.response.data){
+        try {
+            const errorData = JSON.parse(await (error.response.data as Blob).text()); // Error from server might be blob
+            errorDetail = errorData.message || errorDetail;
+        } catch (e) {
+             errorDetail = error.message || errorDetail;
+        }
+      } else {
+        errorDetail = error.message || errorDetail;
+      }
+      toast({ title: "Error", description: `Failed to generate PDF preview. ${errorDetail}`, variant: "destructive" });
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -1123,10 +1211,15 @@ const NewQuotationPage = () => {
               </Button>
               <Button 
                 variant="secondary" 
-                onClick={() => toast({ title: "Export to PDF", description: "PDF export functionality will be implemented" })}
+                onClick={handleExportPdf}
+                disabled={isExportingPdf || isSavingQuotation}
               >
-                <Download className="mr-2 h-4 w-4" />
-                Export PDF
+                {isExportingPdf ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                {isExportingPdf ? "Exporting..." : "Export PDF"}
               </Button>
             </div>
           </div>
