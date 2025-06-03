@@ -85,6 +85,30 @@ export async function createTicket(payload: CreateTicketInput) {
   }
 }
 
+export interface TicketForSelection {
+  id: string; // The UUID
+  title: string;
+  ticketId: string; // The human-readable/sequential ID
+}
+
+export async function getTicketsForSelection(): Promise<TicketForSelection[]> {
+  try {
+    const response = await axios.get("/tickets/selection", { // Using /api prefix implicitly from axios config
+      withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error fetching tickets for selection:", error);
+    const message = error.response?.data?.error || "Failed to fetch tickets for selection.";
+    throw new Error(message);
+  }
+}
+
 export async function getAllTickets(filters?: { status?: Status; startDate?: string; endDate?: string }) {
   try {
     const params = new URLSearchParams();

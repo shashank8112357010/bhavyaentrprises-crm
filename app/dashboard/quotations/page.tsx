@@ -44,8 +44,7 @@ interface QuotationItem {
   gst: number;
   grandTotal: number;
   pdfUrl: string;
-  // Assuming 'customId' might be the human-readable quote number
-  customId?: string;
+  quoteNo: string; // Added for the human-readable sequential ID
 }
 
 interface PaginatedQuotationsResponse {
@@ -188,7 +187,7 @@ export default function QuotationsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Quote ID</TableHead>
+                  <TableHead>Quotation No.</TableHead> {/* Changed Label */}
                   <TableHead>Description</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Ticket</TableHead>
@@ -202,7 +201,7 @@ export default function QuotationsPage() {
                 {quotations.map((q) => (
                   <TableRow key={q.id}>
                     <TableCell>{new Date(q.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>{q.customId || q.id}</TableCell>
+                    <TableCell>{q.quoteNo}</TableCell> {/* Use quoteNo */}
                     <TableCell className="font-medium max-w-xs truncate">{q.name}</TableCell>
                     <TableCell>{q.client?.name || "N/A"}</TableCell>
                     <TableCell>
@@ -231,7 +230,7 @@ export default function QuotationsPage() {
                               <DropdownMenuItem onClick={() => handleViewPdf(q.pdfUrl)}>
                                 <FileText className="mr-2 h-4 w-4" /> View PDF
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDownloadPdf(q.pdfUrl, q.customId || q.name || `quotation-${q.id}.pdf`)}>
+                              <DropdownMenuItem onClick={() => handleDownloadPdf(q.pdfUrl, q.quoteNo || q.name || `quotation-${q.id}.pdf`)}>
                                 <Download className="mr-2 h-4 w-4" /> Download PDF
                               </DropdownMenuItem>
                             </>

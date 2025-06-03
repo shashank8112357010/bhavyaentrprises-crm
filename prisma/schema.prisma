@@ -68,7 +68,8 @@ model RateCard {
 
 model Quotation {
   id              String    @id @default(uuid())
-  name            String
+  quoteNo         String    @unique // New field for human-readable sequential ID
+  name            String    // User-defined title/name
   pdfUrl          String
   clientId        String
   client          Client    @relation(fields: [clientId], references: [id])

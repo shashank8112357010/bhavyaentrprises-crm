@@ -2,9 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
-import fs from "fs";
+import { writeFileSync, mkdirSync, existsSync } from "fs";
+import fs from "fs"; // Keep separate for unlinkSync if needed elsewhere
 import path from "path";
 import { z } from "zod";
+import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
 
 // Define the schema for rateCardDetails item
 const rateCardDetailItemSchema = z.object({
@@ -18,6 +20,7 @@ const updateQuotationSchema = z.object({
   name: z.string().optional(),
   clientId: z.string().uuid().optional(),
   rateCardDetails: z.array(rateCardDetailItemSchema).optional(),
+  ticketId: z.string().uuid().optional().nullable(), // Allow string UUID, null, or undefined
   // Add other fields that can be updated here
 });
 
@@ -69,42 +72,98 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
 
-    // Fetch the existing quotation to compare totals if ticketId exists
-    const existingQuotation = await prisma.quotation.findUnique({
+    // Fetch the existing quotation to compare totals if ticketId exists and to get quoteNo for PDF naming
+    const existingQuotationForUpdate = await prisma.quotation.findUnique({
       where: { id },
-      select: { grandTotal: true, ticketId: true }
+      // Select all fields needed for PDF generation and ticket due update, and the actual update
+      // For simplicity, fetching the whole record if not too large, or specify necessary fields.
+      // We need quoteNo for PDF naming.
+      include: { client: { select: { name: true } } }
     });
 
-    if (!existingQuotation) {
+    if (!existingQuotationForUpdate) {
       return NextResponse.json({ message: "Quotation not found" }, { status: 404 });
     }
 
+    const { ticketId, ...restOfUpdateData } = updateData;
+
+    const dataToUpdate: any = { ...restOfUpdateData };
+
+    if (updateData.rateCardDetails) {
+      dataToUpdate.rateCardDetails = updateData.rateCardDetails as any;
+    }
+
+    // Handle ticketId explicitly:
+    // If ticketId is provided in the payload (even if null), include it in the update.
+    // If ticketId is undefined in the payload, it means the client doesn't want to change it.
+    if (updateData.hasOwnProperty('ticketId')) {
+        dataToUpdate.ticketId = ticketId; // This will be null if client sent null, or a string UUID
+    }
+
+
+    // Determine if PDF regeneration is needed and set the new pdfUrl
+    // PDF is regenerated if rateCardDetails, name, or other financial details affecting PDF are changed.
+    // For simplicity, we regenerate it on any meaningful update that might alter PDF content.
+    // The filename will be based on quoteNo.
+    const newPdfFilename = `${existingQuotationForUpdate.quoteNo}.pdf`;
+    dataToUpdate.pdfUrl = `/quotations/${newPdfFilename}`;
+
+
     const updatedQuotation = await prisma.quotation.update({
       where: { id },
-      data: {
-        ...updateData,
-        ...(updateData.rateCardDetails && { rateCardDetails: updateData.rateCardDetails as any }), // Prisma needs 'any' for Json field
-      },
+      data: dataToUpdate,
+      include: { client: { select: { name: true } } } // Include client name for PDF generation
     });
 
     // If grandTotal has changed and there's an associated ticket, update ticket.due
-    if (updateData.grandTotal !== undefined && existingQuotation.ticketId && updatedQuotation.grandTotal !== existingQuotation.grandTotal) {
+    if (updateData.grandTotal !== undefined && existingQuotationForUpdate.ticketId && updatedQuotation.grandTotal !== existingQuotationForUpdate.grandTotal) {
       const ticket = await prisma.ticket.findUnique({
-        where: { id: existingQuotation.ticketId },
+        where: { id: existingQuotationForUpdate.ticketId },
         select: { due: true }
       });
 
       if (ticket?.due !== null && ticket?.due !== undefined) {
-        // Adjust due amount: old due - old grandTotal + new grandTotal
-        const dueAdjustment = updatedQuotation.grandTotal - existingQuotation.grandTotal;
+        const dueAdjustment = updatedQuotation.grandTotal - existingQuotationForUpdate.grandTotal;
         const newTicketDue = Math.max(0, ticket.due + dueAdjustment);
 
         await prisma.ticket.update({
-          where: { id: existingQuotation.ticketId },
+          where: { id: existingQuotationForUpdate.ticketId },
           data: { due: newTicketDue }
         });
       }
     }
+
+    // Regenerate PDF
+    // Prepare fullRateCardsForPdf based on the *updated* quotation's rateCardDetails
+    let fullRateCardsForPdf: any[] = [];
+    if (updatedQuotation.rateCardDetails && Array.isArray(updatedQuotation.rateCardDetails) && updatedQuotation.rateCardDetails.length > 0) {
+        const rateCardIds = (updatedQuotation.rateCardDetails as Array<{ rateCardId: string }>).map(detail => detail.rateCardId);
+        fullRateCardsForPdf = await prisma.rateCard.findMany({
+            where: { id: { in: rateCardIds } },
+        });
+    }
+
+    const pdfBuffer = await generateQuotationPdf({
+        quotationId: updatedQuotation.quoteNo, // Use quoteNo for display in PDF
+        clientName: updatedQuotation.client.name, // Client name from included relation
+        clientId: updatedQuotation.clientId,
+        name: updatedQuotation.name,
+        rateCards: fullRateCardsForPdf,
+        subtotal: updatedQuotation.subtotal,
+        gst: updatedQuotation.gst,
+        grandTotal: updatedQuotation.grandTotal,
+        rateCardDetails: updatedQuotation.rateCardDetails as any[],
+    });
+
+    const folderPath = path.join(process.cwd(), "public", "quotations");
+    if (!existsSync(folderPath)) {
+        mkdirSync(folderPath, { recursive: true });
+    }
+    // newPdfFilename already defined based on quoteNo
+    const filePath = path.join(folderPath, newPdfFilename);
+    writeFileSync(filePath, pdfBuffer);
+
+    // The updatedQuotation object already has the correct pdfUrl due to the earlier dataToUpdate.pdfUrl assignment
 
     return NextResponse.json(updatedQuotation);
   } catch (error) {
@@ -112,6 +171,37 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (error.code === 'P2025') { // Prisma error code for record not found during update
         return NextResponse.json({ message: "Quotation not found or related data missing" }, { status: 404 });
     }
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    // Optional: Add authentication if you have a way to verify tokens for GET requests
+    // For example, if using NextAuth.js or a similar library, you'd get the session here.
+    // const token = req.cookies.get("token")?.value;
+    // if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    // jwt.verify(token, process.env.JWT_SECRET!); // Example verification
+
+    const { id } = params;
+    const quotation = await prisma.quotation.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        // ticket: true, // Only include if ticket details are needed on the edit page directly
+                       // Otherwise, ticketId is usually sufficient and ticket details can be fetched separately if needed.
+      },
+    });
+
+    if (!quotation) {
+      return NextResponse.json({ message: "Quotation not found" }, { status: 404 });
+    }
+    return NextResponse.json(quotation);
+  } catch (error) {
+    console.error("[GET_QUOTATION_BY_ID_ERROR]", error);
+    // if (error instanceof jwt.JsonWebTokenError) { // Uncomment if JWT verification is added
+    //     return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    // }
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }

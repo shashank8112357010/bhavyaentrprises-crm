@@ -31,6 +31,7 @@ import { createClientSchema } from "@/lib/validations/clientSchema";
 import { getAllRateCards, createSingleRateCard } from "@/lib/services/rate-card"; 
 import { rateCardSchema as inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema"; 
 import { createQuotation } from "@/lib/services/quotations"; // Import createQuotation service
+import { getTicketsForSelection, TicketForSelection } from "@/lib/services/ticket"; // Import ticket selection service
 
 // Assuming CreateClientPayload might be defined in schema file or is inferred by the service
 // If not, z.infer<typeof createClientSchema> should be the type for data passed to the service.
@@ -128,6 +129,11 @@ const NewQuotationPage = () => {
   const [showRateCardSearch, setShowRateCardSearch] = useState<boolean>(false);
   const [isSavingQuotation, setIsSavingQuotation] = useState<boolean>(false);
 
+  // State for Ticket Selection
+  const [ticketsForSelection, setTicketsForSelection] = useState<TicketForSelection[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(undefined);
+  const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(false);
+
 
   // Debounce timer refs
   const clientSearchDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -186,6 +192,27 @@ const NewQuotationPage = () => {
       }
     };
   }, [clientSearch, selectedClient?.name]); 
+
+  // Fetch tickets for selection on mount
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setIsLoadingTickets(true);
+      try {
+        const tickets = await getTicketsForSelection();
+        setTicketsForSelection(tickets);
+      } catch (error) {
+        console.error("Failed to fetch tickets for selection:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load tickets for selection. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingTickets(false);
+      }
+    };
+    fetchTickets();
+  }, [toast]);
 
 
   // Debounced Rate Card search function
@@ -422,10 +449,10 @@ const NewQuotationPage = () => {
     }));
 
     const quotationPayload = {
-      name: formData.quotationNumber,
+      name: formData.quotationNumber, // Or a more descriptive name if available/needed
       clientId: selectedClient.id,
       rateCardDetails: rateCardDetailsApi,
-      // ticketId: undefined, // Pass if available from form: formData.ticketId
+      ticketId: selectedTicketId || undefined,
 
       // Extended fields (may or may not be used by current backend)
       serialNumber: formData.serialNumber,
@@ -688,6 +715,26 @@ const NewQuotationPage = () => {
                         </FormItem>
                       )}
                     />
+                    {/* Ticket Selection Dropdown */}
+                    <FormItem>
+                       <FormLabel>Link to Ticket (Optional)</FormLabel>
+                       <Select onValueChange={setSelectedTicketId} value={selectedTicketId}>
+                         <FormControl>
+                           <SelectTrigger disabled={isLoadingTickets}>
+                             <SelectValue placeholder={isLoadingTickets ? "Loading tickets..." : "Select a ticket"} />
+                           </SelectTrigger>
+                         </FormControl>
+                         <SelectContent>
+                           <SelectItem value="">None</SelectItem>
+                           {ticketsForSelection.map((ticket) => (
+                             <SelectItem key={ticket.id} value={ticket.id}>
+                               {ticket.ticketId} - {ticket.title}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                       <FormMessage />
+                     </FormItem>
           
                    
                     {/* <Button type="submit">Save Quotation Details (Test)</Button> */}
