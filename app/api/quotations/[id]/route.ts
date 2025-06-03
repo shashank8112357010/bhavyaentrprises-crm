@@ -234,7 +234,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     // Delete PDF file
-    const pdfPath = path.join(process.cwd(), "public", quotation.pdfUrl);
+    const pdfPath = path.join(process.cwd(), "public", quotation?.pdfUrl ? quotation?.pdfUrl : "");
     if (fs.existsSync(pdfPath)) {
       fs.unlinkSync(pdfPath);
     }

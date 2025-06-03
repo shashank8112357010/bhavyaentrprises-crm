@@ -495,7 +495,7 @@ const NewQuotationPage = () => {
       serialNumber: formData.serialNumber,
       date: formData.date, 
       salesType: formData.salesType,
-      validUntil: formData.validUntil || null, // Ensure null if empty and optional
+      validUntil: formData.validUntil || 'null', // Ensure null if empty and optional
       admin: formData.admin,
       quoteBy: formData.quoteBy,
       
@@ -600,7 +600,7 @@ const NewQuotationPage = () => {
         // Consider adding discountPercentage, discountAmount, taxableValue if generateQuotationPdf uses them
       };
 
-      const response = await apiRequest.post('/api/quotations/preview-pdf', payload, {
+      const response = await apiRequest.post('/quotations/preview-pdf', payload, {
         responseType: 'blob',
       });
 
@@ -798,19 +798,7 @@ const NewQuotationPage = () => {
               <CardContent>
                 <Form {...quotationForm}>
                   <form onSubmit={quotationForm.handleSubmit(onQuotationFormSubmit)} className="space-y-4">
-                    <FormField
-                      control={quotationForm.control}
-                      name="serialNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Serial Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Auto-generated or enter" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    
                     <FormField
                       control={quotationForm.control}
                       name="date"
@@ -1251,13 +1239,13 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
       // For example, if the schema expects numbers for some fields, provide numbers.
       // The previous placeholder schema used z.coerce.number for totalBranches.
       // Assuming createClientSchema also has sensible defaults or handles optional fields.
-      type: createClientSchema.shape.type._def.defaultValue?.() || "Corporate",
-      totalBranches: createClientSchema.shape.totalBranches._def.defaultValue?.() || 1,
+      type: "Corporate",
+      totalBranches:  1,
       contactPerson: "",
       contactPhone: "",
       contactEmail: "",
-      contractStatus: createClientSchema.shape.contractStatus._def.defaultValue?.() || "Active",
-      lastServiceDate: createClientSchema.shape.lastServiceDate._def.defaultValue?.() || new Date().toISOString().split('T')[0],
+      contractStatus:  "Active",
+      lastServiceDate:  new Date().toISOString().split('T')[0],
       gstn: "",
       avatar: "",
       initials: "",

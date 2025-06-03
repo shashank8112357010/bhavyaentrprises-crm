@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createTicketSchema } from "@/lib/validations/ticketSchema";
 import { prisma } from "@/lib/prisma";
 
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -23,28 +22,40 @@ export async function POST(req: NextRequest) {
       throw new Error("Client not found");
     }
 
-
-
     let serial = 1; // Default serial number if no tickets exist
 
     if (latestTicket && latestTicket.ticketId) {
+      // Extract the serial number from the latest ticket ID
       const idParts = latestTicket.ticketId.split("-");
-      const firstPart = idParts[0]; // Should be something like BE25May0001
+      const firstPart = idParts[1]; // Should be something like "BE25Jun0001"
       const serialMatch = firstPart.match(/(\d{4})$/); // Matches the last 4 digits in the first part
       if (serialMatch && serialMatch[1]) {
-        const latestSerial = parseInt(serialMatch[1]);
+        const latestSerial = parseInt(serialMatch[1], 10);
         if (!isNaN(latestSerial)) {
           serial = latestSerial + 1;
         }
       }
     }
 
-    const currentMonth = new Date().toLocaleString("default", { month: "short" }); // e.g., "May"
-    const yearShort = new Date().getFullYear().toString().slice(-2); // e.g., "25"
-    const sanitizedClientName = client.name.replace(/\s+/g, "-").replace(/[^\w-]/g, "").toUpperCase();
+    // Get the current month abbreviation
+    const currentMonth = new Date().toLocaleString("default", {
+      month: "short",
+    });
+
+    // Get the last two digits of the current year
+    const yearShort = new Date().getFullYear().toString().slice(-2);
+
+    // Sanitize the client name
+    const sanitizedClientName = client.name
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/[^\w-]/g, "") // Remove any non-alphanumeric characters except hyphens
+      .toUpperCase();
+
+    // Generate the new ID
     const newId = `T-BE${yearShort}${currentMonth}${serial.toString().padStart(4, "0")}-${sanitizedClientName}`;
-    
-    
+
+    // Log the new ID
+    console.log(newId);
 
     // Create the ticket with the generated ID
     const { comments, ...rest } = validatedData;
@@ -53,12 +64,16 @@ export async function POST(req: NextRequest) {
       data: {
         ...rest,
         ticketId: newId,
-        comments: comments?.length ? {
-          create: comments.map((comment: { text: string; userId: string }) => ({
-            text: comment.text,
-            userId: comment.userId,
-          })),
-        } : undefined,
+        comments: comments?.length
+          ? {
+              create: comments.map(
+                (comment: { text: string; userId: string }) => ({
+                  text: comment.text,
+                  userId: comment.userId,
+                })
+              ),
+            }
+          : undefined,
       },
     });
 
@@ -73,7 +88,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ ticket : {...ticket , comments : []} });
+    return NextResponse.json({ ticket: { ...ticket, comments: [] } });
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to create ticket", error: error.message },

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Invalid input", errors: parsed.error }, { status: 400 });
     }
 
-    const { name, clientId, rateCardDetails, ticketId } = parsed.data;
+    const { name, clientId, rateCardDetails, ticketId , salesType } = parsed.data;
 
     // Extract rateCardIds from rateCardDetails
     const rateCardIds = rateCardDetails.map((detail: { rateCardId: string }) => detail.rateCardId);
@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
         subtotal,
         gst,
         grandTotal,
+        salesType,
         rateCardDetails : rateCardDetails as any, // Store the rate card details as JSON
         // Ensure formattedId is not attempted to be saved here unless it has a different purpose
         // If formattedId was purely for the new sequence, it's now replaced by quoteNo for that.

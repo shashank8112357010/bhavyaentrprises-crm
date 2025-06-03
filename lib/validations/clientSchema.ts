@@ -6,7 +6,7 @@ export const createClientSchema = z.object({
   type: z.enum(["Bank", "NBFC" , "Insurance"  ,"Corporate"]),
   totalBranches: z.number().int().min(0),
   contactPerson: z.string().min(1, "Contact person is required"),
-  contactEmail: z.string().email().optional(),
+  contactEmail: z.string().email(),
   gstn: z.string().optional(),
   contactPhone: z.string().min(1, "Contact phone is required"),
   contractStatus: z.enum(["Active", "Inactive"]),
@@ -14,7 +14,7 @@ export const createClientSchema = z.object({
     message: "Invalid date format",
   }),
   avatar: z.string().optional(),
-  initials: z.string().optional(), // Changed to optional
+  initials: z.string(), // Changed to optional
 });
 
 
