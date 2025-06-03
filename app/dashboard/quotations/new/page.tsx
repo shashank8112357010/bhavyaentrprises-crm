@@ -19,7 +19,6 @@ import * as z from "zod";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,7 +26,7 @@ import {
 } from "@/components/ui/form";
 
 // Actual service and schema imports
-import { createClient } from "@/lib/services/client";
+import { createClient, getAllClients } from "@/lib/services/client";
 import { createClientSchema } from "@/lib/validations/clientSchema";
 import { getAllRateCards, createSingleRateCard } from "@/lib/services/rate-card"; 
 import { rateCardSchema as inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema"; 
@@ -144,10 +143,10 @@ const NewQuotationPage = () => {
     }
     setIsClientSearchLoading(true);
     try {
-      // Assuming an API endpoint like /api/clients/search?q=query
+      // Assuming an API endpoint like /clients/search?q=query getAllClients
       // Adjust if using getAllClients from a service layer and its signature is known
-      const response = await apiRequest<Client[]>(`/api/clients/search?q=${encodeURIComponent(query)}`);
-      setClientSearchResults(response || []); // Ensure response is not null/undefined
+      const response = await getAllClients({searchQuery : query})
+      setClientSearchResults(response.clients || []); // Ensure response is not null/undefined
       setShowClientSearchDropdown(true);
     } catch (error) {
       console.error("Failed to search clients:", error);
@@ -199,8 +198,8 @@ const NewQuotationPage = () => {
     try {
       // Assuming getAllRateCards takes a query string or an object like { search: query }
       // Adjust the call based on the actual signature of getAllRateCards
-      const response = await getAllRateCards({ search: query }); // Or potentially just getAllRateCards(query)
-      setRateCardSearchResults(response || []); // Ensure response is not null/undefined
+      const response = await getAllRateCards({ searchQuery: query }); // Or potentially just getAllRateCards(query)
+      setRateCardSearchResults(response.data || []); // Ensure response is not null/undefined
     } catch (error) {
       console.error("Failed to search rate cards:", error);
       toast({
@@ -253,8 +252,8 @@ const NewQuotationPage = () => {
     defaultValues: {
       description: "",
       unit: "Unit", // Default unit
-      rate: "0",    // Default rate
-      rcSno: "",
+      rate: 0,    // Default rate
+  
       // Add other fields from inlineRateCardFormSchema with defaults if necessary
       // srNo, bankName, bankRcNo are part of rateCardSchema from lib/validations/rateCardSchema.ts
       // Ensure these are covered or handled as optional.
@@ -342,8 +341,8 @@ const NewQuotationPage = () => {
     inlineRateCardForm.reset({
         description: "",
         unit: "Unit",
-        rate: "0",
-        rcSno: "",
+        rate: 0,
+     
         // Reset other fields from inlineRateCardFormSchema
     });
   };
@@ -471,17 +470,17 @@ const NewQuotationPage = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen  p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Section */}
         {/* Header buttons are outside the main save form, so they don't need to be disabled by isSavingQuotation directly */}
-        <div className="bg-white rounded-lg shadow-sm border p-4">
+        <div className=" rounded-lg shadow-sm border p-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <FileText className="h-8 w-8 text-blue-600" />
+              <FileText className="h-8 w-8 " />
               <div>
-                <h1 className="text-xl font-semibold text-gray-800">Bhavya Enterprises</h1>
-                <p className="text-sm text-gray-500">Smart Quotation System</p>
+                <h1 className="text-xl font-semibold ">Bhavya Enterprises</h1>
+                <p className="text-sm ">Smart Quotation System</p>
               </div>
             </div>
             <div className="space-x-2">
@@ -504,13 +503,13 @@ const NewQuotationPage = () => {
         {/* Company Info Card */}
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-gray-700">
-              <p className="font-semibold">Bhavya Enterprises</p>
-              <p>123 Business Park, Main Street</p>
-              <p>Cityville, State, Zip Code - 12345</p>
-              <p>Phone: (123) 456-7890</p>
-              <p>Email: info@bhavyaenterprises.com</p>
-              <p>GSTIN: 27ABCDE1234F1Z5</p>
+            <div className=" text-center">
+              <h1 className="text-lg">Bhavya Enterprises</h1>
+              <p className="text-sm">123 Business Park, Main Street</p>
+              <p className="text-sm">Cityville, State, Zip Code - 12345</p>
+              <p className="text-sm">Phone: (123) 456-7890</p>
+              <p className="text-sm">Email: info@bhavyaenterprises.com</p>
+              <p className="text-sm">GSTIN: 27ABCDE1234F1Z5</p>
             </div>
           </CardContent>
         </Card>
@@ -551,21 +550,21 @@ const NewQuotationPage = () => {
                   </div>
 
                   {showClientSearchDropdown && clientSearch.trim() && clientSearchResults.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 mt-1 w-full  border rounded-md shadow-lg max-h-60 overflow-y-auto">
                       {clientSearchResults.map((client) => (
                         <div
                           key={client.id}
-                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                          className="p-2 cursor-pointer"
                           onClick={() => handleClientSelect(client)}
                         >
-                          <p className="font-medium">{client.name}</p>
-                          <p className="text-xs text-gray-500">{client.code}</p>
+                          <p className="font-medium">{client.code} {client.name}</p>
+                          {/* <p className="text-xs ">{client.code}</p> */}
                         </div>
                       ))}
                     </div>
                   )}
                    {showClientSearchDropdown && clientSearch.trim() && !isClientSearchLoading && clientSearchResults.length === 0 && (
-                     <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg p-2 text-sm text-gray-500">
+                     <div className="absolute z-10 mt-1 w-full  border  rounded-md shadow-lg p-2 text-sm ">
                         No clients found.
                      </div>
                    )}
@@ -581,7 +580,7 @@ const NewQuotationPage = () => {
                 </Button>
 
                 {selectedClient && (
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-1">
+                  <div className="p-3  rounded-lg border  space-y-1">
                     <h3 className="text-sm font-semibold text-blue-700">Selected Client:</h3>
                     <p><strong>Name:</strong> {selectedClient.name}</p>
                     <p><strong>Code:</strong> {selectedClient.code}</p>
@@ -689,32 +688,8 @@ const NewQuotationPage = () => {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={quotationForm.control}
-                      name="admin"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Admin</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Admin name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={quotationForm.control}
-                      name="quoteBy"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quote By</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Quoted by" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+          
+                   
                     {/* <Button type="submit">Save Quotation Details (Test)</Button> */}
                   </form>
                 </Form>
@@ -744,7 +719,7 @@ const NewQuotationPage = () => {
                 </CardTitle>
               </CardHeader>
               {showRateCardSearch && (
-                <div className="p-4 bg-blue-50 border-b">
+                <div className="p-4  border-b">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
@@ -761,29 +736,29 @@ const NewQuotationPage = () => {
                     )}
                   </div>
                   {rateCardSearchResults.length > 0 && (
-                    <div className="mt-2 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className="mt-2  border rounded-md shadow-lg max-h-60 overflow-y-auto">
                       {rateCardSearchResults.map((rc) => (
                         <div
                           key={rc.id}
-                          className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                          className="p-3  cursor-pointer border-b last:border-b-0"
                           onClick={() => addRateCardToQuotation(rc)}
                         >
                           <p className="font-medium">{rc.productDescription || rc.description}</p>
                           <p className="text-xs text-gray-600">
-                            RC-SNo: {rc.rcSno || "N/A"} | Unit: {rc.unit} | Price: {rc.unitPrice || rc.rate}
+                            RC-SNo: {rc.bankRcNo || "N/A"} | Unit: {rc.unit} | Price: {rc.unitPrice || rc.rate}
                           </p>
                         </div>
                       ))}
                     </div>
                   )}
                   {rateCardSearch.trim() && !isRateCardSearchLoading && rateCardSearchResults.length === 0 && (
-                    <div className="mt-2 text-sm text-gray-500 p-2 text-center">No rate cards found.</div>
+                    <div className="mt-2 text-sm  p-2 text-center">No rate cards found.</div>
                   )}
                 </div>
               )}
               <CardContent className="p-0"> {/* Remove padding if table is direct child */}
                 {quotationItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-gray-500">
+                  <div className="flex flex-col items-center justify-center h-40 ">
                     <Package className="h-10 w-10 mb-2" />
                     <p>No rate cards added yet.</p>
                     <p className="text-sm">Use "Search Rate Cards" or "Add Manually" to add items.</p>
@@ -825,7 +800,7 @@ const NewQuotationPage = () => {
                                render={({ field }) => <Input placeholder="RC-SNo" {...field} defaultValue={item.rateCard.rcSno} />}
                              />
                             ) : (
-                              item.rateCard.rcSno || "N/A"
+                              item.rateCard.bankRcNo || "N/A"
                             )}
                           </TableCell>
                           <TableCell>
@@ -856,7 +831,7 @@ const NewQuotationPage = () => {
                               <Input
                                 type="number"
                                 min="1"
-                                defaultValue={item.quantity}
+                                defaultValue={1}
                                 // This Qty input for editable row needs to be handled by the inline form state
                                 // For now, it will use the updateQuotationItemQuantity, but ideally part of the inline form
                                 onChange={(e) => updateQuotationItemQuantity(index, e.target.value)}
@@ -865,7 +840,7 @@ const NewQuotationPage = () => {
                             ) : (
                               <Input
                                 type="number"
-                                value={item.quantity}
+                                value={1}
                                 min="1"
                                 onChange={(e) => updateQuotationItemQuantity(index, e.target.value)}
                                 className="w-full"
@@ -914,7 +889,7 @@ const NewQuotationPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"> {/* Adjusted gap */}
                   {/* Left Column: Quotation Summary */}
                   <div className="space-y-3">
-                    <h4 className="text-md font-semibold text-gray-800 mb-2">Quotation Summary</h4>
+                    <h4 className="text-md font-semibold  mb-2">Quotation Summary</h4>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Total Items:</span>
                       <span className="font-medium">{totalItems}</span>
@@ -928,16 +903,16 @@ const NewQuotationPage = () => {
                       <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                     </div>
                     <div className="pt-1">
-                      <Label htmlFor="subtotalInWords" className="text-xs text-gray-500">Subtotal (In Words)</Label>
-                      <div id="subtotalInWords" className="text-sm p-2 border rounded-md bg-gray-50 min-h-[36px] text-gray-700">
+                      <Label htmlFor="subtotalInWords" className="text-xs ">Subtotal (In Words)</Label>
+                      <div id="subtotalInWords" className="text-sm p-2 border rounded-md  min-h-[36px] ">
                         {subtotalInWords}
                       </div>
                     </div>
                   </div>
 
                   {/* Right Column: Tax Calculations */}
-                  <div className="space-y-3 bg-blue-50 p-3 rounded-lg"> {/* Adjusted padding */}
-                    <h4 className="text-md font-semibold text-gray-800 mb-2">Tax Calculations</h4>
+                  <div className="space-y-3  p-3 rounded-lg"> {/* Adjusted padding */}
+                    <h4 className="text-md font-semibold  mb-2">Tax Calculations</h4>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal:</span>
                       <span className="font-medium">₹{subtotal.toFixed(2)}</span>
@@ -990,8 +965,8 @@ const NewQuotationPage = () => {
                       <span className="font-bold text-blue-700 text-md">₹{netGrossAmount.toFixed(2)}</span>
                     </div>
                      <div className="pt-1">
-                      <Label htmlFor="netGrossInWords" className="text-xs text-gray-500">Net Gross Amount (In Words)</Label>
-                      <div id="netGrossInWords" className="text-sm p-2 border rounded-md bg-gray-50 min-h-[36px] text-gray-700">
+                      <Label htmlFor="netGrossInWords" className="text-xs ">Net Gross Amount (In Words)</Label>
+                      <div id="netGrossInWords" className="text-sm p-2 border rounded-md  min-h-[36px] ">
                         {netGrossAmountInWords}
                       </div>
                     </div>
