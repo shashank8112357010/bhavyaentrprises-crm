@@ -22,8 +22,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { Spinner } from "@/components/ui/spinner";
 import { getAllQuotations } from "@/lib/services/quotations";
 import { useToast } from "@/hooks/use-toast";
-import { QuotationStatus as BackendQuotationStatus } from "@/lib/validations/quotationSchema"; // Import enum for status values
-
+const BackendQuotationStatus =["DRAFT"  , "ACCEPTED" , "REJECTED" , "ARCHIVED"]
 // Interfaces
 interface QuotationClient {
   id: string;
@@ -34,6 +33,8 @@ interface QuotationTicket {
   id: string;
   title: string;
 }
+
+
 
 // Updated QuotationItem interface
 interface QuotationItem {
