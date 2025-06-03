@@ -70,6 +70,7 @@ interface QuotationItem {
   quantity: number;
   totalValue: number;
   isEditable?: boolean;
+  isNew?: boolean; // Added to differentiate newly added (unsaved) manual items
 }
 
 
@@ -124,6 +125,7 @@ const NewQuotationPage = () => {
   // State for Rate Cards & Services
   const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
   const [rateCardSearch, setRateCardSearch] = useState<string>("");
+  const [savingRateCardId, setSavingRateCardId] = useState<string | null>(null); // For inline rate card save loading
   const [rateCardSearchResults, setRateCardSearchResults] = useState<RateCard[]>([]);
   const [isRateCardSearchLoading, setIsRateCardSearchLoading] = useState<boolean>(false);
   const [showRateCardSearch, setShowRateCardSearch] = useState<boolean>(false);
@@ -138,6 +140,10 @@ const NewQuotationPage = () => {
   // Debounce timer refs
   const clientSearchDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
   const rateCardSearchDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Refs for click-outside handler for client search
+  const clientSearchInputRef = React.useRef<HTMLInputElement>(null);
+  const clientSearchDropdownRef = React.useRef<HTMLDivElement>(null);
 
 
   // Debounced client search function
@@ -214,6 +220,23 @@ const NewQuotationPage = () => {
     fetchTickets();
   }, [toast]);
 
+  // Click outside handler for client search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        clientSearchInputRef.current &&
+        !clientSearchInputRef.current.contains(event.target as Node) &&
+        clientSearchDropdownRef.current &&
+        !clientSearchDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowClientSearchDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Debounced Rate Card search function
   const searchRateCards = async (query: string) => {
@@ -280,6 +303,7 @@ const NewQuotationPage = () => {
       description: "",
       unit: "Unit", // Default unit
       rate: 0,    // Default rate
+      quantity: 1, // Added quantity to default values
   
       // Add other fields from inlineRateCardFormSchema with defaults if necessary
       // srNo, bankName, bankRcNo are part of rateCardSchema from lib/validations/rateCardSchema.ts
@@ -362,6 +386,7 @@ const NewQuotationPage = () => {
       quantity: 1,
       totalValue: 0,
       isEditable: true,
+      isNew: true, // Mark as a new, unsaved item
     };
     setQuotationItems([...quotationItems, newEditableItem]);
     // Set default values for the form, targeting this new item for editing
@@ -369,12 +394,17 @@ const NewQuotationPage = () => {
         description: "",
         unit: "Unit",
         rate: 0,
+        quantity: 1, // Added quantity to reset
      
         // Reset other fields from inlineRateCardFormSchema
     });
   };
 
   const onSaveInlineRateCard = async (data: z.infer<typeof inlineRateCardFormSchema>, itemIndex: number) => {
+    const currentItem = quotationItems[itemIndex];
+    if (!currentItem) return;
+
+    setSavingRateCardId(currentItem.rateCard.id); // Set loading state for this item
     try {
       // Assuming createSingleRateCard is the correct service function
       // and data matches its expected payload (CreateRateCardPayload)
@@ -386,8 +416,9 @@ const NewQuotationPage = () => {
             ...item,
             rateCard: newRateCard, // Use the returned rate card from the service
             isEditable: false,
-            quantity: item.quantity, // Keep existing quantity or reset to 1
-            totalValue: (parseFloat(newRateCard.rate || "0")) * item.quantity,
+            isNew: false, // Mark as saved
+            quantity: data.quantity, // Use quantity from form data
+            totalValue: (parseFloat(newRateCard.rate || "0")) * data.quantity, // Recalculate with form quantity
           };
         }
         return item;
@@ -399,6 +430,8 @@ const NewQuotationPage = () => {
       console.error("Failed to save inline rate card:", error);
       const errorMessage = error.response?.data?.message || error.message || "Failed to save rate card.";
       toast({ title: "Save Failed", description: errorMessage, variant: "destructive" });
+    } finally {
+      setSavingRateCardId(null); // Clear loading state for this item
     }
   };
 
@@ -475,8 +508,34 @@ const NewQuotationPage = () => {
     console.log(`Saving quotation with status: ${status}`, quotationPayload);
 
     try {
-      await createQuotation(quotationPayload);
+      const response = await createQuotation(quotationPayload); // Capture the response
       toast({ title: "Success", description: `Quotation saved as ${status} successfully!` });
+
+      // Attempt to download PDF
+      if (response && response.quotation && response.quotation.pdfUrl) {
+        const pdfUrl = response.quotation.pdfUrl;
+        const quotationNumber = response.quotation.quoteNo || formData.quotationNumber; // Use quoteNo from response if available
+        try {
+          const link = document.createElement('a');
+          link.href = pdfUrl;
+          link.setAttribute('download', `${quotationNumber}.pdf`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          toast({ title: "PDF Download Started", description: "Your PDF should start downloading shortly."});
+        } catch (downloadError) {
+          console.error("Failed to trigger PDF download:", downloadError);
+          toast({ title: "PDF Download Failed", description: "Could not start PDF download automatically.", variant: "warning" });
+        }
+      } else {
+        console.warn("PDF URL not found in response or response structure is unexpected.");
+        toast({ title: "PDF Not Available", description: "Quotation saved, but PDF is not available for immediate download.", variant: "info" });
+      }
+
+      // Update quotation number in form if available from response
+      if (response && response.quotation && response.quotation.quoteNo) {
+        quotationForm.setValue("quotationNumber", response.quotation.quoteNo);
+      }
       
       // Reset form state after successful save
       quotationForm.reset(); 
@@ -555,7 +614,7 @@ const NewQuotationPage = () => {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="clientSearch">Client Search</Label>
-                  <div className="relative">
+                  <div className="relative" ref={clientSearchInputRef}> {/* Attach ref to the parent div of input */}
                     <Input
                       id="clientSearch"
                       type="text"
@@ -577,7 +636,10 @@ const NewQuotationPage = () => {
                   </div>
 
                   {showClientSearchDropdown && clientSearch.trim() && clientSearchResults.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full  border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div
+                      className="absolute z-10 mt-1 w-full  border rounded-md shadow-lg max-h-60 overflow-y-auto"
+                      ref={clientSearchDropdownRef} // Attach ref to dropdown
+                    >
                       {clientSearchResults.map((client) => (
                         <div
                           key={client.id}
@@ -591,7 +653,10 @@ const NewQuotationPage = () => {
                     </div>
                   )}
                    {showClientSearchDropdown && clientSearch.trim() && !isClientSearchLoading && clientSearchResults.length === 0 && (
-                     <div className="absolute z-10 mt-1 w-full  border  rounded-md shadow-lg p-2 text-sm ">
+                     <div
+                       className="absolute z-10 mt-1 w-full  border  rounded-md shadow-lg p-2 text-sm "
+                       ref={clientSearchDropdownRef} // Attach ref to no results dropdown as well
+                     >
                         No clients found.
                      </div>
                    )}
@@ -875,19 +940,24 @@ const NewQuotationPage = () => {
                           </TableCell>
                           <TableCell>
                             {item.isEditable ? (
-                              <Input
-                                type="number"
-                                min="1"
-                                defaultValue={1}
-                                // This Qty input for editable row needs to be handled by the inline form state
-                                // For now, it will use the updateQuotationItemQuantity, but ideally part of the inline form
-                                onChange={(e) => updateQuotationItemQuantity(index, e.target.value)}
-                                className="w-full"
+                              <FormField
+                                control={inlineRateCardForm.control}
+                                name="quantity"
+                                render={({ field }) => (
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    {...field}
+                                    defaultValue={item.quantity} // Set default value from item
+                                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 1)} // Ensure value is number
+                                    className="w-full"
+                                  />
+                                )}
                               />
                             ) : (
                               <Input
                                 type="number"
-                                value={1}
+                                value={item.quantity} // Display existing quantity
                                 min="1"
                                 onChange={(e) => updateQuotationItemQuantity(index, e.target.value)}
                                 className="w-full"
@@ -908,12 +978,23 @@ const NewQuotationPage = () => {
                           <TableCell>{item.totalValue.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
                             {item.isEditable ? (
-                              <Button 
-                                size="sm" 
-                                onClick={inlineRateCardForm.handleSubmit((data) => onSaveInlineRateCard(data, index))}
-                              >
-                                <Save className="mr-1 h-4 w-4" /> Save
-                              </Button>
+                              <div className="flex items-center justify-end space-x-1">
+                                <Button
+                                  size="sm"
+                                  onClick={inlineRateCardForm.handleSubmit((data) => onSaveInlineRateCard(data, index))}
+                                  disabled={savingRateCardId === item.rateCard.id}
+                                >
+                                  {savingRateCardId === item.rateCard.id ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Save className="mr-1 h-4 w-4" />
+                                  )}
+                                  {savingRateCardId === item.rateCard.id ? "Saving..." : "Save"}
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => removeQuotationItem(index)}>
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
                             ) : (
                               <Button variant="ghost" size="icon" onClick={() => removeQuotationItem(index)}>
                                 <Trash2 className="h-4 w-4 text-red-500" />
