@@ -21,6 +21,10 @@ const updateQuotationSchema = z.object({
   clientId: z.string().uuid().optional(),
   rateCardDetails: z.array(rateCardDetailItemSchema).optional(),
   ticketId: z.string().uuid().optional().nullable(), // Allow string UUID, null, or undefined
+  grandTotal : z.number(),
+  gst : z.number(),
+  subtotal : z.number()
+  
   // Add other fields that can be updated here
 });
 
@@ -41,6 +45,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const updateData = validation.data;
+
     let newSubtotal = 0;
     let newGst = 0;
     let newGrandTotal = 0;
@@ -66,6 +71,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateData.grandTotal = newGrandTotal;
     } else if (updateData.rateCardDetails && updateData.rateCardDetails.length === 0) {
       // Handle case where rateCardDetails is explicitly emptied
+
+
       updateData.subtotal = 0;
       updateData.gst = 0;
       updateData.grandTotal = 0;
@@ -166,7 +173,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // The updatedQuotation object already has the correct pdfUrl due to the earlier dataToUpdate.pdfUrl assignment
 
     return NextResponse.json(updatedQuotation);
-  } catch (error) {
+  } catch (error:any) {
     console.error("[PUT_QUOTATION_ERROR]", error);
     if (error.code === 'P2025') { // Prisma error code for record not found during update
         return NextResponse.json({ message: "Quotation not found or related data missing" }, { status: 404 });

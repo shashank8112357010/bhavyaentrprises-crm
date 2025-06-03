@@ -21,9 +21,15 @@ export const navRoleAccess: Record<Role, string[]> = {
   MST: ["Dashboard", "Kanban Board", "Agents", "Calls"],
   ACCOUNTS: [
     "Dashboard",
+    "Kanban Board",
+    "Clients",
+    "Agents",
     "Quotations",
     "Expenses",
-    "Rate Card"
+    "Rate Card",
+    "Calls",
+    "Email Templates",
+    "Settings",
   ],
 };
 
@@ -47,8 +53,15 @@ export const pathRoleAccess: Record<Role, string[]> = {
   MST: ["/dashboard", "/dashboard/kanban", "/dashboard/agents", "/dashboard/calls"],
   ACCOUNTS: [
     "/dashboard",
+    "/dashboard/kanban",
+    "/dashboard/clients",
+    "/dashboard/agents",
     "/dashboard/quotations",
     "/dashboard/expenses",
-    "/dashboard/rate-card"
+    "/dashboard/rate-card",
+    "/dashboard/calls",
+    "/dashboard/email-template",
+    "/dashboard/settings",
+    "/admin",
   ],
 };

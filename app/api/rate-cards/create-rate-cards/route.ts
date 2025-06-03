@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
 export async function POST(req: NextRequest) {
+  console.log("bulk api ");
+  
   const token = req.cookies.get("token")?.value;
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -13,10 +15,14 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File;
+  console.log(file);
+  
   if (!file) return NextResponse.json({ message: "CSV file is required" }, { status: 400 });
 
   const text = await file.text();
   const records = parse(text, { columns: true, skip_empty_lines: true });
+  console.log(records);
+  
 
   let successCount = 0;
   let duplicateCount = 0;
@@ -47,6 +53,8 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      console.log(exists , "exists");
+      
       if (exists) {
         duplicateCount++;
         continue;

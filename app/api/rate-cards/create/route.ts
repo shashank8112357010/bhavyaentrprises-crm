@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // Assuming @ refers to the project root based on common Next.js setup
-import { rateCardSchema, RateCardSchemaType } from '@/lib/validations/rateCardSchema'; // Adjust path if schema exports type differently
+import { rateCardSchema } from '@/lib/validations/rateCardSchema'; // Adjust path if schema exports type differently
 import { ZodError } from 'zod';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
+    console.log("i am here");
+    
     const jsonPayload = await request.json();
 
     // Validate the request body against the schema

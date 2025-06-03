@@ -22,6 +22,8 @@ interface QuotationPdfParams {
   name: string;
   rateCards: RateCardEntry[];
   subtotal: number;
+  clientName: string,
+
   gst: number;
   grandTotal: number;
   rateCardDetails: RateCardDetail[]; // ✅ Fixed

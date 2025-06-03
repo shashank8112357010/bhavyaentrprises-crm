@@ -87,6 +87,7 @@ const quotationFormSchema = z.object({
 });
 
 
+
 const NewQuotationPage = () => {
   const { toast } = useToast();
 
@@ -529,11 +530,11 @@ const NewQuotationPage = () => {
           toast({ title: "PDF Download Started", description: "Your PDF should start downloading shortly."});
         } catch (downloadError) {
           console.error("Failed to trigger PDF download:", downloadError);
-          toast({ title: "PDF Download Failed", description: "Could not start PDF download automatically.", variant: "warning" });
+          toast({ title: "PDF Download Failed", description: "Could not start PDF download automatically.", variant: "destructive" });
         }
       } else {
         console.warn("PDF URL not found in response or response structure is unexpected.");
-        toast({ title: "PDF Not Available", description: "Quotation saved, but PDF is not available for immediate download.", variant: "info" });
+        toast({ title: "PDF Not Available", description: "Quotation saved, but PDF is not available for immediate download.", variant: "destructive" });
       }
 
       // Update quotation number in form if available from response
@@ -879,7 +880,7 @@ const NewQuotationPage = () => {
                            </SelectTrigger>
                          </FormControl>
                          <SelectContent>
-                           <SelectItem value="">None</SelectItem>
+                           <SelectItem value="none">None</SelectItem>
                            {ticketsForSelection.map((ticket) => (
                              <SelectItem key={ticket.id} value={ticket.id}>
                                {ticket.ticketId} - {ticket.title}
@@ -962,7 +963,7 @@ const NewQuotationPage = () => {
                   <div className="flex flex-col items-center justify-center h-40 ">
                     <Package className="h-10 w-10 mb-2" />
                     <p>No rate cards added yet.</p>
-                    <p className="text-sm">Use "Search Rate Cards" or "Add Manually" to add items.</p>
+                    <p className="text-sm">Use &quot;Search Rate Cards&quot; or &quot;Add Manually&quot; to add items.</p>
                   </div>
                 ) : (
                   <Table>
@@ -997,7 +998,7 @@ const NewQuotationPage = () => {
                             {item.isEditable ? (
                                <FormField
                                control={inlineRateCardForm.control}
-                               name="rcSno"
+                               name="bankRcNo"
                                render={({ field }) => <Input placeholder="RC-SNo" {...field} defaultValue={item.rateCard.rcSno} />}
                              />
                             ) : (
@@ -1232,6 +1233,10 @@ const NewQuotationPage = () => {
 // CreateClientDialog Component (defined within the same file for now)
 // This is a reconstruction based on the prompt and typical dialog structure.
 // Actual implementation might vary based on "@/lib/services/client" and "@/lib/validations/clientSchema"
+
+
+export default NewQuotationPage;
+
 interface CreateClientDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -1400,22 +1405,3 @@ const CreateClientDialog: React.FC<CreateClientDialogProps> = ({ isOpen, onOpenC
     </Dialog>
   );
 };
-
-
-export default NewQuotationPage;
-// Click outside handler for dropdown
-// This might be better as a custom hook (useClickOutside)
-// For simplicity, adding a basic version here or it can be added later.
-// useEffect(() => {
-//   const handleClickOutside = (event: MouseEvent) => {
-//     if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
-//         inputRef.current && !inputRef.current.contains(event.target as Node)) {
-//       setShowClientSearchDropdown(false);
-//     }
-//   };
-//   document.addEventListener("mousedown", handleClickOutside);
-//   return () => {
-//     document.removeEventListener("mousedown", handleClickOutside);
-//   };
-// }, []); // Assuming dropdownRef and inputRef are created with React.useRef() and attached to respective elements.
-// This part is commented out as it requires useRef for input and dropdown, which can be added in a refinement step.

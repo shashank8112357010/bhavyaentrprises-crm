@@ -491,7 +491,7 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
         name: formData.name, // This is now Quotation Title
         clientId: formData.clientId,
         rateCardDetails: rateCardDetailsForApi,
-        ticketId: formData.ticketId,
+        ticketId: formData.ticketId || "",
         // quoteNo is not part of UpdateQuotationParams as it's system-generated and shouldn't be updated by user
       };
 
@@ -635,7 +635,7 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
                     <SelectValue placeholder={isLoadingTickets ? "Loading tickets..." : "Select a ticket"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None - No ticket linked</SelectItem>
+                    <SelectItem value="none">None - No ticket linked</SelectItem>
                     {ticketsForSelection.map((ticket) => (
                       <SelectItem key={ticket.id} value={ticket.id}>
                         {ticket.ticketId} - {ticket.title}

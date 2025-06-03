@@ -68,21 +68,24 @@ model RateCard {
 
 model Quotation {
   id              String    @id @default(uuid())
-  quoteNo         String    @unique // New field for human-readable sequential ID
-  name            String    // User-defined title/name
-  pdfUrl          String
+  quoteNo         String    @unique
+  name            String
+  pdfUrl          String?
   clientId        String
   client          Client    @relation(fields: [clientId], references: [id])
   createdAt       DateTime  @default(now())
   expenses        Expense[]
-  rateCardDetails Json? // This will store an array of objects with rateCardId, quantity, and gstType
+  rateCardDetails Json?
   ticketId        String?
   ticket          Ticket?   @relation(fields: [ticketId], references: [id])
   subtotal        Float
   gst             Float
   grandTotal      Float
-  formattedId     String    @unique // Added new field for formatted ID
+  salesType       String
+  validUntil      DateTime?
+  status          String
 }
+
 
 model Client {
   id              String      @id @default(uuid())
