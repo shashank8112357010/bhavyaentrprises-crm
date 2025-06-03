@@ -514,11 +514,12 @@ const NewQuotationPage = () => {
       // Attempt to download PDF
       if (response && response.quotation && response.quotation.pdfUrl) {
         const pdfUrl = response.quotation.pdfUrl;
-        const quotationNumber = response.quotation.quoteNo || formData.quotationNumber; // Use quoteNo from response if available
+        // Use formattedId from response if available, otherwise use the form's current quotationNumber for the PDF name
+        const pdfFileName = response.quotation.formattedId || formData.quotationNumber;
         try {
           const link = document.createElement('a');
           link.href = pdfUrl;
-          link.setAttribute('download', `${quotationNumber}.pdf`);
+          link.setAttribute('download', `${pdfFileName}.pdf`);
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -533,8 +534,8 @@ const NewQuotationPage = () => {
       }
 
       // Update quotation number in form if available from response
-      if (response && response.quotation && response.quotation.quoteNo) {
-        quotationForm.setValue("quotationNumber", response.quotation.quoteNo);
+      if (response && response.quotation && response.quotation.formattedId) {
+        quotationForm.setValue("quotationNumber", response.quotation.formattedId);
       }
       
       // Reset form state after successful save

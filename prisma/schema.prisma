@@ -81,6 +81,7 @@ model Quotation {
   subtotal        Float
   gst             Float
   grandTotal      Float
+  formattedId     String    @unique // Added new field for formatted ID
 }
 
 model Client {

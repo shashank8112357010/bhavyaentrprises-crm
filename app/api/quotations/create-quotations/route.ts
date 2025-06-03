@@ -44,22 +44,21 @@ export async function POST(req: NextRequest) {
     const gst = subtotal * 0.18; // Assuming GST is 18%
     const grandTotal = subtotal + gst;
 
-    // Generate new human-readable quoteNo (e.g., QUOT01, QUOT02)
-    // IMPORTANT: This logic assumes quoteNo follows a pattern like QUOTXXX.
-    // If other patterns exist or if it's not purely numeric after "QUOT", this needs adjustment.
-    const latestQuotationByQuoteNo = await prisma.quotation.findFirst({
-      orderBy: { quoteNo: "desc" }, // Order by the new quoteNo field
-      select: { quoteNo: true }
+    // Generate new formattedId (e.g., QUOT-BE-0001)
+    const latestQuotationByFormattedId = await prisma.quotation.findFirst({
+      orderBy: { formattedId: "desc" }, // Order by formattedId
+      select: { formattedId: true }
     });
 
     let serial = 1;
-    if (latestQuotationByQuoteNo && latestQuotationByQuoteNo.quoteNo) {
-      const numericPart = latestQuotationByQuoteNo.quoteNo.replace(/[^0-9]/g, '');
-      if (numericPart) {
-        serial = parseInt(numericPart, 10) + 1;
+    const prefix = "QUOT-BE-";
+    if (latestQuotationByFormattedId && latestQuotationByFormattedId.formattedId) {
+      const numericPartMatch = latestQuotationByFormattedId.formattedId.match(/\d+$/);
+      if (numericPartMatch) {
+        serial = parseInt(numericPartMatch[0], 10) + 1;
       }
     }
-    const newSequentialId = `QUOT${serial.toString().padStart(2, "0")}`;
+    const newSequentialId = `${prefix}${serial.toString().padStart(4, "0")}`;
 
     // Fetch client name for PDF
     const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
@@ -94,11 +93,11 @@ export async function POST(req: NextRequest) {
     // Prisma will auto-generate the UUID for 'id'
     const quotation = await prisma.quotation.create({
       data: {
-        quoteNo: newSequentialId, // Store the human-readable sequential ID
-        name,                     // This is the quotation title
+        formattedId: newSequentialId, // Store the new formatted sequential ID
+        name,                         // This is the quotation title
         clientId,
         ticketId,
-        pdfUrl: `/quotations/${filename}`, // PDF URL uses the sequential ID
+        pdfUrl: `/quotations/${filename}`, // PDF URL uses the new formattedId in filename
         subtotal,
         gst,
         grandTotal,
