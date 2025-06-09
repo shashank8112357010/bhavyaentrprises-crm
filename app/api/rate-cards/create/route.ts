@@ -1,36 +1,65 @@
-import { NextResponse } from 'next/server';
-import { rateCardSchema } from '@/lib/validations/rateCardSchema'; // Adjust path if schema exports type differently
-import { ZodError } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema";
+import { ZodError } from "zod";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    console.log("i am here");
-    
     const jsonPayload = await request.json();
 
     // Validate the request body against the schema
-    const validatedData = rateCardSchema.parse(jsonPayload);
+    const validatedData = inlineRateCardFormSchema.parse(jsonPayload);
 
-    // If validation passes, create the new rate card
+    // Auto-generate serial number based on bank name
+    let srNo = 1;
+
+    // Find the latest rate card for the same bank name
+    const latestRateCard = await prisma.rateCard.findFirst({
+      where: { bankName: validatedData.bankName },
+      orderBy: { srNo: "desc" },
+      select: { srNo: true },
+    });
+
+    if (latestRateCard) {
+      srNo = latestRateCard.srNo + 1;
+    }
+
+    // Create the new rate card with auto-generated serial number
     const newRateCard = await prisma.rateCard.create({
-      data: validatedData,
+      data: {
+        ...validatedData,
+        srNo,
+      },
     });
 
     return NextResponse.json(newRateCard, { status: 201 });
-
   } catch (error) {
     if (error instanceof ZodError) {
       // Return validation errors
-      return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Validation failed", details: error.errors },
+        { status: 400 },
+      );
     }
 
-    if (error instanceof SyntaxError && error.message.includes("Unexpected end of JSON input")) {
-        return NextResponse.json({ error: "Invalid JSON payload: Empty or malformed." }, { status: 400 });
+    if (
+      error instanceof SyntaxError &&
+      error.message.includes("Unexpected end of JSON input")
+    ) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload: Empty or malformed." },
+        { status: 400 },
+      );
     }
 
-    console.error('[API_RATE_CARD_CREATE_ERROR]', error);
+    console.error("[API_RATE_CARD_CREATE_ERROR]", error);
     // Return a generic server error
-    return NextResponse.json({ error: "An unexpected error occurred.", details: (error as Error).message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "An unexpected error occurred.",
+        details: (error as Error).message,
+      },
+      { status: 500 },
+    );
   }
 }

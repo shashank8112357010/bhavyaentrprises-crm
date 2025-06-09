@@ -1,12 +1,16 @@
 import { z } from "zod";
 
 export const rateCardSchema = z.object({
-  srNo: z.number().int().nonnegative(),
   description: z.string().min(1),
   unit: z.string().min(1),
   rate: z.number().positive(),
- 
   bankName: z.string().min(1),
-  bankRcNo: z.string(),
-  // quantity: z.number().min(1, "Quantity must be at least 1"), // Added quantity field
+});
+
+// Schema for inline rate card creation (without serial number - auto-generated in backend)
+export const inlineRateCardFormSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  unit: z.string().min(1, "Unit is required"),
+  rate: z.number().positive("Rate must be positive"),
+  bankName: z.string().min(1, "Bank name is required"),
 });
