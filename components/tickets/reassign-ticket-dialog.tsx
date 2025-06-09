@@ -173,7 +173,10 @@ export default function ReassignTicketDialog({
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              onOpenChange(false);
+              resetDialog();
+            }}
             disabled={isLoading}
           >
             Cancel
