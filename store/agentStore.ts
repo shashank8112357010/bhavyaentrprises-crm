@@ -8,6 +8,7 @@ import {
 } from "../lib/services/agent";
 
 import { Agent, CreateAgentPayload } from "@/components/agent/types";
+import { Role } from "@/constants/roleAccessConfig";
 
 // Placeholder for the actual service call.
 // In a real application, this would likely be in '../lib/services/agent.ts'
