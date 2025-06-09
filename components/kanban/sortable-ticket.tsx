@@ -204,30 +204,43 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         className={`relative mb-3 transition-all duration-200`}
         {...attributes}
       >
-        {/* Edit/Delete buttons */}
-        <div className="absolute top-4 right-1 flex gap-2 z-10">
+        {/* Edit/Delete/Reassign buttons */}
+        <div className="absolute top-4 right-1 flex gap-1 z-10">
           <Button
             variant="ghost"
             size="icon"
-            className="h-4 w-4 p-0 "
+            className="h-4 w-4 p-0"
             onClick={(e) => {
               e.stopPropagation();
               setIsEditDialogOpen(true);
             }}
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3 w-3" />
           </Button>
+          {(user?.role === "ADMIN" || user?.role === "ACCOUNTS") && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 p-0 text-blue-500 hover:text-blue-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReassignDialogOpen(true);
+              }}
+            >
+              <UserPlus className="h-3 w-3" />
+            </Button>
+          )}
           {user?.role === "ADMIN" && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
+              className="h-4 w-4 p-0 text-red-500 hover:text-red-700"
               onClick={(e) => {
                 e.stopPropagation();
                 handleDelete();
               }}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3 w-3" />
             </Button>
           )}
         </div>
