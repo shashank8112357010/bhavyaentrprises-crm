@@ -107,7 +107,7 @@ export default function ReassignTicketDialog({
       });
 
       onOpenChange(false);
-      setSelectedAssigneeId("");
+      resetDialog();
 
       if (onReassignSuccess) {
         onReassignSuccess();
