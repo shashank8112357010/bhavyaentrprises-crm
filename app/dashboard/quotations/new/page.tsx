@@ -181,6 +181,11 @@ const NewQuotationPage = () => {
   // State for PDF Export
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
 
+  // State for Rate Card Creation
+  const [isCreateRateCardDialogOpen, setIsCreateRateCardDialogOpen] =
+    useState<boolean>(false);
+  const [isCreatingRateCard, setIsCreatingRateCard] = useState<boolean>(false);
+
   // Constants
   const igstRate = 0.18; // 18% IGST
 
