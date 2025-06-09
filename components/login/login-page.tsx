@@ -24,7 +24,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   // const [isLoading, setIsLoading] = useState(false); // Will use isLoading from authStore
   const [showPassword, setShowPassword] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   // const { setUser } = useUserStore(); // Replaced by authStore actions
 
   // Changed to individual selectors for potentially better performance and to avoid warnings
