@@ -103,7 +103,7 @@ export default function AgentsPage() {
   useEffect(() => {
     // Only fetch agents if user has permission
     if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
-      fetchAgents();
+      fetchAgents({}, user.role);
     }
   }, [fetchAgents, user?.role]);
 
