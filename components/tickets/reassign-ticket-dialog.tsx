@@ -50,12 +50,17 @@ export default function ReassignTicketDialog({
   useEffect(() => {
     if (open) {
       fetchAgents();
-      // Pre-select current assignee if available
-      if (currentAssignee) {
-        setSelectedAssigneeId(currentAssignee.id);
-      }
     }
-  }, [open, fetchAgents, currentAssignee]);
+  }, [open, fetchAgents]);
+
+  // Separate effect for setting the current assignee to avoid infinite loops
+  useEffect(() => {
+    if (open && currentAssignee?.id) {
+      setSelectedAssigneeId(currentAssignee.id);
+    } else if (open) {
+      setSelectedAssigneeId("");
+    }
+  }, [open, currentAssignee?.id]); // Only depend on the ID, not the whole object
 
   const handleReassign = async () => {
     if (!selectedAssigneeId) {
