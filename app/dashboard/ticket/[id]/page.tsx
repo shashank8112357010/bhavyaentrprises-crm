@@ -194,6 +194,20 @@ export default function TicketDetailsPage() {
   // State for reassign dialog
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
 
+  // State for edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Memoize currentAssignee to prevent object recreation on every render
+  const currentAssignee = useMemo(() => {
+    if (ticket?.assignee) {
+      return {
+        id: ticket.assignee.id || "",
+        name: ticket.assignee.name || "Unknown",
+      };
+    }
+    return undefined;
+  }, [ticket?.assignee?.id, ticket?.assignee?.name]);
+
   const handleAddComment = async () => {
     const currentUserId = getCurrentUserIdFromAuth();
 
