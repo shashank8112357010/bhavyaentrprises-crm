@@ -68,14 +68,15 @@ export default function AgentsPage() {
     searchQuery,
     setCurrentPage,
     setSearchQuery,
-    setItemsPerPage // Added setItemsPerPage from store
+    setItemsPerPage, // Added setItemsPerPage from store
   } = useAgentStore();
 
   const [selectedAgentForDetails, setSelectedAgentForDetails] =
     useState<Agent | null>(null);
   const [selectedAgentForDeletion, setSelectedAgentForDeletion] =
     useState<Agent | null>(null);
-  const [selectedAgentForEdit, setSelectedAgentForEdit] = useState<Agent | null>(null);
+  const [selectedAgentForEdit, setSelectedAgentForEdit] =
+    useState<Agent | null>(null);
   const [isDeletingAgent, setIsDeletingAgent] = useState<boolean>(false);
   const { toast } = useToast();
 
@@ -125,7 +126,8 @@ export default function AgentsPage() {
     setCurrentPage(event.selected + 1);
   };
 
-  const pageCount = itemsPerPage > 0 ? Math.ceil(totalAgents / itemsPerPage) : 0;
+  const pageCount =
+    itemsPerPage > 0 ? Math.ceil(totalAgents / itemsPerPage) : 0;
 
   useEffect(() => {
     if (error) {
@@ -189,7 +191,7 @@ export default function AgentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {agents.filter((a:any) => a.status === "ACTIVE").length}
+              {agents.filter((a: any) => a.status === "ACTIVE").length}
             </div>
           </CardContent>
         </Card>
@@ -215,7 +217,7 @@ export default function AgentsPage() {
             <div className="text-2xl font-bold">
               {agents.reduce(
                 (sum: any, agent: any) => sum + (agent.activeTickets || 0),
-                0
+                0,
               )}
             </div>
           </CardContent>
@@ -242,104 +244,104 @@ export default function AgentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!loading && agents.map((agent: any) => (
-                <TableRow key={agent.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={agent.avatar} alt={agent.name} />
-                        <AvatarFallback className="capitalize">
-                          {agent.name
-                            .split(" ")
-                            .map((n: any) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium capitalize">{agent.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {agent.id}
+              {!loading &&
+                agents.map((agent: any) => (
+                  <TableRow key={agent.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={agent.avatar} alt={agent.name} />
+                          <AvatarFallback className="capitalize">
+                            {agent.name
+                              .split(" ")
+                              .map((n: any) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium capitalize">
+                            {agent.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {agent.id}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-medium">
-                      {agent.role}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        agent.status === "ACTIVE" ? "default" : "secondary"
-                      }
-                    >
-                      {agent.status || "N/A"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        agent.activeTickets > 2 ? "destructive" : "secondary"
-                      }
-                    >
-                      {agent.activeTickets}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="text-sm">
-                      <div className="flex items-center">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {agent.mobile}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-medium">{agent.role}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          agent.status === "ACTIVE" ? "default" : "secondary"
+                        }
+                      >
+                        {agent.status || "N/A"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          agent.activeTickets > 2 ? "destructive" : "secondary"
+                        }
+                      >
+                        {agent.activeTickets}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="text-sm">
+                        <div className="flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {agent.mobile}
+                        </div>
+                        <div className="flex items-center text-muted-foreground">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {agent.email.slice(0, 29)}
+                        </div>
                       </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {agent.email.slice(0, 29)}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <div className="text-sm">
+                        <div>Rating: {agent.rating}/5.0</div>
+                        <div className="text-muted-foreground">
+                          {agent.completedTickets} tickets completed
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <div className="text-sm">
-                      <div>Rating: {agent.rating}/5.0</div>
-                      <div className="text-muted-foreground">
-                        {agent.completedTickets} tickets completed
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleViewDetails(agent)}
-                        >
-                          View Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>Assign Ticket</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleEdit(agent)}>
-                          Edit Agent
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setSelectedAgentForDeletion(agent)}
-                        >
-                          Delete Agent
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => handleViewDetails(agent)}
+                          >
+                            View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleEdit(agent)}>
+                            Edit Agent
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setSelectedAgentForDeletion(agent)}
+                          >
+                            Delete Agent
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
 
@@ -349,12 +351,14 @@ export default function AgentsPage() {
             </div>
           )}
           {!loading && totalAgents === 0 && (
-             <div className="text-center py-10 text-muted-foreground">
-              {searchQuery ? "No agents found matching your search." : "No agents found."}
+            <div className="text-center py-10 text-muted-foreground">
+              {searchQuery
+                ? "No agents found matching your search."
+                : "No agents found."}
             </div>
           )}
           {!loading && agents.length === 0 && totalAgents > 0 && (
-             <div className="text-center py-10 text-muted-foreground">
+            <div className="text-center py-10 text-muted-foreground">
               No agents found for the current search or page.
             </div>
           )}
@@ -364,14 +368,14 @@ export default function AgentsPage() {
       {/* Standardized Pagination Controls Area */}
       <div className="mt-8 flex flex-col items-center gap-4 md:flex-row md:justify-between">
         <div className="text-sm text-muted-foreground mb-2 md:mb-0">
-          {totalAgents > 0 ? (
-            `Showing ${(currentPage - 1) * itemsPerPage + 1} - ${Math.min(currentPage * itemsPerPage, totalAgents)} of ${totalAgents} agents`
-          ) : (
-            // This specific message might be redundant if the table already shows a more contextual one
-            // For consistency, we can keep it or rely on table's message.
-            // Let's keep it simple:
-            searchQuery ? "No agents found matching your search." : "No agents found."
-          )}
+          {totalAgents > 0
+            ? `Showing ${(currentPage - 1) * itemsPerPage + 1} - ${Math.min(currentPage * itemsPerPage, totalAgents)} of ${totalAgents} agents`
+            : // This specific message might be redundant if the table already shows a more contextual one
+              // For consistency, we can keep it or rely on table's message.
+              // Let's keep it simple:
+              searchQuery
+              ? "No agents found matching your search."
+              : "No agents found."}
         </div>
 
         {totalAgents > itemsPerPage && (
@@ -394,20 +398,30 @@ export default function AgentsPage() {
             </Select>
 
             <ReactPaginate
-                previousLabel={"← Previous"}
-                nextLabel={"Next →"}
-                breakLabel={"..."}
-                pageCount={pageCount}
-                marginPagesDisplayed={1}
-                pageRangeDisplayed={2}
-                onPageChange={handlePageClick}
-                containerClassName={"flex items-center space-x-1 text-sm select-none"}
-                pageLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-                activeLinkClassName={"bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"}
-                previousLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-                nextLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-                disabledLinkClassName={"opacity-50 cursor-not-allowed"}
-                forcePage={currentPage - 1}
+              previousLabel={"← Previous"}
+              nextLabel={"Next →"}
+              breakLabel={"..."}
+              pageCount={pageCount}
+              marginPagesDisplayed={1}
+              pageRangeDisplayed={2}
+              onPageChange={handlePageClick}
+              containerClassName={
+                "flex items-center space-x-1 text-sm select-none"
+              }
+              pageLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              activeLinkClassName={
+                "bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+              }
+              previousLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              nextLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              disabledLinkClassName={"opacity-50 cursor-not-allowed"}
+              forcePage={currentPage - 1}
             />
           </div>
         )}
