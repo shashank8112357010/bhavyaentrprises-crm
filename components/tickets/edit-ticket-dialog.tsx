@@ -26,10 +26,10 @@ import { useTicketStore } from "@/store/ticketStore";
 import { useToast } from "@/hooks/use-toast";
 import { Ticket } from "@/lib/services/ticket";
 type Comment = {
-  text: string,
-  ticketId: string,
-  userId: string, // Assuming GST types are 18 and 28
-}
+  text: string;
+  ticketId: string;
+  userId: string; // Assuming GST types are 18 and 28
+};
 interface EditTicketInput {
   id: string;
   title: string;
@@ -62,14 +62,18 @@ type EditTicketDialogProps = {
 };
 
 const formatDate = (date: Date | string) => {
-  if (typeof date === 'string') {
+  if (typeof date === "string") {
     return new Date(date).toISOString().split("T")[0];
   }
   return date.toISOString().split("T")[0];
 };
 
-export default function EditTicketDialog({ ticket, onUpdate, open, onOpenChange }: EditTicketDialogProps) {
-  
+export default function EditTicketDialog({
+  ticket,
+  onUpdate,
+  open,
+  onOpenChange,
+}: EditTicketDialogProps) {
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
   const { updateTicket } = useTicketStore();
@@ -80,7 +84,9 @@ export default function EditTicketDialog({ ticket, onUpdate, open, onOpenChange 
     branch: ticket.branch,
     priority: ticket.priority,
     dueDate: formatDate(ticket.dueDate),
-    scheduledDate: ticket.scheduledDate ? formatDate(ticket.scheduledDate) : formatDate(new Date()),
+    scheduledDate: ticket.scheduledDate
+      ? formatDate(ticket.scheduledDate)
+      : formatDate(new Date()),
     description: ticket.description,
     assigneeId: ticket.assignee?.name || "",
     clientId: ticket.client.id || "",
@@ -98,34 +104,65 @@ export default function EditTicketDialog({ ticket, onUpdate, open, onOpenChange 
 
   useEffect(() => {
     if (agents.length > 0 && ticket.assignee?.name) {
-      const assignee = agents.find(agent => agent.name === ticket.assignee?.name);
+      const assignee = agents.find(
+        (agent) => agent.name === ticket.assignee?.name,
+      );
       if (assignee) {
-        setFormData(prev => ({ ...prev, assigneeId: assignee.id }));
+        setFormData((prev) => ({ ...prev, assigneeId: assignee.id }));
       }
     }
   }, [agents, ticket.assignee?.name]);
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async () => {
+    // Validate required fields
+    if (
+      !formData.title ||
+      !formData.branch ||
+      !formData.priority ||
+      !formData.description ||
+      !formData.assigneeId ||
+      !formData.clientId
+    ) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const ticketData = {
-        ...formData,
-        dueDate: new Date(formData.dueDate).toISOString(),
-        scheduledDate: new Date(formData.scheduledDate).toISOString(),
+        id: ticket.id,
+        title: formData.title,
+        branch: formData.branch,
+        priority: formData.priority,
+        description: formData.description,
+        assigneeId: formData.assigneeId,
+        clientId: formData.clientId,
+        dueDate: formData.dueDate
+          ? new Date(formData.dueDate).toISOString()
+          : undefined,
+        scheduledDate: formData.scheduledDate
+          ? new Date(formData.scheduledDate).toISOString()
+          : undefined,
       };
-      await updateTicket({ id: ticket.id, ...ticketData });
+
+      await updateTicket(ticketData);
       onOpenChange(false);
       onUpdate();
       toast({ title: "Success", description: "Ticket updated successfully!" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update ticket:", error);
       toast({
         title: "Error",
-        description: "Failed to update ticket. Please try again.",
+        description:
+          error.message || "Failed to update ticket. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -245,7 +282,9 @@ export default function EditTicketDialog({ ticket, onUpdate, open, onOpenChange 
               <SelectContent>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
-                    {client.initials ? `${client.initials} - ${client.name}` : client.name}
+                    {client.initials
+                      ? `${client.initials} - ${client.name}`
+                      : client.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -265,7 +304,9 @@ export default function EditTicketDialog({ ticket, onUpdate, open, onOpenChange 
               <SelectContent>
                 {agents.map((agent) => (
                   <SelectItem key={agent.id} value={agent.id}>
-                    {agent.avatar ? `${agent.avatar} - ${agent.name}` : agent.name}
+                    {agent.avatar
+                      ? `${agent.avatar} - ${agent.name}`
+                      : agent.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -274,7 +315,11 @@ export default function EditTicketDialog({ ticket, onUpdate, open, onOpenChange 
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
