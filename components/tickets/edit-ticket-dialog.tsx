@@ -83,13 +83,15 @@ export default function EditTicketDialog({
     title: ticket.title,
     branch: ticket.branch,
     priority: ticket.priority,
-    dueDate: formatDate(ticket.dueDate),
+    dueDate: ticket.dueDate
+      ? formatDate(ticket.dueDate)
+      : formatDate(new Date()),
     scheduledDate: ticket.scheduledDate
       ? formatDate(ticket.scheduledDate)
       : formatDate(new Date()),
     description: ticket.description,
-    assigneeId: ticket.assignee?.name || "",
-    clientId: ticket.client.id || "",
+    assigneeId: (ticket.assignee as any)?.id || "",
+    clientId: ticket.client?.id || "",
   });
 
   const [isLoading, setIsLoading] = useState(false);
