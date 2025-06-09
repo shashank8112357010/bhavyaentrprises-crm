@@ -58,18 +58,31 @@ export async function POST(req: NextRequest) {
       .setExpirationTime("1d") // 1 day
       .sign(JWT_SECRET);
 
+    const userResponse = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      initials,
+    };
+
+    console.log(
+      "Login successful for user:",
+      email,
+      "User data:",
+      userResponse,
+    );
+
     // 🥠 Set cookie and return response
-    const response = NextResponse.json({
+    const responseData = {
       success: true,
       token,
-      user: {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-        initials,
-      },
-    });
+      user: userResponse,
+    };
+
+    console.log("Sending response:", responseData);
+
+    const response = NextResponse.json(responseData);
 
     response.cookies.set("token", token, {
       httpOnly: true,
