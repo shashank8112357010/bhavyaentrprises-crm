@@ -618,16 +618,77 @@ export default function TicketDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Placeholder for Profit Analysis and other Documents as in dialog */}
+          {/* Profit Analysis */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium">
-                Profit Analysis (Placeholder)
+                Profit Analysis
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              <p>Expected Profit: Calculation pending</p>
-              <p>Profit Margin: Calculation pending</p>
+            <CardContent className="text-sm">
+              {(() => {
+                const totalExpenses =
+                  ticket.expenses?.reduce((sum, exp) => sum + exp.amount, 0) ||
+                  0;
+                const quotationAmount = ticket.Quotation?.[0]?.grandTotal || 0;
+                const expectedExpense =
+                  ticket.Quotation?.[0]?.expectedExpense || 0;
+
+                // Expected profit = expected expense - total expense
+                const expectedProfit = expectedExpense - totalExpenses;
+
+                // Profit = quotation amount - total expense
+                const actualProfit = quotationAmount - totalExpenses;
+
+                // Profit margin calculation
+                const profitMargin =
+                  quotationAmount > 0
+                    ? (actualProfit / quotationAmount) * 100
+                    : 0;
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Expected Expense:</span>
+                      <span>₹{expectedExpense.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Expenses:</span>
+                      <span>₹{totalExpenses.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Quotation Amount:</span>
+                      <span>₹{quotationAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t pt-2 mt-2 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Expected Profit:</span>
+                        <span
+                          className={`font-medium ${expectedProfit >= 0 ? "text-green-600" : "text-red-600"}`}
+                        >
+                          ₹{expectedProfit.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Actual Profit:</span>
+                        <span
+                          className={`font-medium ${actualProfit >= 0 ? "text-green-600" : "text-red-600"}`}
+                        >
+                          ₹{actualProfit.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Profit Margin:</span>
+                        <span
+                          className={`font-medium ${profitMargin >= 0 ? "text-green-600" : "text-red-600"}`}
+                        >
+                          {profitMargin.toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 
