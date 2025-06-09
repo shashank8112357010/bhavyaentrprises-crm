@@ -96,9 +96,13 @@ export async function updateAgent(id: string, updatedAgent: Agent) {
         Expires: "0",
       },
     });
-    return response.data;
+    // Handle the API response wrapper
+    return response.data.agent || response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch agent.";
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Failed to update agent.";
     throw new Error(message);
   }
 }
