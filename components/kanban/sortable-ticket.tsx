@@ -33,6 +33,7 @@ import {
 import type { Ticket } from "./types";
 import { updateTicket, deleteTicket } from "@/lib/services/ticket";
 import EditTicketDialog from "../tickets/edit-ticket-dialog";
+import ReassignTicketDialog from "../tickets/reassign-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 import Link from "next/link";
