@@ -63,16 +63,42 @@ export default function NewTicketDialog() {
   };
 
   const handleSubmit = async () => {
+    // Validate required fields
+    if (
+      !formData.title ||
+      !formData.branch ||
+      !formData.priority ||
+      !formData.description ||
+      !formData.assigneeId ||
+      !formData.clientId
+    ) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const ticketData = {
-        ...formData,
-        dueDate: new Date(formData.dueDate).toISOString(),
-        scheduledDate: new Date(formData.scheduledDate).toISOString(),
+        title: formData.title,
+        branch: formData.branch,
+        priority: formData.priority,
+        description: formData.description,
+        assigneeId: formData.assigneeId,
+        clientId: formData.clientId,
+        dueDate: formData.dueDate
+          ? new Date(formData.dueDate).toISOString()
+          : undefined,
+        scheduledDate: formData.scheduledDate
+          ? new Date(formData.scheduledDate).toISOString()
+          : undefined,
       };
+
       await createTicket(ticketData);
 
-      
       setOpen(false);
       setFormData({
         title: "",
@@ -85,11 +111,12 @@ export default function NewTicketDialog() {
         clientId: "",
       });
       toast({ title: "Success", description: "Ticket created successfully!" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create ticket:", error);
       toast({
         title: "Error",
-        description: "Failed to create ticket. Please try again.",
+        description:
+          error.message || "Failed to create ticket. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -179,9 +206,7 @@ export default function NewTicketDialog() {
                 id="scheduledDate"
                 ref={scheduledDateRef}
                 value={formData.scheduledDate}
-                onChange={(e) =>
-                  handleChange("scheduledDate", e.target.value)
-                }
+                onChange={(e) => handleChange("scheduledDate", e.target.value)}
                 className="pr-10 hide-date-icon"
                 required
               />
@@ -216,9 +241,7 @@ export default function NewTicketDialog() {
               <SelectContent>
                 {clients.map((client: any) => (
                   <SelectItem key={client.id} value={client.id}>
-                    {client.initials
-                      ? `${client.name}`
-                      : client.name}
+                    {client.initials ? `${client.name}` : client.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -249,7 +272,11 @@ export default function NewTicketDialog() {
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
