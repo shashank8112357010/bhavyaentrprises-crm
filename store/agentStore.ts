@@ -2,11 +2,9 @@ import { create } from "zustand";
 import {
   getAllAgents,
   getAgentById,
-  createAgent as createAgentService, // Renamed for clarity
-  updateAgent as updateAgentService, // Renamed for clarity
-  deleteAgent as deleteAgentService, // Renamed to avoid conflict with action name
-  // Assume getTotalAgentCount will be added to services, similar to others.
-  // For now, we define a placeholder directly in this file.
+  createAgent,
+  updateAgent,
+  deleteAgent,
 } from "../lib/services/agent";
 
 import { Agent, CreateAgentPayload } from "@/components/agent/types";
@@ -103,7 +101,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
   addAgent: async (agent: CreateAgentPayload) => {
     try {
-      await createAgentService(agent); // Use renamed service
+      await createAgent(agent);
       // After adding, refresh to the first page with current search query
       get().fetchAgents({ page: 1, query: get().searchQuery });
     } catch (error: any) {
@@ -115,7 +113,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     try {
       // Use originalId if available (for agents fetched from the list), otherwise use the provided id
       const actualId = (updatedAgent as any).originalId || id;
-      await updateAgentService(actualId, updatedAgent); // Use renamed service
+      await updateAgent(actualId, updatedAgent);
       // After editing, refresh the current page
       get().fetchAgents({ page: get().currentPage, query: get().searchQuery });
     } catch (error: any) {
@@ -130,7 +128,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const agent = agents.find((a) => a.id === id);
       const actualId = (agent as any)?.originalId || id;
 
-      await deleteAgentService(actualId); // Use renamed service
+      await deleteAgent(actualId);
       // After deleting, check if the current page becomes empty
       const { totalAgents, currentPage } = get();
       if (agents.length === 1 && totalAgents > 1 && currentPage > 1) {
