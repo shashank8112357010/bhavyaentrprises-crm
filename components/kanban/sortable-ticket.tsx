@@ -54,6 +54,17 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   const poInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthStore();
 
+  // Memoize currentAssignee to prevent object recreation on every render
+  const currentAssignee = useMemo(() => {
+    if (ticket.assignee) {
+      return {
+        id: ticket.assignee.id || "",
+        name: ticket.assignee.name || "Unknown",
+      };
+    }
+    return undefined;
+  }, [ticket.assignee?.id, ticket.assignee?.name]);
+
   const {
     attributes,
     listeners,
