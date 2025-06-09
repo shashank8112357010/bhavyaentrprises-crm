@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       email: agent.email,
       mobile: agent.mobile,
       role: agent.role, // This is the agent's role from the DB
-      userId: agent.id,
+      userId: agent.id, // Also keep userId for compatibility
       department: agent.department || "",
       specialization: agent.specialization || "",
       status: agent.status,
