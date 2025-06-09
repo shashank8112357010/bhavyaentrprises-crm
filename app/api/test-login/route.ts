@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email } = body;
+    const { email, testLogin } = body;
 
     if (!email) {
       return NextResponse.json(
@@ -74,6 +74,26 @@ export async function POST(req: NextRequest) {
       name: user.name,
       initials,
     };
+
+    // If testLogin is true, simulate the login response
+    if (testLogin) {
+      const mockLoginResponse = {
+        success: true,
+        token: "mock-jwt-token-for-testing",
+        user: userResponse,
+      };
+
+      return NextResponse.json({
+        message: "Mock login response generated",
+        loginResponse: mockLoginResponse,
+        responseStructure: {
+          hasSuccess: "success" in mockLoginResponse,
+          hasToken: "token" in mockLoginResponse,
+          hasUser: "user" in mockLoginResponse,
+          userKeys: Object.keys(userResponse),
+        },
+      });
+    }
 
     return NextResponse.json({
       message: "User found successfully",
