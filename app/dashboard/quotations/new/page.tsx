@@ -1224,6 +1224,150 @@ const NewQuotationPage = () => {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Create Rate Card Dialog */}
+      <Dialog
+        open={isCreateRateCardDialogOpen}
+        onOpenChange={setIsCreateRateCardDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create New Rate Card</DialogTitle>
+            <DialogDescription>
+              Add a new rate card to your database.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...rateCardForm}>
+            <form
+              onSubmit={rateCardForm.handleSubmit(onRateCardFormSubmit)}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={rateCardForm.control}
+                  name="srNo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Serial Number *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value) || 1)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Each, Nos, Set" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Description *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter rate card description"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="rate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rate *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="bankName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bank Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="bankRcNo"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Bank RC Number *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter className="pt-4">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" disabled={isCreatingRateCard}>
+                  {isCreatingRateCard ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Rate Card"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
