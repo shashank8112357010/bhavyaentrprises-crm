@@ -47,6 +47,12 @@ export default function ReassignTicketDialog({
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Reset function to clear state when dialog closes
+  const resetDialog = () => {
+    setSelectedAssigneeId("");
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (open) {
       fetchAgents();
