@@ -33,7 +33,6 @@ export default function LoginPage() {
   // without being reset, it might show stale errors.
   // The current implementation in handleLogin uses result.error from the login action promise.
 
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -46,28 +45,39 @@ export default function LoginPage() {
       return;
     }
 
-    // isLoading is set to true within the authStore.login action
-    const result = await login(email, password);
+    try {
+      // isLoading is set to true within the authStore.login action
+      const result = await login(email, password);
 
-    if (result.success) {
-      toast({ title: "Success", description: "Logged in successfully!" });
-      // The authStore.login action's service call might already redirect for 302.
-      // If user and token are returned (e.g. status 200), then redirect here.
-      // localStorage is handled by the store action now.
-      // setUser from useUserStore is removed as authStore is the source of truth.
+      console.log("Login result:", result);
 
-      // Check if redirection is already handled by the service (e.g. for 302 status)
-      // If not, or if we need to ensure it for 200 status returns with user data:
-      if (!window.location.pathname.startsWith("/dashboard")) {
-         // Using router.push for client-side navigation is generally preferred in Next.js
-         // but window.location.href is fine if full page reload is intended or if service layer used it.
-         window.location.href = "/dashboard";
-        // Alternatively, to ensure full page reload: window.location.href = "/dashboard";
+      if (result.success) {
+        toast({ title: "Success", description: "Logged in successfully!" });
+
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          // Check if redirection is already handled by the service (e.g. for 302 status)
+          // If not, or if we need to ensure it for 200 status returns with user data:
+          if (!window.location.pathname.startsWith("/dashboard")) {
+            // Using router.push for client-side navigation is generally preferred in Next.js
+            // but window.location.href is fine if full page reload is intended or if service layer used it.
+            window.location.href = "/dashboard";
+            // Alternatively, to ensure full page reload: window.location.href = "/dashboard";
+          }
+        }, 100);
+      } else {
+        console.error("Login failed:", result.error);
+        toast({
+          title: "Authentication failed",
+          description: result.error || "Invalid email or password", // Use error from store result
+          variant: "destructive",
+        });
       }
-    } else {
+    } catch (error) {
+      console.error("Login exception:", error);
       toast({
-        title: "Authentication failed",
-        description: result.error || "Invalid email or password", // Use error from store result
+        title: "Login Error",
+        description: "An unexpected error occurred during login",
         variant: "destructive",
       });
     }
