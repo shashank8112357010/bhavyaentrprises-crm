@@ -97,6 +97,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Log the response for debugging
       console.log("Login response status:", response.status);
       console.log("Login response data:", response.data);
+      console.log("Response data type:", typeof response.data);
+      console.log("Response data keys:", Object.keys(response.data || {}));
+      console.log("Raw response:", JSON.stringify(response.data, null, 2));
 
       const { user, token, success } = response.data;
 
