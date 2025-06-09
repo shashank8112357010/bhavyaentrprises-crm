@@ -802,6 +802,22 @@ export default function TicketDetailsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Reassign Ticket Dialog */}
+      <ReassignTicketDialog
+        open={reassignDialogOpen}
+        onOpenChange={setReassignDialogOpen}
+        ticketId={ticket.id}
+        currentAssignee={
+          ticket.assignee
+            ? {
+                id: ticket.assignee.id || "",
+                name: ticket.assignee.name || "Unknown",
+              }
+            : undefined
+        }
+        onReassignSuccess={loadTicketData}
+      />
     </div>
   );
 }
