@@ -109,6 +109,7 @@ interface Quotation {
   subtotal: number;
   gst: number;
   grandTotal: number;
+  expectedExpense?: number; // Add expected expense field
   // Add other relevant quotation fields
 }
 
