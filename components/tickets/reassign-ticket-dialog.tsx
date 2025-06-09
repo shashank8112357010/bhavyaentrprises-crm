@@ -53,11 +53,16 @@ export default function ReassignTicketDialog({
     setIsLoading(false);
   };
 
-  useEffect(() => {
+  // Memoize fetchAgents call to prevent unnecessary re-renders
+  const fetchAgentsList = useCallback(() => {
     if (open) {
       fetchAgents();
     }
   }, [open, fetchAgents]);
+
+  useEffect(() => {
+    fetchAgentsList();
+  }, [fetchAgentsList]);
 
   // Separate effect for setting the current assignee to avoid infinite loops
   useEffect(() => {
