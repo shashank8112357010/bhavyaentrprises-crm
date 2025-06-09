@@ -19,6 +19,7 @@ interface Quotation {
   ticket: {
     id: string;
     title: string;
+    ticketId?: string; // Custom ticket ID like T-BE25Jun0001-CLIENT
   } | null;
   subtotal: number;
   gst: number;
