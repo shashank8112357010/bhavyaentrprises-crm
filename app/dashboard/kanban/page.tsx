@@ -139,8 +139,12 @@ export default function KanbanPage() {
 
   useEffect(() => {
     fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
-    fetchAgents();
-    fetchClients();
+
+    // Only fetch agents and clients if user has permission
+    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+      fetchAgents();
+      fetchClients();
+    }
   }, [
     fetchTickets,
     fetchAgents,
@@ -149,6 +153,7 @@ export default function KanbanPage() {
     startDate,
     endDate,
     endDateTicket,
+    user?.role,
   ]);
 
   const handleDragEnd = async (result: any) => {
