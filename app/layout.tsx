@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
+import { ClientToaster } from "@/components/ui/client-toaster";
 import { cn } from "@/lib/utils";
 
 const fontSans = FontSans({
@@ -13,9 +13,9 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   title: "Bhavya Enterprises CRM",
   description: "CRM for financial advisory firms",
-  icons:{
-    icon : "/bhavyalogo.png"
-  }
+  icons: {
+    icon: "/bhavyalogo.png",
+  },
 };
 
 export default function RootLayout({
@@ -26,10 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={cn(
-          "bg-background font-sans antialiased",
-          fontSans.variable
-        )}
+        className={cn("bg-background font-sans antialiased", fontSans.variable)}
       >
         <ThemeProvider
           attribute="class"
@@ -37,7 +34,6 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          
           {children}
           <Toaster />
         </ThemeProvider>
