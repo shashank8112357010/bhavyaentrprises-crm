@@ -773,6 +773,15 @@ const NewQuotationPage = () => {
                 )}
               </div>
 
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateRateCardDialogOpen(true)}
+                className="w-full"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create New Rate Card
+              </Button>
+
               {/* Selected Items Table */}
               {quotationItems.length > 0 && (
                 <div className="overflow-x-auto">
