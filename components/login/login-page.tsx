@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,7 +17,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import a loading spinner icon
 import { useAuthStore } from "@/store/authStore";
 import axiosInstance from "@/lib/axios";
-import { useState, useEffect } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
