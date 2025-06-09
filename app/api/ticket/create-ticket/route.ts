@@ -10,6 +10,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = createTicketSchema.parse(body);
 
+    // Validate that the assignee exists
+    if (validatedData.assigneeId) {
+      const assigneeExists = await prisma.user.findUnique({
+        where: { id: validatedData.assigneeId },
+      });
+      if (!assigneeExists) {
+        return NextResponse.json(
+          { message: "Assignee not found. Please select a valid assignee." },
+          { status: 400 },
+        );
+      }
+    }
+
     // Fetch the latest ticket to determine the next serial number
     const latestTicket = await prisma.ticket.findFirst({
       orderBy: { createdAt: "desc" },
