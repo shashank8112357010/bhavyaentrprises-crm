@@ -832,14 +832,7 @@ export default function TicketDetailsPage() {
         open={reassignDialogOpen}
         onOpenChange={setReassignDialogOpen}
         ticketId={ticket.id}
-        currentAssignee={
-          ticket.assignee
-            ? {
-                id: ticket.assignee.id || "",
-                name: ticket.assignee.name || "Unknown",
-              }
-            : undefined
-        }
+        currentAssignee={currentAssignee}
         onReassignSuccess={loadTicketData}
       />
     </div>
