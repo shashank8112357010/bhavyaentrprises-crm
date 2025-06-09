@@ -142,11 +142,11 @@ export default function AgentsPage() {
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
+    setSearchQuery(event.target.value, user?.role);
   };
 
   const handlePageClick = (event: { selected: number }) => {
-    setCurrentPage(event.selected + 1);
+    setCurrentPage(event.selected + 1, user?.role);
   };
 
   const pageCount =
