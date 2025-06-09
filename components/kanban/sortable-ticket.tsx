@@ -492,6 +492,24 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
       />
+
+      <ReassignTicketDialog
+        open={isReassignDialogOpen}
+        onOpenChange={setIsReassignDialogOpen}
+        ticketId={ticket.id}
+        currentAssignee={
+          ticket.assignee
+            ? {
+                id: ticket.assignee.id || "",
+                name: ticket.assignee.name || "Unknown",
+              }
+            : undefined
+        }
+        onReassignSuccess={() => {
+          router.refresh();
+          handleUpdate();
+        }}
+      />
     </>
   );
 }
