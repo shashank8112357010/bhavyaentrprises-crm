@@ -269,16 +269,17 @@ export const useTicketStore = create<TicketState>((set) => ({
       const newTicket = await createTicket(ticketData);
       const { ticket } = newTicket;
 
+      // Add the complete ticket to the store
       set((state) => ({
         tickets: {
           ...state.tickets,
-          new: [
-            ...state.tickets.new,
-            { ...ticket, status: "new", expenses: [], client: { name: "" } },
-          ],
+          new: [ticket, ...state.tickets.new],
         },
         loading: false,
       }));
+
+      // Refresh tickets to ensure data consistency
+      get().fetchTickets();
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
