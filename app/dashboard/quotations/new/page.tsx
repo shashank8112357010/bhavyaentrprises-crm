@@ -558,6 +558,44 @@ const NewQuotationPage = () => {
     }
   };
 
+  const onRateCardFormSubmit = async (values: CreateRateCardFormData) => {
+    setIsCreatingRateCard(true);
+    try {
+      const newRateCard = await createSingleRateCard(values);
+      toast({
+        title: "Success",
+        description: "Rate card created successfully!",
+      });
+      setIsCreateRateCardDialogOpen(false);
+      rateCardForm.reset({
+        srNo: 1,
+        description: "",
+        unit: "",
+        rate: 0,
+        bankName: "BE",
+        bankRcNo: "N/A",
+      });
+
+      // Automatically add the new rate card to the quotation
+      if (newRateCard) {
+        handleRateCardSelect(newRateCard);
+      }
+
+      // Refresh rate card search to include new card
+      if (rateCardSearch) {
+        searchRateCards(rateCardSearch);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create rate card.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingRateCard(false);
+    }
+  };
+
   return (
     <div className="flex-1 space-y-6 p-6">
       {/* Header */}
