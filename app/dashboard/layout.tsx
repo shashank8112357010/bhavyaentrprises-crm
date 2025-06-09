@@ -47,7 +47,7 @@ export default function RootLayout({
                 </main>
               </div>
             </div>
-            <Toaster />
+            <ClientToaster />
           </AuthInitializer>
         </ThemeProvider>
       </body>
