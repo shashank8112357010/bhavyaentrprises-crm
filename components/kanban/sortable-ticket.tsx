@@ -46,6 +46,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   const router = useRouter();
   const { toast } = useToast(); // Initialized useToast
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
 
   const [isUploadingJcr, setIsUploadingJcr] = useState(false);
   const [isUploadingPo, setIsUploadingPo] = useState(false);
