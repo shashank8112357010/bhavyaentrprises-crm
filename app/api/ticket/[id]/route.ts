@@ -99,6 +99,30 @@ export async function PATCH(
       );
     }
 
+    // Validate assigneeId exists if it's being updated
+    if (validatedData.data.assigneeId) {
+      const assigneeExists = await prisma.user.findUnique({
+        where: { id: validatedData.data.assigneeId },
+        select: { id: true, role: true },
+      });
+
+      if (!assigneeExists) {
+        return NextResponse.json(
+          { message: "Assignee not found. Please select a valid assignee." },
+          { status: 400 },
+        );
+      }
+
+      // Check if the user has a valid role for assignment
+      const validRoles = ["ADMIN", "BACKEND", "RM", "MST", "ACCOUNTS"];
+      if (!validRoles.includes(assigneeExists.role)) {
+        return NextResponse.json(
+          { message: "Selected user cannot be assigned to tickets." },
+          { status: 400 },
+        );
+      }
+    }
+
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
       data: validatedData.data as any,
