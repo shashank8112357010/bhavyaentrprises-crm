@@ -68,6 +68,13 @@ export default function ReassignTicketDialog({
     }
   }, [open, currentAssignee?.id]); // Only depend on the ID, not the whole object
 
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      resetDialog();
+    }
+  }, [open]);
+
   const handleReassign = async () => {
     if (!selectedAssigneeId) {
       toast({
