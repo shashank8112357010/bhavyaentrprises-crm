@@ -23,19 +23,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fetch the latest ticket to determine the next serial number
-    const latestTicket = await prisma.ticket.findFirst({
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Extract the client name
+    // Validate that the client exists
     const client = await prisma.client.findUnique({
       where: { id: validatedData.clientId },
     });
 
     if (!client) {
-      throw new Error("Client not found");
+      return NextResponse.json(
+        { message: "Client not found. Please select a valid client." },
+        { status: 400 },
+      );
     }
+
+    // Fetch the latest ticket to determine the next serial number
+    const latestTicket = await prisma.ticket.findFirst({
+      orderBy: { createdAt: "desc" },
+    });
 
     let serial = 1; // Default serial number if no tickets exist
 
