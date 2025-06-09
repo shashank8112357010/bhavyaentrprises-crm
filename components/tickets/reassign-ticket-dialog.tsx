@@ -159,7 +159,10 @@ export default function ReassignTicketDialog({
               </SelectTrigger>
               <SelectContent>
                 {agents.map((agent: any) => (
-                  <SelectItem key={agent.id} value={agent.id}>
+                  <SelectItem
+                    key={agent.id}
+                    value={agent.originalId || agent.userId || agent.id}
+                  >
                     <div className="flex items-center gap-2">
                       <span className="capitalize">{agent.name}</span>
                       {agent.role && (
