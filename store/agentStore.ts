@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import {
   getAllAgents,
-  createAgent as createAgentService,
   getAgentById,
   createAgent as createAgentService, // Renamed for clarity
   updateAgent as updateAgentService, // Renamed for clarity
@@ -26,14 +25,13 @@ const getTotalAgentCountService = async (): Promise<{ count: number }> => {
 
 interface AgentState {
   agents: Agent[];
-  loading: boolean;
+  loading: boolean; // For general agent list loading (fetchAgents)
   error: string | null;
   currentPage: number;
   itemsPerPage: number;
-  totalAgents: number;
+  totalAgents: number; // For paginated list from fetchAgents
   searchQuery: string;
 
-  // New state for total agent count (for dashboard cards, etc.)
   totalAgentCount: number | null; // Total count of all agents with specific roles
   isLoadingTotalAgentCount: boolean; // Loading state specifically for totalAgentCount
 
@@ -48,10 +46,8 @@ interface AgentState {
   deleteAgent: (id: string) => Promise<void>;
   setCurrentPage: (page: number) => void;
   setSearchQuery: (query: string) => void;
-  setItemsPerPage: (limit: number) => void; // Added setItemsPerPage
-
-  // New action for fetching total agent count
-  fetchTotalAgentCount: () => Promise<void>;
+  setItemsPerPage: (newLimit: number) => void;
+  fetchTotalAgentCount: () => Promise<void>; // New action
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
@@ -59,14 +55,15 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   loading: false,
   error: null,
   currentPage: 1,
-  itemsPerPage: 10,
-  totalAgents: 0,
+  itemsPerPage: 5, // Updated default items per page to 5
+  totalAgents: 0, // This is for the paginated list
   searchQuery: "",
-  totalAgentCount: null,
-  isLoadingTotalAgentCount: false,
+
+  totalAgentCount: null, // Initialize new state
+  isLoadingTotalAgentCount: false, // Initialize new state
 
   fetchAgents: async (params = {}) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null }); // This loading is for the main agent list
     const S = get();
     const pageToFetch = params.page ?? S.currentPage;
     const limitToFetch = params.limit ?? S.itemsPerPage;
@@ -92,11 +89,15 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     }
   },
   fetchAgentById: async (id: string) => {
+    // This function fetches a single agent, pagination state is not directly affected
+    // but loading and error state should be handled.
+    set({ loading: true, error: null });
     try {
       const agent = await getAgentById(id);
+      set({ loading: false }); // Reset loading after fetch
       return agent;
     } catch (error: any) {
-      set({ error: error.message });
+      set({ error: error.message, loading: false });
       return undefined;
     }
   },
@@ -136,7 +137,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         // If it was the last item on a page (and not the first page)
         get().fetchAgents({ page: currentPage - 1, query: get().searchQuery });
       } else {
-        // Otherwise, refresh the current page
+        // Otherwise, refresh the current page (or first page if current page becomes invalid)
         get().fetchAgents({ page: currentPage, query: get().searchQuery });
       }
     } catch (error: any) {
@@ -145,29 +146,33 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     }
   },
   setCurrentPage: (page: number) => {
-    set({ currentPage: page });
-    get().fetchAgents({ page });
+    set({ currentPage: page, loading: true }); // Set loading true before fetch
+    get().fetchAgents({ page, query: get().searchQuery }); // Pass current query
   },
   setSearchQuery: (query: string) => {
-    set({ searchQuery: query, currentPage: 1 }); // Reset to first page when searching
+    set({ searchQuery: query, currentPage: 1, loading: true }); // Reset to page 1 and set loading
     get().fetchAgents({ page: 1, query });
   },
-  setItemsPerPage: (limit: number) => {
-    set({ itemsPerPage: limit, currentPage: 1 }); // Reset to first page when changing limit
-    get().fetchAgents({ page: 1, limit });
+  setItemsPerPage: (newLimit: number) => {
+    set({ itemsPerPage: newLimit, currentPage: 1, loading: true }); // Update state and set loading
+    get().fetchAgents({ page: 1, limit: newLimit, query: get().searchQuery });
   },
-
-  // New action for fetching total agent count
   fetchTotalAgentCount: async () => {
-    set({ isLoadingTotalAgentCount: true });
+    set({ isLoadingTotalAgentCount: true, error: null });
     try {
-      const response = await getTotalAgentCountService();
-      set({ totalAgentCount: response.count, isLoadingTotalAgentCount: false });
+      const response = await getTotalAgentCountService(); // Call the service function
+      set({
+        totalAgentCount: response.count,
+        isLoadingTotalAgentCount: false,
+      });
     } catch (error: any) {
       set({
         error: error.message || "Failed to fetch total agent count",
         isLoadingTotalAgentCount: false,
+        totalAgentCount: null, // Optionally reset or keep previous value on error
       });
+      // Optionally rethrow or handle the error further if needed by the caller
+      // console.error("Error in fetchTotalAgentCount:", error);
     }
   },
 }));
