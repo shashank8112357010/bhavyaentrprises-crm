@@ -191,6 +191,9 @@ export default function TicketDetailsPage() {
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
+  // State for reassign dialog
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
+
   const handleAddComment = async () => {
     const currentUserId = getCurrentUserIdFromAuth();
 
