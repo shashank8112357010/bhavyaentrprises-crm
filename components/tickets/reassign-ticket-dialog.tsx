@@ -66,12 +66,26 @@ export default function ReassignTicketDialog({
 
   // Separate effect for setting the current assignee to avoid infinite loops
   useEffect(() => {
-    if (open && currentAssignee?.id) {
-      setSelectedAssigneeId(currentAssignee.id);
+    if (open && currentAssignee?.id && agents.length > 0) {
+      // Find the agent that matches the current assignee and use their correct ID
+      const matchingAgent = agents.find(
+        (agent: any) =>
+          agent.originalId === currentAssignee.id ||
+          agent.userId === currentAssignee.id ||
+          agent.id === currentAssignee.id,
+      );
+
+      if (matchingAgent) {
+        const correctId =
+          matchingAgent.originalId || matchingAgent.userId || matchingAgent.id;
+        setSelectedAssigneeId(correctId);
+      } else {
+        setSelectedAssigneeId("");
+      }
     } else if (open) {
       setSelectedAssigneeId("");
     }
-  }, [open, currentAssignee?.id]); // Only depend on the ID, not the whole object
+  }, [open, currentAssignee?.id, agents]); // Added agents to dependencies
 
   // Reset state when dialog closes
   useEffect(() => {
