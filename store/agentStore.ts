@@ -125,9 +125,14 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
   deleteAgent: async (id: string) => {
     try {
-      await deleteAgentService(id); // Use renamed service
+      // Find the agent to get the original ID
+      const { agents } = get();
+      const agent = agents.find((a) => a.id === id);
+      const actualId = (agent as any)?.originalId || id;
+
+      await deleteAgentService(actualId); // Use renamed service
       // After deleting, check if the current page becomes empty
-      const { agents, totalAgents, currentPage } = get();
+      const { totalAgents, currentPage } = get();
       if (agents.length === 1 && totalAgents > 1 && currentPage > 1) {
         // If it was the last item on a page (and not the first page)
         get().fetchAgents({ page: currentPage - 1, query: get().searchQuery });
