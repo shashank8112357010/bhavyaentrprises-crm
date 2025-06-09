@@ -95,13 +95,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await axiosInstance.post("/login", { email, password });
 
       // Log the response for debugging
-      console.log("Login response:", response.data);
+      console.log("Login response status:", response.status);
+      console.log("Login response data:", response.data);
 
       const { user, token, success } = response.data;
 
       // Check if login was successful
-      if (!success) {
-        const errorMsg = "Login was not successful";
+      if (success === false) {
+        const errorMsg = response.data.message || "Login was not successful";
+        console.error("Login failed:", errorMsg);
         set({ isLoading: false, error: errorMsg });
         return { success: false, error: errorMsg };
       }
@@ -109,8 +111,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Validate user and token
       if (!user || !token) {
         console.error("Missing user or token in response:", {
-          user: !!user,
-          token: !!token,
+          hasUser: !!user,
+          hasToken: !!token,
+          userKeys: user ? Object.keys(user) : [],
+          responseKeys: Object.keys(response.data),
         });
         const errorMsg =
           "Login successful, but user data or token was not provided in the expected format.";
@@ -120,8 +124,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Validate required user fields
       if (!user.userId || !user.email || !user.role) {
-        console.error("Missing required user fields:", user);
-        const errorMsg = "User data is missing required fields.";
+        console.error("Missing required user fields:", {
+          userId: user.userId,
+          email: user.email,
+          role: user.role,
+          fullUser: user,
+        });
+        const errorMsg = `User data is missing required fields. Missing: ${[
+          !user.userId && "userId",
+          !user.email && "email",
+          !user.role && "role",
+        ]
+          .filter(Boolean)
+          .join(", ")}`;
         set({ isLoading: false, error: errorMsg });
         return { success: false, error: errorMsg };
       }
