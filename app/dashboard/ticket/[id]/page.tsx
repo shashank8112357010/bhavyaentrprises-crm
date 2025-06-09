@@ -363,13 +363,21 @@ export default function TicketDetailsPage() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
+            onClick={() => setEditDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Edit className="h-4 w-4" />
+            Edit
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setReassignDialogOpen(true)}
             className="flex items-center gap-2"
           >
             <User className="h-4 w-4" />
             Reassign
           </Button>
-          {/* Add any other action buttons here if needed, e.g., Edit Ticket */}
+          {/* Add any other action buttons here if needed */}
         </div>
       </div>
 
