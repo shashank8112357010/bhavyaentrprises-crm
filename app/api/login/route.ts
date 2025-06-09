@@ -50,16 +50,27 @@ export async function POST(req: NextRequest) {
       "NA";
 
     // 🧾 Create JWT using jose
-    const token = await new SignJWT({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      initials,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("1d") // 1 day
-      .sign(JWT_SECRET);
+    let token;
+    try {
+      token = await new SignJWT({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        initials,
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("1d") // 1 day
+        .sign(JWT_SECRET);
+
+      console.log("JWT created successfully, length:", token.length);
+    } catch (jwtError) {
+      console.error("JWT creation failed:", jwtError);
+      return NextResponse.json(
+        { message: "Token creation failed" },
+        { status: 500 },
+      );
+    }
 
     const userResponse = {
       userId: user.id,
