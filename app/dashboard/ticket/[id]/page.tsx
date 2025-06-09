@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 import { NewExpenseDialog } from "@/components/finances/new-expense-dialog";
 import Link from "next/link";
 import ReassignTicketDialog from "@/components/tickets/reassign-ticket-dialog";
+import EditTicketDialog from "@/components/tickets/edit-ticket-dialog";
 
 // Placeholder for ticket store or service - replace with actual later
 // import { useTicketStore } from "@/store/ticketStore";
