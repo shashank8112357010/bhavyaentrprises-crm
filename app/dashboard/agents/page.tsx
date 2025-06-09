@@ -407,7 +407,7 @@ export default function AgentsPage() {
             <Select
               value={String(itemsPerPage)}
               onValueChange={(value) => {
-                setItemsPerPage(Number(value));
+                setItemsPerPage(Number(value), user?.role);
               }}
             >
               <SelectTrigger className="w-[75px] h-9">
