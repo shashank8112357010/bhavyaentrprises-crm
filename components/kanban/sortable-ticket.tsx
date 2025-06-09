@@ -508,14 +508,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         open={isReassignDialogOpen}
         onOpenChange={setIsReassignDialogOpen}
         ticketId={ticket.id}
-        currentAssignee={
-          ticket.assignee
-            ? {
-                id: ticket.assignee.id || "",
-                name: ticket.assignee.name || "Unknown",
-              }
-            : undefined
-        }
+        currentAssignee={currentAssignee}
         onReassignSuccess={() => {
           router.refresh();
           handleUpdate();
