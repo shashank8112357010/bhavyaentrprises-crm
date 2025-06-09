@@ -58,6 +58,7 @@ interface QuotationClient {
 interface QuotationTicket {
   id: string;
   title: string;
+  ticketId: string;
 }
 
 interface QuotationItem {
@@ -150,6 +151,58 @@ export default function QuotationsPage() {
     document.body.removeChild(link);
   };
 
+  const handleSendMail = async (quotationId: string) => {
+    try {
+      // Find the quotation to get details
+      const quotation = quotations.find((q) => q.id === quotationId);
+      if (!quotation) {
+        toast({
+          title: "Error",
+          description: "Quotation not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // For now, we'll create a mailto link with the quotation details
+      // In a real implementation, this would call an API to send the email
+      const subject = `Quotation ${quotation.quoteNo} from Bhavya Enterprises`;
+      const body = `Dear ${quotation.client?.name || "Valued Client"},
+
+Please find attached the quotation ${quotation.quoteNo} for your review.
+
+Quotation Details:
+- Quotation Number: ${quotation.quoteNo}
+- Date: ${new Date(quotation.createdAt).toLocaleDateString()}
+- Subtotal: ₹${quotation.subtotal?.toLocaleString() || "0.00"}
+- GST: ₹${quotation.gst?.toLocaleString() || "0.00"}
+- Grand Total: ₹${quotation.grandTotal?.toLocaleString() || "0.00"}
+
+You can view the quotation PDF at: ${quotation.pdfUrl}
+
+Thank you for your business.
+
+Best regards,
+Bhavya Enterprises Team`;
+
+      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailtoLink;
+
+      toast({
+        title: "Email Client Opened",
+        description:
+          "Your default email client has been opened with the quotation details.",
+      });
+    } catch (error: any) {
+      console.error("Error preparing email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // const onQuotationCreated = () => { // Removed as navigation to new page handles creation
   //   setPage(0); // Reset to first page
   //   fetchQuotationsList(); // Refetch data
@@ -202,9 +255,10 @@ export default function QuotationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Quotation List</CardTitle>
-          {/* <CardDescription>
-            Showing {currentPageStart} - {currentPageEnd} of {totalCount} quotations.
-          </CardDescription> */}
+          <CardDescription>
+            Showing {currentPageStart} - {currentPageEnd} of {totalQuotations}{" "}
+            quotations.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading && (
@@ -322,9 +376,11 @@ export default function QuotationsPage() {
                               Quotation
                             </DropdownMenuItem>
                           </Link>
-                          {/* <DropdownMenuItem onClick={() => handleSendMail(q.id)}>
-                            Send Mail
-                          </DropdownMenuItem> */}
+                          <DropdownMenuItem
+                            onClick={() => handleSendMail(q.id)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" /> Send Mail
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

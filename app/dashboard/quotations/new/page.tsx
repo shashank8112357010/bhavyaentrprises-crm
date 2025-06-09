@@ -1,18 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -22,35 +25,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import {
-  FileText,
-  Download,
-  Save,
-  Search,
-  Plus,
-  Package,
-  Trash2,
-  Send,
-  Loader2,
-  UserPlus,
-  X,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import apiRequest from "@/lib/axios";
-import { useRouter } from "next/navigation";
-
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Form,
   FormControl,
@@ -59,34 +48,34 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
-// Service and schema imports
-import { createClient, getAllClients } from "@/lib/services/client";
-import { createClientSchema } from "@/lib/validations/clientSchema";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import {
-  getAllRateCards,
-  createSingleRateCard,
-} from "@/lib/services/rate-card";
-import { rateCardSchema as inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema";
-import { createQuotation } from "@/lib/services/quotations";
-import {
-  getTicketsForSelection,
-  TicketForSelection,
-} from "@/lib/services/ticket";
+  Search,
+  Plus,
+  Trash2,
+  FileText,
+  Loader2,
+  ArrowLeft,
+  Receipt,
+} from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuthStore } from "@/store/authStore";
 
+// Services
+import { getAllRateCards } from "@/lib/services/rate-card";
+import {
+  createQuotation,
+  previewQuotationPdf,
+} from "@/lib/services/quotations";
+import { getAllClients } from "@/lib/services/client";
+
+// Validation schemas
+import { quotationFormSchema } from "@/lib/validations/quotationSchema";
+import { inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema";
+
 // Types
-type CreateClientFormData = z.infer<typeof createClientSchema>;
-
-interface Client {
-  id: string;
-  displayId?: string;
-  name: string;
-  email?: string;
-  contactPerson?: string;
-  contactPhone?: string;
-}
-
 interface RateCard {
   id: string;
   srNo: number;
@@ -97,86 +86,86 @@ interface RateCard {
   bankRcNo: string;
 }
 
-interface QuotationItem {
-  rateCard: RateCard;
+interface QuotationItem extends RateCard {
   quantity: number;
-  gstPercentage: number;
-  totalValue: number;
+  total: number;
 }
 
-// Zod Schema for Quotation Details Form with all required fields
-const quotationFormSchema = z.object({
-  serialNumber: z.string().optional(),
-  date: z.string().default(new Date().toISOString().split("T")[0]),
-  salesType: z.string().default("Interstate"),
-  quotationNumber: z.string().min(1, "Quote number is required"),
-  validUntil: z.string().default(() => {
-    // Default to 1 week from today
-    const oneWeekLater = new Date();
-    oneWeekLater.setDate(oneWeekLater.getDate() + 7);
-    return oneWeekLater.toISOString().split("T")[0];
-  }),
-  admin: z.string().optional(),
-  quoteBy: z.string().optional(),
-  discount: z.string().default("0"),
-  expectedExpense: z.string().default("0"), // Expected expense field
-});
+interface Client {
+  id: string;
+  name: string;
+  type: string;
+  contactPerson: string;
+  contactEmail: string | null;
+  gstn: string | null;
+  initials: string;
+}
 
-const NewQuotationPage = () => {
-  const { toast } = useToast();
-  const router = useRouter();
-  const { user } = useAuthStore();
+interface Ticket {
+  id: string;
+  ticketId: string;
+  title: string;
+  client: {
+    id: string;
+    name: string;
+  };
+}
 
-  // Form for Quotation Details - MUST be called before any conditional returns
-  const quotationForm = useForm<z.infer<typeof quotationFormSchema>>({
-    resolver: zodResolver(quotationFormSchema),
-    defaultValues: {
-      serialNumber: "",
-      date: new Date().toISOString().split("T")[0],
-      salesType: "Interstate",
-      quotationNumber: `Q-${Date.now()}`,
-      validUntil: (() => {
-        const oneWeekLater = new Date();
-        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
-        return oneWeekLater.toISOString().split("T")[0];
-      })(),
-      admin: "",
-      quoteBy: "",
-      discount: "0",
-      expectedExpense: "0", // Default expected expense
+// Rate card service function for creating single rate card
+const createSingleRateCard = async (data: any) => {
+  const response = await fetch("/api/rate-cards/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
+    credentials: "include",
+    body: JSON.stringify(data),
   });
 
-  // State for Client Information
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientSearch, setClientSearch] = useState<string>("");
-  const [clientSearchResults, setClientSearchResults] = useState<Client[]>([]);
-  const [isClientSearchLoading, setIsClientSearchLoading] =
-    useState<boolean>(false);
-  const [showClientSearchDropdown, setShowClientSearchDropdown] =
-    useState<boolean>(false);
-  const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] =
-    useState<boolean>(false);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to create rate card");
+  }
 
-  // State for Rate Cards & Services
+  return response.json();
+};
+
+const NewQuotationPage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const { user } = useAuthStore();
+
+  // Get URL parameters
+  const ticketIdFromUrl = searchParams.get("ticketId");
+  const clientIdFromUrl = searchParams.get("clientId");
+
+  // State for rate cards
+  const [rateCards, setRateCards] = useState<RateCard[]>([]);
+  const [rateCardSearch, setRateCardSearch] = useState("");
+  const [loadingRateCards, setLoadingRateCards] = useState(false);
+  const debouncedRateCardSearch = useDebounce(rateCardSearch, 300);
+
+  // State for quotation items
   const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
-  const [rateCardSearch, setRateCardSearch] = useState<string>("");
-  const [rateCardSearchResults, setRateCardSearchResults] = useState<
-    RateCard[]
-  >([]);
-  const [isRateCardSearchLoading, setIsRateCardSearchLoading] =
-    useState<boolean>(false);
-  const [showRateCardSearch, setShowRateCardSearch] = useState<boolean>(false);
-  const [isSavingQuotation, setIsSavingQuotation] = useState<boolean>(false);
-
-  // State for Ticket Selection
-  const [ticketsForSelection, setTicketsForSelection] = useState<
-    TicketForSelection[]
-  >([]);
-  const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(
-    undefined,
+  const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(
+    null,
   );
-  const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(false);
+  const [quantity, setQuantity] = useState<number>(1);
+
+  // State for clients and tickets
+  const [clients, setClients] = useState<Client[]>([]);
+  const [ticketsForSelection, setTicketsForSelection] = useState<Ticket[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+
+  // State for form submission
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State for PDF Preview
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   // State for PDF Export
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
@@ -189,160 +178,216 @@ const NewQuotationPage = () => {
   // Constants
   const igstRate = 0.18; // 18% IGST
 
-  // Fetch tickets on component mount
-  useEffect(() => {
-    const fetchTickets = async () => {
-      setIsLoadingTickets(true);
+  // Form setup
+  type QuotationFormData = z.infer<typeof quotationFormSchema>;
+  const form = useForm<QuotationFormData>({
+    resolver: zodResolver(quotationFormSchema),
+    defaultValues: {
+      name: "",
+      clientId: clientIdFromUrl || "",
+      ticketId: ticketIdFromUrl || "none",
+      expectedExpense: 0,
+      salesType: "IGST",
+      rateCardDetails: [],
+    },
+  });
+
+  // Fetch rate cards
+  const searchRateCards = useCallback(
+    async (searchQuery: string = "") => {
+      setLoadingRateCards(true);
       try {
-        const tickets = await getTicketsForSelection();
-        setTicketsForSelection(tickets);
-      } catch (error) {
-        console.error("Error fetching tickets:", error);
+        const response = await getAllRateCards({
+          page: 1,
+          limit: 50,
+          searchQuery,
+        });
+        setRateCards(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching rate cards:", error);
         toast({
           title: "Error",
-          description: "Failed to load tickets.",
+          description: "Failed to fetch rate cards.",
           variant: "destructive",
         });
       } finally {
-        setIsLoadingTickets(false);
+        setLoadingRateCards(false);
       }
-    };
+    },
+    [toast],
+  );
 
-    fetchTickets();
+  // Fetch clients
+  const fetchClients = useCallback(async () => {
+    setLoadingClients(true);
+    try {
+      const response = await getAllClients({ page: 1, limit: 100 });
+      setClients(response.data || []);
+    } catch (error: any) {
+      console.error("Error fetching clients:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch clients.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingClients(false);
+    }
   }, [toast]);
 
-  // Debounced client search function
-  const searchClients = async (query: string) => {
-    if (!query.trim()) {
-      setClientSearchResults([]);
-      setShowClientSearchDropdown(false);
-      return;
-    }
-
-    setIsClientSearchLoading(true);
+  // Fetch tickets for selection
+  const fetchTicketsForSelection = useCallback(async () => {
+    setLoadingTickets(true);
     try {
-      const response = await getAllClients({ searchQuery: query });
-      setClientSearchResults(response?.clients || []);
-      setShowClientSearchDropdown(true);
-    } catch (error) {
-      console.error("Error searching clients:", error);
+      const response = await fetch("/api/tickets/selection", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch tickets");
+      }
+      const data = await response.json();
+      setTicketsForSelection(data.tickets || []);
+    } catch (error: any) {
+      console.error("Error fetching tickets:", error);
       toast({
-        title: "Search Error",
-        description: "Failed to search clients.",
+        title: "Error",
+        description: "Failed to fetch tickets for selection.",
         variant: "destructive",
       });
     } finally {
-      setIsClientSearchLoading(false);
+      setLoadingTickets(false);
     }
-  };
+  }, [toast]);
 
-  // Debounced rate card search function
-  const searchRateCards = async (query: string) => {
-    if (!query.trim()) {
-      setRateCardSearchResults([]);
-      setShowRateCardSearch(false);
-      return;
-    }
-
-    setIsRateCardSearchLoading(true);
-    try {
-      const response = await getAllRateCards({ searchQuery: query });
-      setRateCardSearchResults(response?.data || []);
-      setShowRateCardSearch(true);
-    } catch (error) {
-      console.error("Error searching rate cards:", error);
-      toast({
-        title: "Search Error",
-        description: "Failed to search rate cards.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRateCardSearchLoading(false);
-    }
-  };
-
-  // Handle client search with debounce
+  // Effects
   useEffect(() => {
-    const timer = setTimeout(() => {
-      searchClients(clientSearch);
-    }, 300);
+    searchRateCards(debouncedRateCardSearch);
+  }, [debouncedRateCardSearch, searchRateCards]);
 
-    return () => clearTimeout(timer);
-  }, [clientSearch]);
-
-  // Handle rate card search with debounce
   useEffect(() => {
-    const timer = setTimeout(() => {
-      searchRateCards(rateCardSearch);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [rateCardSearch]);
-
-  // Handle client selection
-  const handleClientSelect = (client: Client) => {
-    setSelectedClient(client);
-    setClientSearch("");
-    setShowClientSearchDropdown(false);
-  };
+    fetchClients();
+    fetchTicketsForSelection();
+  }, [fetchClients, fetchTicketsForSelection]);
 
   // Handle rate card selection
   const handleRateCardSelect = (rateCard: RateCard) => {
-    const newItem: QuotationItem = {
-      rateCard,
-      quantity: 1,
-      gstPercentage: 18,
-      totalValue: rateCard.rate,
-    };
-    setQuotationItems([...quotationItems, newItem]);
+    setSelectedRateCard(rateCard);
+    setQuantity(1);
+  };
+
+  // Add item to quotation
+  const addItemToQuotation = () => {
+    if (!selectedRateCard || quantity <= 0) {
+      toast({
+        title: "Error",
+        description: "Please select a rate card and enter a valid quantity.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if item already exists
+    const existingItemIndex = quotationItems.findIndex(
+      (item) => item.id === selectedRateCard.id,
+    );
+
+    if (existingItemIndex >= 0) {
+      // Update existing item
+      const updatedItems = [...quotationItems];
+      updatedItems[existingItemIndex] = {
+        ...updatedItems[existingItemIndex],
+        quantity: updatedItems[existingItemIndex].quantity + quantity,
+        total:
+          (updatedItems[existingItemIndex].quantity + quantity) *
+          selectedRateCard.rate,
+      };
+      setQuotationItems(updatedItems);
+    } else {
+      // Add new item
+      const newItem: QuotationItem = {
+        ...selectedRateCard,
+        quantity,
+        total: quantity * selectedRateCard.rate,
+      };
+      setQuotationItems([...quotationItems, newItem]);
+    }
+
+    setSelectedRateCard(null);
+    setQuantity(1);
     setRateCardSearch("");
-    setShowRateCardSearch(false);
-  };
-
-  // Handle quantity change
-  const handleQuantityChange = (index: number, quantity: number) => {
-    const updatedItems = [...quotationItems];
-    updatedItems[index].quantity = quantity;
-    updatedItems[index].totalValue =
-      updatedItems[index].rateCard.rate * quantity;
-    setQuotationItems(updatedItems);
-  };
-
-  // Handle GST percentage change
-  const handleGstChange = (index: number, gstPercentage: number) => {
-    const updatedItems = [...quotationItems];
-    updatedItems[index].gstPercentage = gstPercentage;
-    setQuotationItems(updatedItems);
   };
 
   // Remove item from quotation
-  const handleRemoveItem = (index: number) => {
-    const updatedItems = quotationItems.filter((_, i) => i !== index);
+  const removeItemFromQuotation = (itemId: string) => {
+    setQuotationItems(quotationItems.filter((item) => item.id !== itemId));
+  };
+
+  // Update item quantity
+  const updateItemQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeItemFromQuotation(itemId);
+      return;
+    }
+
+    const updatedItems = quotationItems.map((item) =>
+      item.id === itemId
+        ? { ...item, quantity: newQuantity, total: newQuantity * item.rate }
+        : item,
+    );
     setQuotationItems(updatedItems);
   };
 
   // Calculate totals
-  const subtotal = quotationItems.reduce(
-    (acc, item) => acc + item.totalValue,
-    0,
-  );
-  const discountPercentage = parseFloat(quotationForm.watch("discount")) || 0;
-  const discountAmount = (subtotal * discountPercentage) / 100;
-  const taxableValue = subtotal - discountAmount;
-  const igstAmount = taxableValue * igstRate;
-  const netGrossAmount = taxableValue + igstAmount;
+  const subtotal = quotationItems.reduce((sum, item) => sum + item.total, 0);
+  const gstAmount = subtotal * igstRate;
+  const grandTotal = subtotal + gstAmount;
 
-  // Handle quotation save
-  const handleSaveQuotation = async () => {
-    if (!selectedClient) {
+  // Handle preview
+  const handlePreview = async () => {
+    const formData = form.getValues();
+
+    if (!formData.name || !formData.clientId || quotationItems.length === 0) {
       toast({
         title: "Error",
-        description: "Please select a client first.",
+        description:
+          "Please fill in quotation name, select a client, and add at least one item.",
         variant: "destructive",
       });
       return;
     }
 
+    setIsLoadingPreview(true);
+    try {
+      const previewData = {
+        ...formData,
+        rateCardDetails: quotationItems.map((item) => ({
+          rateCardId: item.id,
+          quantity: item.quantity,
+          rate: item.rate,
+          total: item.total,
+        })),
+        subtotal,
+        gst: gstAmount,
+        grandTotal,
+      };
+
+      const response = await previewQuotationPdf(previewData);
+      setPreviewPdfUrl(response.pdfUrl);
+      setIsPreviewDialogOpen(true);
+    } catch (error: any) {
+      console.error("Error generating preview:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate preview.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  // Handle form submission
+  const onSubmit = async (data: QuotationFormData) => {
     if (quotationItems.length === 0) {
       toast({
         title: "Error",
@@ -352,155 +397,38 @@ const NewQuotationPage = () => {
       return;
     }
 
-    setIsSavingQuotation(true);
-
+    setIsSubmitting(true);
     try {
-      const formData = quotationForm.getValues();
-      const rateCardDetailsApi = quotationItems.map((item) => ({
-        rateCardId: item.rateCard.id,
-        quantity: Number(item.quantity),
-        gstType: Number(item.gstPercentage),
-      }));
-
-      const quotationPayload = {
-        name: formData.quotationNumber,
-        clientId: selectedClient.id,
-        rateCardDetails: rateCardDetailsApi,
-        ticketId: selectedTicketId || undefined,
-        salesType: formData.salesType,
-        validUntil: formData.validUntil || undefined,
-        expectedExpense: parseFloat(formData.expectedExpense) || 0,
+      const quotationData = {
+        ...data,
+        rateCardDetails: quotationItems.map((item) => ({
+          rateCardId: item.id,
+          quantity: item.quantity,
+          rate: item.rate,
+          total: item.total,
+        })),
+        subtotal,
+        gst: gstAmount,
+        grandTotal,
       };
 
-      const response = await createQuotation(quotationPayload);
-
+      await createQuotation(quotationData);
       toast({
         title: "Success",
-        description: "Quotation saved successfully!",
+        description: "Quotation created successfully!",
       });
-
-      // Reset form
-      quotationForm.reset();
-      setQuotationItems([]);
-      setSelectedClient(null);
-      setClientSearch("");
-
-      // Navigate back to quotations list
       router.push("/dashboard/quotations");
     } catch (error: any) {
-      console.error("Failed to save quotation:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to save quotation.";
+      console.error("Error creating quotation:", error);
       toast({
-        title: "Save Failed",
-        description: errorMessage,
+        title: "Error",
+        description: error.message || "Failed to create quotation.",
         variant: "destructive",
       });
     } finally {
-      setIsSavingQuotation(false);
+      setIsSubmitting(false);
     }
   };
-
-  // Handle PDF export for preview
-  const handleExportPdf = async () => {
-    if (!selectedClient) {
-      toast({
-        title: "Error",
-        description: "Please select a client first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (quotationItems.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please add items first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsExportingPdf(true);
-
-    try {
-      const quotationFormValues = quotationForm.getValues();
-
-      const payload = {
-        quotationId:
-          quotationFormValues.quotationNumber || `PREVIEW-${Date.now()}`,
-        clientName: selectedClient.name,
-        clientId: selectedClient.id,
-        name: quotationFormValues.serialNumber || "Quotation Preview",
-        rateCardDetails: quotationItems.map((item) => ({
-          rateCardId: item.rateCard.id,
-          quantity: Number(item.quantity),
-          gstType: Number(item.gstPercentage),
-        })),
-        subtotal: Number(subtotal.toFixed(2)),
-        gst: Number(igstAmount.toFixed(2)),
-        grandTotal: Number(netGrossAmount.toFixed(2)),
-        validUntil: quotationFormValues.validUntil,
-        expectedExpense: parseFloat(quotationFormValues.expectedExpense) || 0,
-      };
-
-      const response = await apiRequest.post(
-        "/quotations/preview-pdf",
-        payload,
-        {
-          responseType: "blob",
-          withCredentials: true,
-        },
-      );
-
-      // Create blob and download
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${quotationFormValues.quotationNumber || "quotation"}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "PDF Generated",
-        description: "PDF has been downloaded successfully.",
-      });
-    } catch (error: any) {
-      console.error("Failed to export PDF:", error);
-      const errorMessage =
-        error.response?.data?.message || "Failed to generate PDF.";
-      toast({
-        title: "Export Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsExportingPdf(false);
-    }
-  };
-
-  // Client form for creating new clients - MUST be called before any conditional returns
-  const clientForm = useForm<CreateClientFormData>({
-    resolver: zodResolver(createClientSchema),
-    defaultValues: {
-      name: "",
-      type: "Bank",
-      totalBranches: 1,
-      contactPerson: "",
-      contactEmail: "",
-      contactPhone: "",
-      contractStatus: "Active",
-      lastServiceDate: new Date().toISOString().split("T")[0],
-      gstn: "",
-      avatar: "",
-      initials: "",
-    },
-  });
 
   // Rate card form for creating new rate cards
   type CreateRateCardFormData = z.infer<typeof inlineRateCardFormSchema>;
@@ -535,26 +463,31 @@ const NewQuotationPage = () => {
     );
   }
 
-  const onClientFormSubmit = async (values: CreateClientFormData) => {
-    try {
-      const newClient = await createClient(values);
-      toast({
-        title: "Success",
-        description: "Client created successfully!",
-      });
-      setIsCreateClientDialogOpen(false);
-      clientForm.reset();
+  const handleExportPdf = async () => {
+    const formData = form.getValues();
 
-      // Refresh client search to include new client
-      if (clientSearch) {
-        searchClients(clientSearch);
-      }
-    } catch (error: any) {
+    if (!formData.name || !formData.clientId || quotationItems.length === 0) {
       toast({
         title: "Error",
-        description: error.message || "Failed to create client.",
+        description:
+          "Please fill in quotation name, select a client, and add at least one item before exporting.",
         variant: "destructive",
       });
+      return;
+    }
+
+    setIsExportingPdf(true);
+    try {
+      await onSubmit(formData);
+    } catch (error: any) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to export PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -600,515 +533,290 @@ const NewQuotationPage = () => {
     <div className="flex-1 space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">
-            Create New Quotation
-          </h2>
-          <p className="text-muted-foreground">
-            Create a new quotation for your clients.
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.back()}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Create New Quotation
+            </h1>
+            <p className="text-muted-foreground">
+              Generate a new quotation for your client
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={handleExportPdf}
-            disabled={
-              isExportingPdf || !selectedClient || quotationItems.length === 0
-            }
+            onClick={handlePreview}
+            disabled={isLoadingPreview || quotationItems.length === 0}
           >
-            {isExportingPdf ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {isLoadingPreview ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
             ) : (
-              <Download className="mr-2 h-4 w-4" />
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Preview PDF
+              </>
             )}
-            Export PDF
           </Button>
           <Button
-            onClick={handleSaveQuotation}
-            disabled={
-              isSavingQuotation ||
-              !selectedClient ||
-              quotationItems.length === 0
-            }
+            onClick={handleExportPdf}
+            disabled={isExportingPdf || quotationItems.length === 0}
           >
-            {isSavingQuotation ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {isExportingPdf ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
             ) : (
-              <Save className="mr-2 h-4 w-4" />
+              <>
+                <Receipt className="mr-2 h-4 w-4" />
+                Create & Export
+              </>
             )}
-            Save Quotation
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Client and Rate Cards */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Client Information Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Client Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="clientSearch">Client Search</Label>
-                <div className="relative">
-                  <Input
-                    id="clientSearch"
-                    placeholder="Search for a client..."
-                    value={clientSearch}
-                    onChange={(e) => setClientSearch(e.target.value)}
-                    className="pr-10"
-                  />
-                  {isClientSearchLoading && (
-                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin" />
-                  )}
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Rate Card Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Rate Cards</CardTitle>
+            <CardDescription>
+              Search and add rate cards to your quotation
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search Rate Cards */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search rate cards..."
+                className="pl-8"
+                value={rateCardSearch}
+                onChange={(e) => setRateCardSearch(e.target.value)}
+              />
+            </div>
 
-                {/* Client Search Dropdown - Fixed positioning */}
-                {showClientSearchDropdown && clientSearchResults.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {clientSearchResults.map((client) => (
-                      <div
-                        key={client.id}
-                        className="p-3 hover:bg-accent cursor-pointer border-b last:border-b-0"
-                        onClick={() => handleClientSelect(client)}
-                      >
-                        <div className="font-medium">{client.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {client.displayId || client.id}
+            {/* Rate Cards List */}
+            <div className="max-h-64 overflow-y-auto border rounded-md">
+              {loadingRateCards ? (
+                <div className="flex justify-center items-center py-8">
+                  <Spinner size="6" />
+                </div>
+              ) : rateCards.length > 0 ? (
+                <div className="divide-y">
+                  {rateCards.map((rateCard) => (
+                    <div
+                      key={rateCard.id}
+                      className={`p-3 cursor-pointer hover:bg-muted transition-colors ${
+                        selectedRateCard?.id === rateCard.id
+                          ? "bg-primary/10 border-l-4 border-l-primary"
+                          : ""
+                      }`}
+                      onClick={() => handleRateCardSelect(rateCard)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">
+                            {rateCard.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {rateCard.unit} • ₹{rateCard.rate.toLocaleString()}
+                          </p>
                         </div>
-                        {client.contactPerson && (
-                          <div className="text-sm text-muted-foreground">
-                            Contact: {client.contactPerson}
+                        <Badge variant="outline" className="text-xs">
+                          #{rateCard.srNo}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  {rateCardSearch
+                    ? "No rate cards found matching your search."
+                    : "No rate cards available."}
+                </div>
+              )}
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateRateCardDialogOpen(true)}
+              className="w-full"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Rate Card
+            </Button>
+
+            {/* Selected Items Table */}
+            {quotationItems.length > 0 && (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Rate</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {quotationItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {item.description}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.unit}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => setIsCreateClientDialogOpen(true)}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create New Client
-              </Button>
-
-              {/* Selected Client Display */}
-              {selectedClient && (
-                <div className="p-4 border rounded-lg bg-muted/50 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Selected Client:</p>
-                    <p className="text-lg font-semibold">
-                      {selectedClient.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedClient.displayId || selectedClient.id}
-                    </p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setSelectedClient(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Rate Cards & Services Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Rate Cards & Services
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="rateCardSearch">Search Rate Cards</Label>
-                <div className="relative">
-                  <Input
-                    id="rateCardSearch"
-                    placeholder="Search for rate cards..."
-                    value={rateCardSearch}
-                    onChange={(e) => setRateCardSearch(e.target.value)}
-                    className="pr-10"
-                  />
-                  {isRateCardSearchLoading && (
-                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin" />
-                  )}
-                </div>
-
-                {/* Rate Card Search Dropdown - Fixed positioning */}
-                {showRateCardSearch && rateCardSearchResults.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {rateCardSearchResults.map((rateCard) => (
-                      <div
-                        key={rateCard.id}
-                        className="p-3 hover:bg-accent cursor-pointer border-b last:border-b-0"
-                        onClick={() => handleRateCardSelect(rateCard)}
-                      >
-                        <div className="font-medium">
-                          {rateCard.description}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Rate: ₹{rateCard.rate} | Unit: {rateCard.unit}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {rateCard.bankName} - {rateCard.bankRcNo}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => setIsCreateRateCardDialogOpen(true)}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create New Rate Card
-              </Button>
-
-              {/* Selected Items Table */}
-              {quotationItems.length > 0 && (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead>Rate</TableHead>
-                        <TableHead className="w-[100px]">Quantity</TableHead>
-                        <TableHead className="w-[100px]">GST %</TableHead>
-                        <TableHead>Line Total</TableHead>
-                        <TableHead className="w-[80px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {quotationItems.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.rateCard.description}</TableCell>
-                          <TableCell>{item.rateCard.unit}</TableCell>
-                          <TableCell>
-                            ₹{item.rateCard.rate.toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleQuantityChange(
-                                  index,
-                                  parseFloat(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full"
-                              min="0"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={item.gstPercentage}
-                              onChange={(e) =>
-                                handleGstChange(
-                                  index,
-                                  parseFloat(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full"
-                              min="0"
-                              max="100"
-                            />
-                          </TableCell>
-                          <TableCell>₹{item.totalValue.toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRemoveItem(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column - Quotation Details and Summary */}
-        <div className="space-y-6">
-          {/* Quotation Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quotation Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...quotationForm}>
-                <form className="space-y-4">
-                  <FormField
-                    control={quotationForm.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={quotationForm.control}
-                    name="salesType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sales Type</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select sales type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Interstate">
-                              Interstate
-                            </SelectItem>
-                            <SelectItem value="Intrastate">
-                              Intrastate
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={quotationForm.control}
-                    name="validUntil"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valid Until</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={quotationForm.control}
-                    name="expectedExpense"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Expected Expense</FormLabel>
-                        <FormControl>
+                        </TableCell>
+                        <TableCell>
                           <Input
                             type="number"
-                            placeholder="0"
-                            min="0"
-                            step="0.01"
-                            {...field}
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateItemQuantity(
+                                item.id,
+                                parseInt(e.target.value) || 0,
+                              )
+                            }
+                            className="w-16 h-8"
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        </TableCell>
+                        <TableCell>₹{item.rate.toLocaleString()}</TableCell>
+                        <TableCell>₹{item.total.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItemFromQuotation(item.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
 
-                  {/* Ticket Selection */}
-                  <div>
-                    <Label>Link to Ticket (Optional)</Label>
-                    <Select
-                      value={selectedTicketId || "none"}
-                      onValueChange={(value) =>
-                        setSelectedTicketId(
-                          value === "none" ? undefined : value,
-                        )
+            {/* Add Selected Item */}
+            {selectedRateCard && (
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <h4 className="font-medium mb-2">Add Selected Item</h4>
+                <div className="space-y-2">
+                  <p className="text-sm">{selectedRateCard.description}</p>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="quantity" className="text-sm">
+                      Quantity:
+                    </Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) =>
+                        setQuantity(parseInt(e.target.value) || 1)
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a ticket" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No ticket</SelectItem>
-                        {ticketsForSelection.map((ticket) => (
-                          <SelectItem key={ticket.id} value={ticket.id}>
-                            {ticket.ticketId} - {ticket.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className="w-20 h-8"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      × ₹{selectedRateCard.rate.toLocaleString()} = ₹
+                      {(quantity * selectedRateCard.rate).toLocaleString()}
+                    </span>
                   </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Calculations & Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Calculations & Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium">Quotation Summary</h4>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span>Total Items:</span>
-                      <span>{quotationItems.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Total Quantity:</span>
-                      <span>
-                        {quotationItems.reduce(
-                          (acc, item) => acc + item.quantity,
-                          0,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>₹{subtotal.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <h4 className="font-medium">Tax Calculations</h4>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>₹{subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Discount:</span>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          className="w-16 h-6 text-xs"
-                          {...quotationForm.register("discount")}
-                        />
-                        <span className="text-xs">%</span>
-                        <span className="text-red-500">
-                          -₹{discountAmount.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Taxable Value:</span>
-                      <span>₹{taxableValue.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>IGST (18%):</span>
-                      <span>₹{igstAmount.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Grand Total:</span>
-                  <span>₹{netGrossAmount.toFixed(2)}</span>
-                </div>
-
-                <div className="mt-4 p-3 bg-muted rounded-lg">
-                  <p className="text-sm font-medium">Amount in Words:</p>
-                  <p className="text-sm text-muted-foreground">
-                    {/* This would be calculated by the backend */}
-                    Rupees {Math.floor(netGrossAmount).toLocaleString()} Only
-                  </p>
+                  <Button
+                    onClick={addItemToQuotation}
+                    size="sm"
+                    className="w-full"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add to Quotation
+                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Create Client Dialog */}
-      <Dialog
-        open={isCreateClientDialogOpen}
-        onOpenChange={setIsCreateClientDialogOpen}
-      >
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Create New Client</DialogTitle>
-            <DialogDescription>
-              Add a new client to your database.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...clientForm}>
-            <form
-              onSubmit={clientForm.handleSubmit(onClientFormSubmit)}
-              className="space-y-4"
-            >
-              <div className="grid grid-cols-2 gap-4">
+        {/* Right Column - Quotation Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quotation Details</CardTitle>
+            <CardDescription>Fill in the quotation information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                {/* Quotation Name */}
                 <FormField
-                  control={clientForm.control}
+                  control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Client Name *</FormLabel>
+                      <FormLabel>Quotation Name *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter client name" {...field} />
+                        <Input placeholder="Enter quotation name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Client Selection */}
                 <FormField
-                  control={clientForm.control}
-                  name="type"
+                  control={form.control}
+                  name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Client Type *</FormLabel>
+                      <FormLabel>Client *</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
+                            <SelectValue placeholder="Select a client" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Bank">Bank</SelectItem>
-                          <SelectItem value="NBFC">NBFC</SelectItem>
-                          <SelectItem value="Insurance">Insurance</SelectItem>
-                          <SelectItem value="Corporate">Corporate</SelectItem>
+                          {loadingClients ? (
+                            <div className="flex justify-center py-2">
+                              <Spinner size="4" />
+                            </div>
+                          ) : (
+                            clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id}>
+                                {client.initials
+                                  ? `${client.initials} - ${client.name}`
+                                  : client.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -1116,65 +824,52 @@ const NewQuotationPage = () => {
                   )}
                 />
 
+                {/* Ticket Selection */}
                 <FormField
-                  control={clientForm.control}
-                  name="contactPerson"
+                  control={form.control}
+                  name="ticketId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact Person *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter contact person" {...field} />
-                      </FormControl>
+                      <FormLabel>Associated Ticket (Optional)</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a ticket (optional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">No ticket</SelectItem>
+                          {ticketsForSelection.map((ticket) => (
+                            <SelectItem key={ticket.id} value={ticket.id}>
+                              {ticket.ticketId} - {ticket.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Expected Expense */}
                 <FormField
-                  control={clientForm.control}
-                  name="contactPhone"
+                  control={form.control}
+                  name="expectedExpense"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact Phone *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={clientForm.control}
-                  name="contactEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter email"
-                          type="email"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={clientForm.control}
-                  name="totalBranches"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Branches *</FormLabel>
+                      <FormLabel>Expected Expense</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          min="1"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
                           {...field}
                           onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 1)
+                            field.onChange(parseFloat(e.target.value) || 0)
                           }
                         />
                       </FormControl>
@@ -1183,45 +878,107 @@ const NewQuotationPage = () => {
                   )}
                 />
 
+                {/* Sales Type */}
                 <FormField
-                  control={clientForm.control}
-                  name="gstn"
+                  control={form.control}
+                  name="salesType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>GSTN</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter GSTN" {...field} />
-                      </FormControl>
+                      <FormLabel>Sales Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="IGST">IGST (18%)</SelectItem>
+                          <SelectItem value="CGST_SGST">
+                            CGST + SGST (9% + 9%)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={clientForm.control}
-                  name="lastServiceDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Service Date *</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                {/* Quotation Summary */}
+                {quotationItems.length > 0 && (
+                  <div className="border rounded-lg p-4 bg-muted/50">
+                    <h4 className="font-medium mb-3">Quotation Summary</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>₹{subtotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>
+                          {form.watch("salesType") === "IGST"
+                            ? "IGST (18%)"
+                            : "CGST + SGST (18%)"}
+                          :
+                        </span>
+                        <span>₹{gstAmount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between font-medium border-t pt-2">
+                        <span>Grand Total:</span>
+                        <span>₹{grandTotal.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
 
-              <DialogFooter className="pt-4">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button type="submit">Create Client</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+      {/* Preview Dialog */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Quotation Preview</DialogTitle>
+            <DialogDescription>
+              Review your quotation before creating it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewPdfUrl && (
+              <iframe
+                src={previewPdfUrl}
+                className="w-full h-[70vh] border rounded-md"
+                title="Quotation Preview"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPreviewDialogOpen(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setIsPreviewDialogOpen(false);
+                handleExportPdf();
+              }}
+              disabled={isExportingPdf}
+            >
+              {isExportingPdf ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Quotation"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

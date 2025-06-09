@@ -19,39 +19,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Plus } from "lucide-react";
+import { Plus, Calendar } from "lucide-react";
 import { useAgentStore } from "@/store/agentStore";
 import { useClientStore } from "@/store/clientStore";
 import { useTicketStore } from "@/store/ticketStore";
 import { useToast } from "@/hooks/use-toast";
 
-const formatDate = (date: Date) => date.toISOString().split("T")[0];
+interface NewTicketInput {
+  title: string;
+  branch: string;
+  priority: string;
+  dueDate: string;
+  scheduledDate: string;
+  description: string;
+  assigneeId: string;
+  clientId: string;
+}
 
 export default function NewTicketDialog() {
-  const [open, setOpen] = useState(false);
   const { agents, fetchAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
   const { createTicket } = useTicketStore();
   const { toast } = useToast();
 
-  const today = formatDate(new Date());
-  const nextWeek = formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const dueDateRef = useRef<HTMLInputElement>(null);
+  const scheduledDateRef = useRef<HTMLInputElement>(null);
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const [formData, setFormData] = useState<NewTicketInput>({
     title: "",
     branch: "",
     priority: "",
-    dueDate: nextWeek,
+    dueDate: today,
     scheduledDate: today,
     description: "",
     assigneeId: "",
     clientId: "",
   });
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  const dueDateRef = useRef<HTMLInputElement>(null);
-  const scheduledDateRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAgents();
@@ -104,7 +112,7 @@ export default function NewTicketDialog() {
         title: "",
         branch: "",
         priority: "",
-        dueDate: nextWeek,
+        dueDate: today,
         scheduledDate: today,
         description: "",
         assigneeId: "",
@@ -128,82 +136,82 @@ export default function NewTicketDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-2 h-4 w-4" /> New Ticket
+          <Plus className="mr-2 h-4 w-4" />
+          New Ticket
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create New Ticket</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              placeholder="Enter Issue"
-              value={formData.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="branch">Branch</Label>
-            <Input
-              id="branch"
-              placeholder="Enter Branch Name"
-              value={formData.branch}
-              onChange={(e) => handleChange("branch", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select
-              value={formData.priority}
-              onValueChange={(val) => handleChange("priority", val)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Due Date Field with Custom Icon */}
-          <div className="grid gap-2">
-            <Label htmlFor="dueDate">Due Date</Label>
-            <div className="relative">
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
               <Input
-                type="date"
-                id="dueDate"
-                ref={dueDateRef}
-                value={formData.dueDate}
-                onChange={(e) => handleChange("dueDate", e.target.value)}
-                className="pr-10 hide-date-icon"
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleChange("title", e.target.value)}
+                placeholder="Enter ticket title"
                 required
               />
-              <Calendar
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
-                onClick={() => dueDateRef.current?.showPicker()}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="branch">Branch *</Label>
+              <Input
+                id="branch"
+                value={formData.branch}
+                onChange={(e) => handleChange("branch", e.target.value)}
+                placeholder="Enter branch"
+                required
               />
             </div>
           </div>
 
-          {/* Scheduled Date Field with Custom Icon */}
-          <div className="grid gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority *</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) => handleChange("priority", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <div className="relative">
+                <Input
+                  id="dueDate"
+                  type="date"
+                  ref={dueDateRef}
+                  value={formData.dueDate}
+                  onChange={(e) => handleChange("dueDate", e.target.value)}
+                  className="pr-10 hide-date-icon"
+                  required
+                />
+                <Calendar
+                  className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer"
+                  onClick={() => dueDateRef.current?.showPicker()}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="scheduledDate">Scheduled Date</Label>
             <div className="relative">
               <Input
-                type="date"
                 id="scheduledDate"
+                type="date"
                 ref={scheduledDateRef}
                 value={formData.scheduledDate}
                 onChange={(e) => handleChange("scheduledDate", e.target.value)}
@@ -211,63 +219,61 @@ export default function NewTicketDialog() {
                 required
               />
               <Calendar
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
+                className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer"
                 onClick={() => scheduledDateRef.current?.showPicker()}
               />
             </div>
           </div>
 
-          <div className="grid gap-2 col-span-2">
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description *</Label>
             <Textarea
               id="description"
               value={formData.description}
-              placeholder="Enter Issue in detail ..."
               onChange={(e) => handleChange("description", e.target.value)}
+              placeholder="Enter ticket description"
+              rows={3}
               required
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="clientId">Client</Label>
-            <Select
-              value={formData.clientId}
-              onValueChange={(val) => handleChange("clientId", val)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client: any) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.initials ? `${client.name}` : client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="assigneeId">Assignee</Label>
-            <Select
-              value={formData.assigneeId}
-              onValueChange={(val) => handleChange("assigneeId", val)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                {agents.map((agent: any) => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    {agent.avatar
-                      ? `${agent.avatar} - ${agent.name}`
-                      : agent.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="client">Client *</Label>
+              <Select
+                value={formData.clientId}
+                onValueChange={(value) => handleChange("clientId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client: any) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.initials ? `${client.name}` : client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assignee">Assignee *</Label>
+              <Select
+                value={formData.assigneeId}
+                onValueChange={(value) => handleChange("assigneeId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((agent: any) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -280,7 +286,7 @@ export default function NewTicketDialog() {
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create"}
+            {isLoading ? "Creating..." : "Create Ticket"}
           </Button>
         </div>
       </DialogContent>

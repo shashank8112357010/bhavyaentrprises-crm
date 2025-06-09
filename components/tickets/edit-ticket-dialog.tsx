@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Edit } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { useAgentStore } from "@/store/agentStore";
 import { useClientStore } from "@/store/clientStore";
 import { useTicketStore } from "@/store/ticketStore";
@@ -33,29 +32,17 @@ type Comment = {
 interface EditTicketInput {
   id: string;
   title: string;
-  client: {
-    id: string;
-    name: string;
-    type?: string;
-    contactPerson?: string;
-  };
   branch: string;
   priority: string;
-  assignee: {
-    name: string;
-    avatar: string | null;
-    initials: string | null;
-  };
-  dueDate?: any;
-  comments?: Comment[];
-  scheduledDate?: string;
-  completedDate?: string;
+  dueDate: string;
+  scheduledDate: string;
   description: string;
-  holdReason?: string;
+  assigneeId: string;
+  clientId: string;
 }
 
 type EditTicketDialogProps = {
-  ticket: EditTicketInput;
+  ticket: Ticket;
   onUpdate: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,7 +66,8 @@ export default function EditTicketDialog({
   const { updateTicket } = useTicketStore();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EditTicketInput>({
+    id: ticket.id,
     title: ticket.title,
     branch: ticket.branch,
     priority: ticket.priority,
@@ -95,9 +83,6 @@ export default function EditTicketDialog({
   });
 
   const [isLoading, setIsLoading] = useState(false);
-
-  const dueDateRef = useRef<HTMLInputElement>(null);
-  const scheduledDateRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAgents();
@@ -176,145 +161,134 @@ export default function EditTicketDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {/* <Button>
-          <Edit className="mr-2 h-4 w-4" /> Edit Ticket
-        </Button> */}
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit Ticket</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="branch">Branch</Label>
-            <Input
-              id="branch"
-              value={formData.branch}
-              onChange={(e) => handleChange("branch", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select
-              value={formData.priority}
-              onValueChange={(val) => handleChange("priority", val)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="dueDate">Due Date</Label>
-            <div className="relative">
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
               <Input
-                type="date"
-                id="dueDate"
-                ref={dueDateRef}
-                value={formData.dueDate}
-                onChange={(e) => handleChange("dueDate", e.target.value)}
-                className="pr-10 hide-date-icon"
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleChange("title", e.target.value)}
+                placeholder="Enter ticket title"
                 required
               />
-              <Calendar
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
-                onClick={() => dueDateRef.current?.showPicker()}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="branch">Branch *</Label>
+              <Input
+                id="branch"
+                value={formData.branch}
+                onChange={(e) => handleChange("branch", e.target.value)}
+                placeholder="Enter branch"
+                required
               />
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority *</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) => handleChange("priority", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <div className="relative">
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => handleChange("dueDate", e.target.value)}
+                  className="pr-10"
+                />
+                <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="scheduledDate">Scheduled Date</Label>
             <div className="relative">
               <Input
-                type="date"
                 id="scheduledDate"
-                ref={scheduledDateRef}
+                type="date"
                 value={formData.scheduledDate}
                 onChange={(e) => handleChange("scheduledDate", e.target.value)}
-                className="pr-10 hide-date-icon"
-                required
+                className="pr-10"
               />
-              <Calendar
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
-                onClick={() => scheduledDateRef.current?.showPicker()}
-              />
+              <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             </div>
           </div>
 
-          <div className="grid gap-2 col-span-2">
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description *</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleChange("description", e.target.value)}
+              placeholder="Enter ticket description"
+              rows={3}
               required
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="clientId">Client</Label>
-            <Select
-              value={formData.clientId}
-              onValueChange={(val) => handleChange("clientId", val)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.initials
-                      ? `${client.initials} - ${client.name}`
-                      : client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="assigneeId">Assignee</Label>
-            <Select
-              value={formData.assigneeId}
-              onValueChange={(val) => handleChange("assigneeId", val)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                {agents.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    {agent.avatar
-                      ? `${agent.avatar} - ${agent.name}`
-                      : agent.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="client">Client *</Label>
+              <Select
+                value={formData.clientId}
+                onValueChange={(value) => handleChange("clientId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.initials
+                        ? `${client.initials} - ${client.name}`
+                        : client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assignee">Assignee *</Label>
+              <Select
+                value={formData.assigneeId}
+                onValueChange={(value) => handleChange("assigneeId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.avatar
+                        ? `${agent.avatar} - ${agent.name}`
+                        : agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -327,7 +301,7 @@ export default function EditTicketDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? "Updating..." : "Update"}
+            {isLoading ? "Updating..." : "Update Ticket"}
           </Button>
         </div>
       </DialogContent>

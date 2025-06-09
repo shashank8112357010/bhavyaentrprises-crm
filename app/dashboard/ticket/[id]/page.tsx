@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 import { NewExpenseDialog } from "@/components/finances/new-expense-dialog";
 import Link from "next/link";
 import ReassignTicketDialog from "@/components/tickets/reassign-ticket-dialog";
+import EditTicketDialog from "@/components/tickets/edit-ticket-dialog";
 
 // Placeholder for ticket store or service - replace with actual later
 // import { useTicketStore } from "@/store/ticketStore";
@@ -194,6 +195,9 @@ export default function TicketDetailsPage() {
   // State for reassign dialog
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
 
+  // State for edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
   const handleAddComment = async () => {
     const currentUserId = getCurrentUserIdFromAuth();
 
@@ -349,13 +353,20 @@ export default function TicketDetailsPage() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
+            onClick={() => setEditDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Edit Ticket
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setReassignDialogOpen(true)}
             className="flex items-center gap-2"
           >
             <User className="h-4 w-4" />
             Reassign
           </Button>
-          {/* Add any other action buttons here if needed, e.g., Edit Ticket */}
         </div>
       </div>
 
@@ -802,6 +813,14 @@ export default function TicketDetailsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Ticket Dialog */}
+      <EditTicketDialog
+        ticket={ticket as any}
+        onUpdate={loadTicketData}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
 
       {/* Reassign Ticket Dialog */}
       <ReassignTicketDialog

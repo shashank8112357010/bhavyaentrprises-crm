@@ -7,9 +7,8 @@ interface GetAllAgentsParams {
   searchQuery?: string;
 }
 
-// Make sure the return type matches the API response structure
 interface PaginatedAgentsResponse {
-  data: Agent[]; // Assuming Agent type is defined
+  data: Agent[];
   total: number;
   page: number;
   limit: number;
@@ -19,11 +18,14 @@ export async function createAgent(payload: CreateAgentPayload) {
   try {
     const response = await axios.post("/agent/create-agent", payload, {
       withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
     });
     return response.data;
   } catch (error: any) {
-    console.log(error);
-
     const message = error.response?.data?.message || "Failed to create agent.";
     throw new Error(message);
   }
@@ -34,14 +36,15 @@ export async function getAllAgents(
 ): Promise<PaginatedAgentsResponse> {
   try {
     const { page = 1, limit = 10, searchQuery = "" } = params;
+
     const response = await axios.get("/agent", {
+      params: { page, limit, searchQuery },
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
         Expires: "0",
       },
-      params: { page, limit, search: searchQuery }, // Pass params to API
     });
     return response.data; // Should now be the paginated response
   } catch (error: any) {
@@ -57,10 +60,15 @@ export async function deleteAgent(id: string) {
   try {
     const response = await axios.delete(`/agent/${id}`, {
       withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to delete agent.";
+    const message = error.response?.data?.error || "Failed to delete agent.";
     throw new Error(message);
   }
 }

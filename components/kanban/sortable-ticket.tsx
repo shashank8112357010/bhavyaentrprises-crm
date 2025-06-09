@@ -1,18 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect, useRef } from "react"; // Added useRef
 import { useRouter } from "next/navigation";
 import {
-  ArrowUpRight,
-  Building,
   Calendar,
-  CheckCircle,
   Clock,
-  MessageSquare,
-  Receipt,
   User,
+  Building,
+  AlertTriangle,
   Pencil,
   Trash2,
   UploadCloud,
@@ -21,15 +18,20 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
 import type { Ticket } from "./types";
 import { updateTicket, deleteTicket } from "@/lib/services/ticket";
 import EditTicketDialog from "../tickets/edit-ticket-dialog";
@@ -50,8 +52,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
 
   const [isUploadingJcr, setIsUploadingJcr] = useState(false);
   const [isUploadingPo, setIsUploadingPo] = useState(false);
-  const jcrInputRef = useRef<HTMLInputElement>(null);
-  const poInputRef = useRef<HTMLInputElement>(null);
+
   const { user } = useAuthStore();
 
   const {
@@ -61,146 +62,139 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: ticket.id });
+  } = useSortable({
+    id: ticket.id,
+    data: {
+      type: "ticket",
+      ticket,
+    },
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
-  const priorityColor =
-    ticket.priority === "Critical"
-      ? "bg-destructive"
-      : ticket.priority === "High"
-        ? "bg-orange-500"
-        : ticket.priority === "Medium"
-          ? "bg-yellow-500"
-          : "bg-blue-500";
-
-  const formatDateString = (date: string) => {
-    return date === "N/A"
-      ? new Date().toLocaleString().split(",")[0]
-      : new Date(date).toLocaleString().split(",")[0];
-  };
-
-  const handleUpdate = async () => {
-    try {
-      await updateTicket(ticket);
-    } catch (error) {
-      console.error("Failed to update ticket:", error);
-    }
+  const handleUpdate = () => {
+    // Refresh the page or trigger a re-fetch
+    router.refresh();
   };
 
   const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this ticket?")) {
+    if (window.confirm("Are you sure you want to delete this ticket?")) {
       try {
         await deleteTicket(ticket.id);
-        router.refresh();
-      } catch (error) {
-        console.error("Failed to delete ticket:", error);
+        toast({
+          title: "Success",
+          description: "Ticket deleted successfully.",
+        });
+        handleUpdate();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete ticket.",
+          variant: "destructive",
+        });
       }
     }
   };
 
-  const handleJcrUploadClick = () => jcrInputRef.current?.click();
-  const handlePoUploadClick = () => poInputRef.current?.click();
+  const handleFileUpload = async (
+    file: File,
+    uploadType: "jcr" | "po",
+  ): Promise<void> => {
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const handleJcrFileChange = async (
+    const endpoint = `/api/ticket/${ticket.id}/upload-${uploadType}`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to upload ${uploadType}`);
+      }
+
+      const result = await response.json();
+      toast({
+        title: "Success",
+        description: `${uploadType.toUpperCase()} uploaded successfully!`,
+      });
+
+      // Refresh the ticket data
+      handleUpdate();
+    } catch (error: any) {
+      console.error(`Error uploading ${uploadType}:`, error);
+      toast({
+        title: "Error",
+        description: error.message || `Failed to upload ${uploadType}.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleJcrUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploadingJcr(true);
-    const formData = new FormData();
-    formData.append("jcrFile", file);
-
     try {
-      const response = await fetch(`/api/ticket/${ticket.id}/upload-jcr`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "JCR Upload failed");
-      }
-      toast({
-        title: "Success",
-        description: "JCR file uploaded successfully.",
-      });
-      router.refresh();
-    } catch (error: any) {
-      toast({
-        title: "Error uploading JCR file",
-        description: error.message || "An unknown error occurred.",
-        variant: "destructive",
-      });
+      await handleFileUpload(file, "jcr");
     } finally {
       setIsUploadingJcr(false);
-      if (jcrInputRef.current) {
-        jcrInputRef.current.value = ""; // Reset file input
-      }
+      event.target.value = ""; // Reset input
     }
   };
 
-  const handlePoFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handlePoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploadingPo(true);
-    const formData = new FormData();
-    formData.append("poFile", file);
-
     try {
-      const response = await fetch(`/api/ticket/${ticket.id}/upload-po`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "PO Upload failed");
-      }
-      toast({
-        title: "Success",
-        description: "PO file uploaded successfully.",
-      });
-      router.refresh();
-    } catch (error: any) {
-      toast({
-        title: "Error uploading PO file",
-        description: error.message || "An unknown error occurred.",
-        variant: "destructive",
-      });
+      await handleFileUpload(file, "po");
     } finally {
       setIsUploadingPo(false);
-      if (poInputRef.current) {
-        poInputRef.current.value = ""; // Reset file input
-      }
+      event.target.value = ""; // Reset input
     }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case "high":
+        return "destructive";
+      case "medium":
+        return "secondary";
+      case "low":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "Not set";
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const isOverdue = (dueDate: string | undefined) => {
+    if (!dueDate) return false;
+    return new Date(dueDate) < new Date();
   };
 
   return (
     <>
-      <input
-        type="file"
-        ref={jcrInputRef}
-        onChange={handleJcrFileChange}
-        style={{ display: "none" }}
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-      />
-      <input
-        type="file"
-        ref={poInputRef}
-        onChange={handlePoFileChange}
-        style={{ display: "none" }}
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-      />
       <Card
         ref={setNodeRef}
-        style={{ ...style }}
+        style={style}
+        {...listeners}
         className={`relative mb-3 transition-all duration-200`}
         {...attributes}
       >
@@ -245,245 +239,251 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           )}
         </div>
 
-        <CardContent className="p-3 pb-0">
-          <Link
-            className="hover:cursor-wait"
-            href={`/dashboard/ticket/${ticket.id}`}
-            key={ticket.id}
-            legacyBehavior
-          >
-            <Badge variant="outline">{ticket.ticketId}</Badge>
-          </Link>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 pr-8">
+              <CardTitle className="text-sm font-medium leading-tight">
+                <Link
+                  href={`/dashboard/ticket/${ticket.id}`}
+                  className="hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {ticket.title}
+                </Link>
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">
+                {ticket.ticketId}
+              </CardDescription>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge
+              variant={getPriorityColor(ticket.priority)}
+              className="text-xs"
+            >
+              {ticket.priority}
+            </Badge>
+            {isOverdue(ticket.dueDate) && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Overdue</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        </CardHeader>
 
-          <div {...listeners}>
-            <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
+        <CardContent className="pt-0 space-y-3">
+          {/* Client Info */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Building className="h-3 w-3" />
+            <span className="truncate">
+              {ticket.client?.name || "No client"}
+            </span>
+          </div>
 
-            <div className="flex items-center mt-2 text-sm text-muted-foreground">
-              <Building className="mr-1 h-4 w-4" />
-              <span className="truncate">
-                {ticket.client.name} - {ticket.branch}
+          {/* Assignee */}
+          <div className="flex items-center gap-2">
+            <User className="h-3 w-3 text-muted-foreground" />
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={ticket.assignee?.avatar} />
+                <AvatarFallback className="text-xs">
+                  {ticket.assignee?.initials || "?"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs truncate">
+                {ticket.assignee?.name || "Unassigned"}
               </span>
             </div>
-
-            <div className="mt-3 space-y-2">
-              <TooltipProvider>
-                <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
-                  <Tooltip>
-                    <TooltipTrigger className="flex items-center">
-                      <Receipt className="mr-1 h-3 w-3" />
-                      <span className="flex gap-2">
-                        Quote:{" "}
-                        {ticket?.quotations && ticket?.quotations?.length > 0
-                          ? ticket?.quotations
-                              .map((i) => i.quoteNo || i.name)
-                              .join(", ")
-                          : "N/A"}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Amount: ₹{ticket.workStage?.quoteAmount || "N/A"}</p>
-                      <p>Taxable: ₹{ticket.workStage?.quoteTaxable || "N/A"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  <div className="flex items-center">
-                    <Calendar className="mr-1 h-3 w-3" />
-                    <span>
-                      {formatDateString(
-                        ticket.workStage?.dateReceived ||
-                          new Date().toISOString(),
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {ticket.comments.length > 0 && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <MessageSquare className="mr-1 h-3 w-3" />
-                      <span>{ticket.comments.length}</span>
-                    </div>
-                  )}
-
-                  {ticket.dueDate && !ticket.completedDate && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Calendar className="mr-1 h-3 w-3" />
-                      <span>Due: {formatDateString(ticket.dueDate)}</span>
-                    </div>
-                  )}
-
-                  {ticket.scheduledDate && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="mr-1 h-3 w-3" />
-                      <span>{formatDateString(ticket.scheduledDate)}</span>
-                    </div>
-                  )}
-
-                  {ticket.completedDate !== "N/A" && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
-                      <span>
-                        {formatDateString(ticket.completedDate || "")}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
-                  <div className="flex items-center">
-                    <User className="mr-1 h-3 w-3" />
-                    <span>Agent: {ticket?.assignee?.name || "N/A"}</span>
-                  </div>
-                </div>
-              </TooltipProvider>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-3">
-              <Badge
-                variant="outline"
-                className={`text-xs ${
-                  ticket?.workStage?.poStatus
-                    ? "bg-green-500 text-white"
-                    : "bg-yellow-400 text-black"
-                }`}
-              >
-                PO: {ticket?.workStage?.poStatus ? "Submitted" : "Pending"}
-              </Badge>
-
-              <Badge
-                variant="outline"
-                className={`text-xs ${
-                  ticket.workStage?.jcrStatus
-                    ? "bg-green-500 text-white"
-                    : "bg-yellow-400 text-black"
-                }`}
-              >
-                JCR: {ticket.workStage?.jcrStatus ? "Done" : "Pending"}
-              </Badge>
-
-              <Badge variant="secondary" className="text-xs">
-                Quotation: ₹
-                {ticket?.quotations
-                  ?.reduce(
-                    (total: any, exp: any) =>
-                      total + (Number(exp.grandTotal) || 0),
-                    0,
-                  )
-                  .toLocaleString()}
-              </Badge>
-
-              <Badge variant="secondary" className="text-xs">
-                Expense: ₹
-                {ticket?.expenses
-                  ?.reduce(
-                    (total: any, exp: any) => total + (Number(exp.amount) || 0),
-                    0,
-                  )
-                  .toLocaleString()}
-              </Badge>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-3">
-              {ticket.expenses &&
-                ticket.expenses.length > 0 &&
-                ticket.expenses.reduce(
-                  (sum, e) => sum + (Number(e.amount) || 0),
-                  0,
-                ) !==
-                  ticket?.quotations?.reduce(
-                    (total: any, exp: any) =>
-                      total + (Number(exp.grandTotal) || 0),
-                    0,
-                  ) && (
-                  <Badge
-                    variant="secondary"
-                    className={`text-xs ${
-                      ticket.expenses &&
-                      ticket.expenses.reduce(
-                        (sum, e) => sum + (Number(e.amount) || 0),
-                        0,
-                      ) <
-                        ticket?.quotations?.reduce(
-                          (total: any, exp: any) =>
-                            total + (Number(exp.grandTotal) || 0),
-                          0,
-                        )
-                        ? "bg-green-500 text-white"
-                        : "bg-red-400 text-white"
-                    }`}
-                  >
-                    {ticket.expenses &&
-                    ticket.expenses.reduce(
-                      (sum, e) => sum + (Number(e.amount) || 0),
-                      0,
-                    ) <
-                      ticket?.quotations?.reduce(
-                        (total: any, exp: any) =>
-                          total + (Number(exp.grandTotal) || 0),
-                        0,
-                      )
-                      ? "Profit"
-                      : "Loss"}
-                  </Badge>
-                )}
-            </div>
           </div>
+
+          {/* Due Date */}
+          <div className="flex items-center gap-2 text-xs">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <span
+              className={
+                isOverdue(ticket.dueDate)
+                  ? "text-destructive"
+                  : "text-muted-foreground"
+              }
+            >
+              Due: {formatDate(ticket.dueDate)}
+            </span>
+          </div>
+
+          {/* Scheduled Date */}
+          {ticket.scheduledDate && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>Scheduled: {formatDate(ticket.scheduledDate)}</span>
+            </div>
+          )}
+
+          {/* Work Stage Info */}
+          {ticket.workStage && (
+            <div className="text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Quote:</span>
+                <span
+                  className={
+                    ticket.workStage.quoteNo === "N/A"
+                      ? "text-destructive"
+                      : "text-green-600"
+                  }
+                >
+                  {ticket.workStage.quoteNo}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">PO:</span>
+                <span
+                  className={
+                    ticket.workStage.poStatus
+                      ? "text-green-600"
+                      : "text-orange-500"
+                  }
+                >
+                  {ticket.workStage.poStatus ? "✓" : "Pending"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">JCR:</span>
+                <span
+                  className={
+                    ticket.workStage.jcrStatus
+                      ? "text-green-600"
+                      : "text-orange-500"
+                  }
+                >
+                  {ticket.workStage.jcrStatus ? "✓" : "Pending"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Buttons for In Progress tickets */}
+          {ticket.status === "inProgress" && (
+            <div className="flex gap-2 mt-3">
+              {/* JCR Upload */}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id={`jcr-upload-${ticket.id}`}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={handleJcrUpload}
+                  className="hidden"
+                  disabled={isUploadingJcr}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs h-7"
+                  onClick={() =>
+                    document.getElementById(`jcr-upload-${ticket.id}`)?.click()
+                  }
+                  disabled={isUploadingJcr}
+                >
+                  {isUploadingJcr ? (
+                    <UploadCloud className="h-3 w-3 animate-pulse" />
+                  ) : ticket.workStage?.jcrStatus ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <UploadCloud className="h-3 w-3" />
+                  )}
+                  <span className="ml-1">JCR</span>
+                </Button>
+              </div>
+
+              {/* PO Upload */}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id={`po-upload-${ticket.id}`}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={handlePoUpload}
+                  className="hidden"
+                  disabled={isUploadingPo}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs h-7"
+                  onClick={() =>
+                    document.getElementById(`po-upload-${ticket.id}`)?.click()
+                  }
+                  disabled={isUploadingPo}
+                >
+                  {isUploadingPo ? (
+                    <UploadCloud className="h-3 w-3 animate-pulse" />
+                  ) : ticket.workStage?.poStatus ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <UploadCloud className="h-3 w-3" />
+                  )}
+                  <span className="ml-1">PO</span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Hold Reason */}
+          {ticket.status === "onHold" && ticket.holdReason && (
+            <div className="text-xs p-2 bg-orange-50 border border-orange-200 rounded">
+              <span className="font-medium text-orange-800">Hold Reason:</span>
+              <p className="text-orange-700 mt-1">{ticket.holdReason}</p>
+            </div>
+          )}
+
+          {/* Expenses Summary */}
+          {ticket.expenses && ticket.expenses.length > 0 && (
+            <div className="text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Expenses:</span>
+                <span className="font-medium">
+                  ₹
+                  {ticket.expenses
+                    .reduce((sum, exp) => sum + parseFloat(exp.amount), 0)
+                    .toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Due Amount for billing stages */}
+          {(ticket.status === "billing_pending" ||
+            ticket.status === "billing_completed") && (
+            <div className="text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Due Amount:</span>
+                <span
+                  className={`font-medium ${
+                    ticket.due && ticket.due > 0
+                      ? "text-red-600"
+                      : "text-green-600"
+                  }`}
+                >
+                  ₹{ticket.due?.toFixed(2) || "0.00"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment Status:</span>
+                <span
+                  className={`font-medium ${
+                    ticket.paid ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {ticket.paid ? "Paid" : "Pending"}
+                </span>
+              </div>
+            </div>
+          )}
         </CardContent>
-
-        <CardFooter className="p-3 flex justify-between items-center">
-          {" "}
-          {/* Changed to justify-between */}
-          <div className="flex gap-1">
-            {/* Container for left-aligned buttons */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 px-1.5 text-xs"
-              onClick={handleJcrUploadClick}
-              disabled={
-                isUploadingJcr ||
-                !!ticket.workStage?.jcrFilePath ||
-                !ticket.workStage
-              }
-            >
-              {ticket.workStage?.jcrFilePath ? (
-                <Check className=" text-green-300 mr-1 h-3 w-3" />
-              ) : (
-                <UploadCloud className="mr-1 h-3 w-3" />
-              )}
-              {isUploadingJcr
-                ? "Uploading JCR..."
-                : ticket.workStage?.jcrFilePath
-                  ? "JCR Uploaded"
-                  : "Upload JCR"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 px-1.5 text-xs"
-              onClick={handlePoUploadClick}
-              disabled={
-                isUploadingPo ||
-                !!ticket.workStage?.poFilePath ||
-                !ticket.workStage
-              }
-            >
-              {ticket.workStage?.poFilePath ? (
-                <Check className=" text-green-300 mr-1 h-3 w-3" />
-              ) : (
-                <UploadCloud className="mr-1 h-3 w-3" />
-              )}
-
-              {isUploadingPo
-                ? "Uploading PO..."
-                : ticket.workStage?.poFilePath
-                  ? "PO Uploaded"
-                  : "Upload PO"}
-            </Button>
-          </div>
-        </CardFooter>
       </Card>
 
       <EditTicketDialog
