@@ -105,15 +105,17 @@ export default function EditTicketDialog({
   }, [fetchAgents, fetchClients]);
 
   useEffect(() => {
-    if (agents.length > 0 && ticket.assignee?.name) {
-      const assignee = agents.find(
-        (agent) => agent.name === ticket.assignee?.name,
-      );
+    if (agents.length > 0 && (ticket.assignee as any)?.id) {
+      // Try to find by ID first, then by name as fallback
+      const assigneeId = (ticket.assignee as any).id;
+      const assignee =
+        agents.find((agent) => agent.id === assigneeId) ||
+        agents.find((agent) => agent.name === ticket.assignee?.name);
       if (assignee) {
         setFormData((prev) => ({ ...prev, assigneeId: assignee.id }));
       }
     }
-  }, [agents, ticket.assignee?.name]);
+  }, [agents, ticket.assignee]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
