@@ -142,7 +142,7 @@ export default function KanbanPage() {
 
     // Only fetch agents and clients if user has permission
     if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
-      fetchAgents();
+      fetchAgents({}, user.role);
       fetchClients();
     }
   }, [
