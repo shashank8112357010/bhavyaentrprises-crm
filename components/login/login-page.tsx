@@ -104,6 +104,59 @@ export default function LoginPage() {
     }
   };
 
+  const testLoginAPI = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter email and password first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log("Testing login API with direct fetch...");
+
+      // Test with direct fetch first
+      const fetchResponse = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      const fetchData = await fetchResponse.json();
+      console.log("Direct fetch response:", {
+        status: fetchResponse.status,
+        data: fetchData,
+      });
+
+      // Test with axios
+      const axiosResponse = await axiosInstance.post("/login", {
+        email,
+        password,
+      });
+      console.log("Axios response:", {
+        status: axiosResponse.status,
+        data: axiosResponse.data,
+      });
+
+      toast({
+        title: "Login API Test",
+        description: `Direct fetch: ${fetchResponse.status}, Axios: ${axiosResponse.status}`,
+      });
+    } catch (error: any) {
+      console.error("Login API test failed:", error);
+      toast({
+        title: "Login API Test Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="w-full max-w-md p-4">
