@@ -14,5 +14,9 @@ export function ClientToaster() {
     return null;
   }
 
-  return <Toaster />;
+  return (
+    <div suppressHydrationWarning>
+      <Toaster />
+    </div>
+  );
 }
