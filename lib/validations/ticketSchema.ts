@@ -1,8 +1,8 @@
+// lib/validations/ticketSchema.ts
 import { z } from "zod";
-
 const commentSchema = z.object({
-  text: z.string().max(28), // Assuming GST types are 18 and 28
-  ticketId: z.string().max(28), // Assuming GST types are 18 and 28
+  text: z.string(),
+  ticketId: z.string().min(1),
   userId: z.string().max(28), // Assuming GST types are 18 and 28
 });
 
@@ -35,18 +35,18 @@ export const updateTicketSchema = z.object({
   priority: z.string().min(1, "Priority is required").optional(),
   dueDate: z
     .string()
-    .refine((val) => !isNaN(Date.parse(val)), {
+    .refine((val) => !val || !isNaN(Date.parse(val)), {
       message: "Invalid date format",
     })
     .optional(),
   scheduledDate: z
     .string()
-    .refine((val) => !isNaN(Date.parse(val)), {
+    .refine((val) => !val || !isNaN(Date.parse(val)), {
       message: "Invalid date format",
     })
     .optional(),
   description: z.string().min(1, "Description is required").optional(),
-  comments: z.array(commentSchema).min(1).optional(), // Array of rate card detail objects
+  comments: z.array(commentSchema).optional(),
   holdReason: z.string().optional(),
   assigneeId: z.string().min(1, "Assignee ID is required").optional(),
   clientId: z.string().min(1, "Client ID is required").optional(),
