@@ -157,9 +157,9 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     set({ currentPage: page, loading: true }); // Set loading true before fetch
     get().fetchAgents({ page, query: get().searchQuery }, userRole); // Pass current query and user role
   },
-  setSearchQuery: (query: string) => {
+  setSearchQuery: (query: string, userRole?: Role) => {
     set({ searchQuery: query, currentPage: 1, loading: true }); // Reset to page 1 and set loading
-    get().fetchAgents({ page: 1, query });
+    get().fetchAgents({ page: 1, query }, userRole);
   },
   setItemsPerPage: (newLimit: number) => {
     set({ itemsPerPage: newLimit, currentPage: 1, loading: true }); // Update state and set loading
