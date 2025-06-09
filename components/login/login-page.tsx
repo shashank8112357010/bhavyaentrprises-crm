@@ -85,6 +85,25 @@ export default function LoginPage() {
     // isLoading is set to false within the authStore.login action
   };
 
+  const testAPI = async () => {
+    try {
+      console.log("Testing API connection...");
+      const response = await axiosInstance.get("/test-login");
+      console.log("API test successful:", response.data);
+      toast({
+        title: "API Test Successful",
+        description: `Found ${response.data.totalUsers} users in database`,
+      });
+    } catch (error: any) {
+      console.error("API test failed:", error);
+      toast({
+        title: "API Test Failed",
+        description: error.response?.data?.message || error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="w-full max-w-md p-4">
