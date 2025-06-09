@@ -250,10 +250,10 @@ export default function QuotationsPage() {
                           href={`/dashboard/ticket/${q.ticket.id}`}
                           className="hover:underline"
                         >
-                          {q.ticket.title || "N/A"}
+                          {q.ticket.ticketId || q.ticket.title || "N/A"}
                         </Link>
                       ) : (
-                        q.ticket?.title || "N/A"
+                        q.ticket?.ticketId || q.ticket?.title || "N/A"
                       )}
                     </TableCell>
                     <TableCell className="text-right">
