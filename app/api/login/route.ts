@@ -9,10 +9,13 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("Login API called");
     const body = await req.json();
     const { email, password } = body;
+    console.log("Login attempt for email:", email);
 
     if (!email || !password) {
+      console.log("Missing email or password");
       return NextResponse.json(
         { message: "Email and password are required" },
         { status: 400 },
@@ -21,6 +24,7 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      console.log("User not found for email:", email);
       return NextResponse.json(
         { message: "Invalid credentials" },
         { status: 401 },
@@ -29,6 +33,7 @@ export async function POST(req: NextRequest) {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      console.log("Invalid password for user:", email);
       return NextResponse.json(
         { message: "Invalid credentials" },
         { status: 401 },
