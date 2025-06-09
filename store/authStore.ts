@@ -92,7 +92,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axiosInstance.post("/login", { email, password });
+      console.log(
+        "Starting login request to:",
+        axiosInstance.defaults.baseURL + "/login",
+      );
+      const response = await axiosInstance.post(
+        "/login",
+        { email, password },
+        {
+          timeout: 10000, // 10 second timeout
+        },
+      );
 
       // Log the response for debugging
       console.log("Login response status:", response.status);
