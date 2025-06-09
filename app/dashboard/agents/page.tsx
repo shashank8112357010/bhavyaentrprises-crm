@@ -101,8 +101,11 @@ export default function AgentsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchAgents();
-  }, [fetchAgents]);
+    // Only fetch agents if user has permission
+    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+      fetchAgents();
+    }
+  }, [fetchAgents, user?.role]);
 
   const handleViewDetails = (agent: Agent) => {
     setSelectedAgentForDetails(agent);
