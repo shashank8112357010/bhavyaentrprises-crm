@@ -54,8 +54,28 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Agent } from "../../../components/agent/types";
+import { useAuthStore } from "@/store/authStore";
 
 export default function AgentsPage() {
+  const { user } = useAuthStore();
+
+  // Role-based access control - only ADMIN and ACCOUNTS users can access agents page
+  if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground">
+              You don't have permission to access the agents page.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   const {
     agents,
     loading,
