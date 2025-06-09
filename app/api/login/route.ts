@@ -76,6 +76,23 @@ export async function POST(req: NextRequest) {
       userResponse,
     );
 
+    // Validate that we have all required data before sending response
+    if (!token) {
+      console.error("Token generation failed");
+      return NextResponse.json(
+        { message: "Token generation failed" },
+        { status: 500 },
+      );
+    }
+
+    if (!userResponse.userId || !userResponse.email || !userResponse.role) {
+      console.error("User response missing required fields:", userResponse);
+      return NextResponse.json(
+        { message: "User data incomplete" },
+        { status: 500 },
+      );
+    }
+
     // 🥠 Set cookie and return response
     const responseData = {
       success: true,
@@ -84,6 +101,9 @@ export async function POST(req: NextRequest) {
     };
 
     console.log("Sending response:", responseData);
+    console.log("Response keys:", Object.keys(responseData));
+    console.log("User keys:", Object.keys(responseData.user));
+    console.log("Token length:", token.length);
 
     const response = NextResponse.json(responseData);
 
