@@ -290,10 +290,11 @@ export const useTicketStore = create<TicketState>((set) => ({
     const foundTicket = allTickets.find((t) => t.id === id);
     return foundTicket;
   },
-  updateTicket: async (updatedTicket: Ticket) => {
+  updateTicket: async (updatedTicket: any) => {
     set({ loading: true, error: null });
     try {
-      const ticketFromServer = await updateTicket(updatedTicket);
+      const response = await updateTicket(updatedTicket);
+      const ticketFromServer = response.ticket || response;
 
       set((state) => {
         const { tickets, all_tickets } = state;
