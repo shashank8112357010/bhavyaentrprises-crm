@@ -22,7 +22,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        password: true,
+        role: true,
+      },
+    });
+
     if (!user) {
       console.log("User not found for email:", email);
       return NextResponse.json(
@@ -30,6 +40,14 @@ export async function POST(req: NextRequest) {
         { status: 401 },
       );
     }
+
+    console.log("User found:", {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      hasPassword: !!user.password,
+    });
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
