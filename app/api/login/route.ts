@@ -40,11 +40,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const initials = user.name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
+    const initials =
+      user.name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase() ||
+      user.email?.substring(0, 2).toUpperCase() ||
+      "NA";
 
     // 🧾 Create JWT using jose
     const token = await new SignJWT({
