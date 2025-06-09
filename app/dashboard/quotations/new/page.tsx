@@ -893,7 +893,7 @@ const NewQuotationPage = () => {
                         <SelectItem value="none">No ticket</SelectItem>
                         {ticketsForSelection.map((ticket) => (
                           <SelectItem key={ticket.id} value={ticket.id}>
-                            {ticket.title}
+                            {ticket.ticketId} - {ticket.title}
                           </SelectItem>
                         ))}
                       </SelectContent>
