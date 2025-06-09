@@ -61,7 +61,13 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   totalAgentCount: null, // Initialize new state
   isLoadingTotalAgentCount: false, // Initialize new state
 
-  fetchAgents: async (params = {}) => {
+  fetchAgents: async (params = {}, userRole?: Role) => {
+    // Only allow ADMIN and ACCOUNTS to fetch agents
+    if (userRole && userRole !== "ADMIN" && userRole !== "ACCOUNTS") {
+      set({ loading: false, error: null });
+      return;
+    }
+
     set({ loading: true, error: null }); // This loading is for the main agent list
     const S = get();
     const pageToFetch = params.page ?? S.currentPage;
