@@ -229,7 +229,7 @@ export default function LoginPage() {
                   "Sign in"
                 )}
               </Button>
-              {process.env.NODE_ENV === "development" && (
+              {isMounted && process.env.NODE_ENV === "development" && (
                 <>
                   <Button
                     type="button"
