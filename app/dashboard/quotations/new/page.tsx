@@ -502,6 +502,20 @@ const NewQuotationPage = () => {
     },
   });
 
+  // Rate card form for creating new rate cards
+  type CreateRateCardFormData = z.infer<typeof inlineRateCardFormSchema>;
+  const rateCardForm = useForm<CreateRateCardFormData>({
+    resolver: zodResolver(inlineRateCardFormSchema),
+    defaultValues: {
+      srNo: 1,
+      description: "",
+      unit: "",
+      rate: 0,
+      bankName: "BE", // Default bank name as BE
+      bankRcNo: "N/A", // Default BankRc as N/A
+    },
+  });
+
   // Role-based access control - only ADMIN users can create quotations
   // This check MUST come AFTER all hooks are declared
   if (user?.role !== "ADMIN") {
