@@ -49,7 +49,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // Validation schemas
 import { createClientSchema } from "@/lib/validations/clientSchema";
