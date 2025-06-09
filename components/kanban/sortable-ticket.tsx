@@ -17,6 +17,7 @@ import {
   Trash2,
   UploadCloud,
   Check, // Added for upload buttons
+  UserPlus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
