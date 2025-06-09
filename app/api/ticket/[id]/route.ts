@@ -8,31 +8,27 @@ import {
   updateTicketStatusSchema,
 } from "../../../../lib/validations/ticketSchema";
 import { TicketStatus } from "@prisma/client";
-
-
+import { createTicketStatusChangeNotification } from "@/lib/services/notification-helpers";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-
     const body = await req.json();
-  
 
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
 
       const existingTicket = await prisma.ticket.findUnique({
         where: { id: params.id },
-        select: { status: true, assigneeId: true },
+        select: { status: true, assigneeId: true, title: true, ticketId: true },
       });
-
 
       if (!existingTicket) {
         return NextResponse.json(
           { message: "Ticket not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
       if (body.holdReason) {
@@ -62,6 +58,29 @@ export async function PATCH(
         });
       }
 
+      // Create notification for status change if assignee exists
+      if (
+        existingTicket.assigneeId &&
+        existingTicket.status !== validatedData.status
+      ) {
+        try {
+          await createTicketStatusChangeNotification(
+            existingTicket.assigneeId,
+            params.id,
+            existingTicket.title || "Unknown Ticket",
+            existingTicket.ticketId || "Unknown ID",
+            existingTicket.status,
+            validatedData.status,
+          );
+        } catch (notificationError) {
+          console.error(
+            "Failed to create status change notification:",
+            notificationError,
+          );
+          // Don't fail the update if notification fails
+        }
+      }
+
       return NextResponse.json({ ticket });
     }
     console.log(body);
@@ -76,7 +95,7 @@ export async function PATCH(
 
       return NextResponse.json(
         { message: `${firstFieldKey}: ${firstErrorMessage}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,14 +108,14 @@ export async function PATCH(
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to update ticket", error: error.message },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const body = await req.json();
@@ -111,7 +130,7 @@ export async function POST(
 
       return NextResponse.json(
         { message: `${firstFieldKey}: ${firstErrorMessage}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -126,17 +145,17 @@ export async function POST(
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to add quotation", error: error.message },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   console.log(params);
-  
+
   try {
     const ticket = await prisma.ticket.findUnique({
       where: { id: params.id },
@@ -146,7 +165,7 @@ export async function DELETE(
     if (!ticket) {
       return NextResponse.json(
         { message: "Ticket not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -175,14 +194,14 @@ export async function DELETE(
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to delete ticket", error: error.message },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const { id } = params;
@@ -195,34 +214,38 @@ export async function GET(
       where: { id },
       include: {
         client: true,
-        assignee: { // Assuming 'assignee' is the relation field to the User model
-          select: { // Select specific fields from User to avoid exposing sensitive data
+        assignee: {
+          // Assuming 'assignee' is the relation field to the User model
+          select: {
+            // Select specific fields from User to avoid exposing sensitive data
             id: true,
             name: true,
             email: true, // Optional: include if needed for display
             avatar: true,
             initials: true,
             role: true,
-          }
+          },
         },
         workStage: true,
         Quotation: true, // Assuming 'Quotation' is the relation field for quotations
-        expenses: true,  // Assuming 'expenses' is the relation field for expenses
-        comments: {      // Include comments
+        expenses: true, // Assuming 'expenses' is the relation field for expenses
+        comments: {
+          // Include comments
           orderBy: {
-            createdAt: 'asc' // Order comments by creation time
+            createdAt: "asc", // Order comments by creation time
           },
           include: {
-            user: { // Include user details for each comment
+            user: {
+              // Include user details for each comment
               select: {
                 id: true,
                 name: true,
                 avatar: true,
                 initials: true,
-              }
-            }
-          }
-        }
+              },
+            },
+          },
+        },
       },
     });
 
@@ -230,7 +253,7 @@ export async function GET(
       console.log(`Ticket with ID ${id} not found`);
       return NextResponse.json(
         { message: "Ticket not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -239,7 +262,7 @@ export async function GET(
     console.error("Error fetching ticket:", error);
     return NextResponse.json(
       { message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

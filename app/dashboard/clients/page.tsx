@@ -54,14 +54,15 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
 import {
   createClient,
-  exportClientsToCsv, // Changed from exportClientsToExcel
+  exportClientsToCsv,
   getAllClients,
 } from "@/lib/services/client";
 import { UploadClientsDialog } from "@/components/clients/UploadClientsDialog";
+import { EditClientDialog } from "@/components/clients/edit-client-dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { Label } from "@radix-ui/react-select";
 
 type Client = {
   id?: string;
@@ -81,6 +82,7 @@ type Client = {
 
 type GetClient = {
   id?: string;
+  displayId?: string; // Add displayId field
   name: string;
   type: string;
   totalBranches: number;
@@ -96,18 +98,19 @@ type GetClient = {
   tickets: any[];
 };
 
-// const ITEMS_PER_PAGE = 5; // Will be replaced by itemsPerPage state
-
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [clientType, setClientType] = useState("all");
   const [clients, setClients] = useState<GetClient[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [itemsPerPage, setItemsPerPage] = useState(5); // Added state for items per page
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingClient, setEditingClient] = useState<GetClient | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { user } = useAuthStore();
 
   const [newClient, setNewClient] = useState<Client>({
     name: "",
@@ -150,7 +153,9 @@ export default function ClientsPage() {
     const matchesSearch =
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (client.id?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+      (client.id?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (client.displayId?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+        false);
 
     const matchesType =
       clientType === "all" ||
@@ -159,33 +164,37 @@ export default function ClientsPage() {
     return matchesSearch && matchesType;
   });
 
-  // Pagination calculation: slice filteredClients for current page
-  const pageCount = itemsPerPage > 0 ? Math.ceil(filteredClients.length / itemsPerPage) : 0;
+  const pageCount =
+    itemsPerPage > 0 ? Math.ceil(filteredClients.length / itemsPerPage) : 0;
   const paginatedClients = filteredClients.slice(
     currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage // Corrected end index calculation
+    (currentPage + 1) * itemsPerPage,
   );
 
-  // Reset to first page when filters/search change or itemsPerPage changes
   useEffect(() => {
     setCurrentPage(0);
-  }, [searchQuery, clientType, itemsPerPage]); // Added itemsPerPage to dependencies
+  }, [searchQuery, clientType, itemsPerPage]);
 
-  // Adjust currentPage if it's out of bounds due to pageCount changing
   useEffect(() => {
     if (pageCount > 0 && currentPage >= pageCount) {
-        setCurrentPage(pageCount - 1); // Adjust to the new last page
+      setCurrentPage(pageCount - 1);
     } else if (pageCount === 0 && currentPage !== 0) {
-        setCurrentPage(0); // No pages, so current page must be 0
+      setCurrentPage(0);
     }
-    // If currentPage is valid or pageCount is 0 and currentPage is 0, no change needed.
   }, [pageCount, currentPage]);
 
   async function handleCreateClient(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const { name, type, totalBranches, contactPerson, contactPhone, lastServiceDate } = newClient;
+    const {
+      name,
+      type,
+      totalBranches,
+      contactPerson,
+      contactPhone,
+      lastServiceDate,
+    } = newClient;
 
     if (!name) {
       toast({
@@ -248,7 +257,8 @@ export default function ClientsPage() {
     }
 
     try {
-      const initials = newClient.name.split(" ")
+      const initials = newClient.name
+        .split(" ")
         .map((n) => n[0])
         .join("");
       const createdClient = await createClient({ ...newClient, initials });
@@ -292,173 +302,226 @@ export default function ClientsPage() {
     setCurrentPage(selectedItem.selected);
   }
 
+  const handleEditClient = (client: GetClient) => {
+    setEditingClient(client);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteClient = async (clientId: string, clientName: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete client "${clientName}"? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/client/${clientId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete client");
+      }
+
+      toast({
+        title: "Success",
+        description: "Client deleted successfully.",
+      });
+
+      refreshClients();
+    } catch (error: any) {
+      console.error("Error deleting client:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete client.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditDialogOpen(false);
+    setEditingClient(null);
+    refreshClients();
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-            <p className="text-muted-foreground">
-              Manage client information and service requests
-            </p>
-          </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+          <p className="text-muted-foreground">
+            Manage client information and service requests
+          </p>
+        </div>
 
-          <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Client
               </Button>
             </DialogTrigger>
-            <Button variant="outline" onClick={exportClientsToCsv}> {/* Changed onClick handler */}
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-            <UploadClientsDialog onUploadComplete={refreshClients} />
-            <a href="/sample_client_import.csv" download> {/* Changed href to .csv */}
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Download Sample
-              </Button>
-            </a>
-          </div>
-        </div>
-
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add New Client</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateClient} className="space-y-4">
-            <Input
-              placeholder="Client Name"
-              value={newClient.name}
-              onChange={(e) =>
-                setNewClient({ ...newClient, name: e.target.value })
-              }
-            />
-            <Select
-              value={newClient.type}
-              onValueChange={(value) =>
-                setNewClient({ ...newClient, type: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose Client Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Choose Bank">Choose Client Type</SelectItem>
-                <SelectItem value="Bank">Bank</SelectItem>
-                <SelectItem value="NBFC">NBFC</SelectItem>
-                <SelectItem value="Insurance">Insurance</SelectItem>
-                <SelectItem value="Corporate">Corporate</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              placeholder="Total Branches"
-              value={newClient.totalBranches}
-              onChange={(e) =>
-                setNewClient({
-                  ...newClient,
-                  totalBranches: Number(e.target.value),
-                })
-              }
-              min={1}
-            />
-            <Input
-              placeholder="Contact Person"
-              value={newClient.contactPerson}
-              onChange={(e) =>
-                setNewClient({ ...newClient, contactPerson: e.target.value })
-              }
-            />
-            <Input
-              placeholder="Contact Email"
-              value={newClient.contactEmail}
-              onChange={(e) =>
-                setNewClient({ ...newClient, contactEmail: e.target.value })
-              }
-              type="email"
-            />
-            <Input
-              placeholder="Contact Phone"
-              value={newClient.contactPhone}
-              onChange={(e) =>
-                setNewClient({ ...newClient, contactPhone: e.target.value })
-              }
-              type="tel"
-            />
-            <Input
-              placeholder="GSTN"
-              value={newClient.gstn}
-              onChange={(e) =>
-                setNewClient({ ...newClient, gstn: e.target.value })
-              }
-            />
-            <Select
-              value={newClient.contractStatus}
-              onValueChange={(value) =>
-                setNewClient({ ...newClient, contractStatus: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Contract Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left"
-                >
-                  {newClient.lastServiceDate
-                    ? format(new Date(newClient.lastServiceDate), "PPP")
-                    : "Last Service Date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={
-                    newClient.lastServiceDate
-                      ? new Date(newClient.lastServiceDate)
-                      : undefined
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Add New Client</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateClient} className="space-y-4">
+                <Input
+                  placeholder="Client Name"
+                  value={newClient.name}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, name: e.target.value })
                   }
-                  onSelect={(date) => {
-                    if (date) {
-                      setNewClient({
-                        ...newClient,
-                        lastServiceDate: date.toISOString(),
-                      });
-                    }
-                  }}
-                  disabled={(date) => date > new Date()}
-                  initialFocus
                 />
-              </PopoverContent>
-            </Popover>
+                <Select
+                  value={newClient.type}
+                  onValueChange={(value) =>
+                    setNewClient({ ...newClient, type: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose Client Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Choose Bank">
+                      Choose Client Type
+                    </SelectItem>
+                    <SelectItem value="Bank">Bank</SelectItem>
+                    <SelectItem value="NBFC">NBFC</SelectItem>
+                    <SelectItem value="Insurance">Insurance</SelectItem>
+                    <SelectItem value="Corporate">Corporate</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  placeholder="Total Branches"
+                  value={newClient.totalBranches}
+                  onChange={(e) =>
+                    setNewClient({
+                      ...newClient,
+                      totalBranches: Number(e.target.value),
+                    })
+                  }
+                  min={1}
+                />
+                <Input
+                  placeholder="Contact Person"
+                  value={newClient.contactPerson}
+                  onChange={(e) =>
+                    setNewClient({
+                      ...newClient,
+                      contactPerson: e.target.value,
+                    })
+                  }
+                />
+                <Input
+                  placeholder="Contact Email"
+                  value={newClient.contactEmail}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, contactEmail: e.target.value })
+                  }
+                  type="email"
+                />
+                <Input
+                  placeholder="Contact Phone"
+                  value={newClient.contactPhone}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, contactPhone: e.target.value })
+                  }
+                  type="tel"
+                />
+                <Input
+                  placeholder="GSTN"
+                  value={newClient.gstn}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, gstn: e.target.value })
+                  }
+                />
+                <Select
+                  value={newClient.contractStatus}
+                  onValueChange={(value) =>
+                    setNewClient({ ...newClient, contractStatus: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Contract Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
 
-            <Input
-              placeholder="Initials"
-              value={newClient.name.split(" ")
-                .map((n) => n[0])
-                .join("")}
-              readOnly
-            />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                    >
+                      {newClient.lastServiceDate
+                        ? format(new Date(newClient.lastServiceDate), "PPP")
+                        : "Last Service Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={
+                        newClient.lastServiceDate
+                          ? new Date(newClient.lastServiceDate)
+                          : undefined
+                      }
+                      onSelect={(date) => {
+                        if (date) {
+                          setNewClient({
+                            ...newClient,
+                            lastServiceDate: date.toISOString(),
+                          });
+                        }
+                      }}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
 
-            <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Client"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                <Input
+                  placeholder="Initials"
+                  value={newClient.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                  readOnly
+                />
+
+                <DialogFooter>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Creating..." : "Create Client"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Button variant="outline" onClick={exportClientsToCsv}>
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+          <UploadClientsDialog onUploadComplete={refreshClients} />
+          <a href="/sample_client_import.csv" download>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Download Sample
+            </Button>
+          </a>
+        </div>
+      </div>
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <Input
@@ -470,10 +533,7 @@ export default function ClientsPage() {
         />
 
         <div className="max-w-xs w-[190px]">
-          <Select
-            value={clientType}
-            onValueChange={setClientType}
-          >
+          <Select value={clientType} onValueChange={setClientType}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by Client Type" />
             </SelectTrigger>
@@ -511,6 +571,9 @@ export default function ClientsPage() {
                   <TableHead>Contact Phone</TableHead>
                   <TableHead>Contract Status</TableHead>
                   <TableHead>Last Service Date</TableHead>
+                  {user?.role === "ADMIN" && (
+                    <TableHead className="text-right">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -520,7 +583,10 @@ export default function ClientsPage() {
                       <TableCell className="flex items-center gap-2">
                         {client.avatar ? (
                           <Avatar>
-                            <AvatarImage src={client.avatar} alt={client.name} />
+                            <AvatarImage
+                              src={client.avatar}
+                              alt={client.name}
+                            />
                             <AvatarFallback>{client.initials}</AvatarFallback>
                           </Avatar>
                         ) : (
@@ -531,7 +597,7 @@ export default function ClientsPage() {
                         <div className="flex flex-col">
                           <p className="font-medium">{client.name}</p>
                           <p className="text-muted-foreground text-sm">
-                            {client.id}
+                            {client.displayId || client.id}
                           </p>
                         </div>
                       </TableCell>
@@ -558,12 +624,44 @@ export default function ClientsPage() {
                           ? format(new Date(client.lastServiceDate), "PPP")
                           : "—"}
                       </TableCell>
+                      {user?.role === "ADMIN" && (
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() => handleEditClient(client)}
+                              >
+                                Edit Client
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() =>
+                                  handleDeleteClient(client.id!, client.name)
+                                }
+                              >
+                                Delete Client
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={user?.role === "ADMIN" ? 9 : 8}
                       className="text-center py-6 text-muted-foreground"
                     >
                       No clients found.
@@ -577,11 +675,9 @@ export default function ClientsPage() {
           {/* Pagination Controls Area */}
           <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
             <div className="text-sm text-muted-foreground mb-2 md:mb-0">
-              {filteredClients.length > 0 ? (
-                `Showing ${currentPage * itemsPerPage + 1} - ${Math.min((currentPage + 1) * itemsPerPage, filteredClients.length)} of ${filteredClients.length} clients`
-              ) : (
-                "No clients found"
-              )}
+              {filteredClients.length > 0
+                ? `Showing ${currentPage * itemsPerPage + 1} - ${Math.min((currentPage + 1) * itemsPerPage, filteredClients.length)} of ${filteredClients.length} clients`
+                : "No clients found"}
             </div>
 
             {filteredClients.length > itemsPerPage && (
@@ -591,7 +687,6 @@ export default function ClientsPage() {
                   value={String(itemsPerPage)}
                   onValueChange={(value) => {
                     setItemsPerPage(Number(value));
-                    // setCurrentPage(0); // Already handled by useEffect watching itemsPerPage
                   }}
                 >
                   <SelectTrigger className="w-[75px] h-9">
@@ -625,7 +720,6 @@ export default function ClientsPage() {
           </div>
         </TabsContent>
 
-        {/* Grid View Pagination - Apply similar structure */}
         <TabsContent
           value="grid"
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
@@ -636,7 +730,6 @@ export default function ClientsPage() {
             </div>
           ) : paginatedClients.length > 0 ? (
             paginatedClients.map((client) => (
-              // ... Card rendering ...
               <Card key={client.id} className="overflow-hidden">
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between">
@@ -647,7 +740,9 @@ export default function ClientsPage() {
                       </Avatar>
                       <div>
                         <CardTitle className="text-lg">{client.name}</CardTitle>
-                        <CardDescription>{client.id}</CardDescription>
+                        <CardDescription>
+                          {client.displayId || client.id}
+                        </CardDescription>
                       </div>
                     </div>
                     <Badge variant="outline">{client.type}</Badge>
@@ -672,15 +767,17 @@ export default function ClientsPage() {
                         <div className="text-sm">{client.totalBranches}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">Active Tickets</div>
+                        <div className="text-sm font-medium">
+                          Active Tickets
+                        </div>
                         <div className="text-center">
                           <Badge
                             variant={
                               client.tickets.length > 1
                                 ? "destructive"
                                 : client.tickets.length > 5
-                                ? "default"
-                                : "secondary"
+                                  ? "default"
+                                  : "secondary"
                             }
                           >
                             {client.tickets.length}
@@ -705,13 +802,11 @@ export default function ClientsPage() {
           )}
 
           {/* Pagination Controls Area for Grid View */}
-           <div className="col-span-full mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
+          <div className="col-span-full mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
             <div className="text-sm text-muted-foreground mb-2 md:mb-0">
-              {filteredClients.length > 0 ? (
-                `Showing ${currentPage * itemsPerPage + 1} - ${Math.min((currentPage + 1) * itemsPerPage, filteredClients.length)} of ${filteredClients.length} clients`
-              ) : (
-                "No clients found"
-              )}
+              {filteredClients.length > 0
+                ? `Showing ${currentPage * itemsPerPage + 1} - ${Math.min((currentPage + 1) * itemsPerPage, filteredClients.length)} of ${filteredClients.length} clients`
+                : "No clients found"}
             </div>
 
             {filteredClients.length > itemsPerPage && (
@@ -721,7 +816,6 @@ export default function ClientsPage() {
                   value={String(itemsPerPage)}
                   onValueChange={(value) => {
                     setItemsPerPage(Number(value));
-                    // setCurrentPage(0); // Already handled by useEffect
                   }}
                 >
                   <SelectTrigger className="w-[75px] h-9">
@@ -755,6 +849,17 @@ export default function ClientsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Client Dialog */}
+      <EditClientDialog
+        client={editingClient}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setEditingClient(null);
+        }}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }

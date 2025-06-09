@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
+import { NotificationBell } from "@/components/notifications/notification-bell-standalone";
 import { Bell, Menu, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -23,15 +24,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 
 export default function Header() {
-  const {user} = useAuthStore()
+  const { user } = useAuthStore();
   const { toast } = useToast();
-  
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
-    
           <Link href="/" className="flex items-center gap-2">
             <Image
               className=" text-primary"
@@ -47,11 +46,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"></span>
-            <span className="sr-only">Notifications</span>
-          </Button>
+          <NotificationBell />
           <ModeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -65,9 +60,11 @@ export default function Header() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.name || 'John Doe'}</p>
+                  <p className="text-sm font-medium leading-none">
+                    {user?.name || "John Doe"}
+                  </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email || 'John@example.com'}
+                    {user?.email || "John@example.com"}
                   </p>
                 </div>
               </DropdownMenuLabel>
@@ -78,11 +75,9 @@ export default function Header() {
               <DropdownMenuItem
                 className="text-red-400 hover:text-red-700"
                 onClick={async () => {
-                  
                   toast({
                     title: "Sign Out",
                     description: "user logged out successfully",
-                   
                   });
                   await logout();
                 }}

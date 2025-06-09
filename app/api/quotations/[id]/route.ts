@@ -21,27 +21,41 @@ const updateQuotationSchema = z.object({
   clientId: z.string().uuid().optional(),
   rateCardDetails: z.array(rateCardDetailItemSchema).optional(),
   ticketId: z.string().uuid().optional().nullable(), // Allow string UUID, null, or undefined
-  grandTotal : z.number(),
-  gst : z.number(),
-  subtotal : z.number()
-  
+  grandTotal: z.number(),
+  gst: z.number(),
+  subtotal: z.number(),
+  expectedExpense: z.number().min(0).optional(), // Add expectedExpense field
+
   // Add other fields that can be updated here
 });
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const token = req.cookies.get("token")?.value;
-    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
-    if (role !== "ADMIN") return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
+    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
+      role: string;
+    };
+    if (role !== "ADMIN")
+      return NextResponse.json(
+        { message: "Need Admin Access" },
+        { status: 403 },
+      );
 
     const { id } = params;
     const body = await req.json();
 
     const validation = updateQuotationSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json({ message: "Invalid request data", errors: validation.error.errors }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid request data", errors: validation.error.errors },
+        { status: 400 },
+      );
     }
 
     const updateData = validation.data;
@@ -57,7 +71,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           where: { id: item.rateCardId },
         });
         if (!rateCard) {
-          return NextResponse.json({ message: `Rate card with ID ${item.rateCardId} not found` }, { status: 404 });
+          return NextResponse.json(
+            { message: `Rate card with ID ${item.rateCardId} not found` },
+            { status: 404 },
+          );
         }
         const itemSubtotal = rateCard.rate * item.quantity;
         newSubtotal += itemSubtotal;
@@ -69,15 +86,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateData.subtotal = newSubtotal;
       updateData.gst = newGst;
       updateData.grandTotal = newGrandTotal;
-    } else if (updateData.rateCardDetails && updateData.rateCardDetails.length === 0) {
+    } else if (
+      updateData.rateCardDetails &&
+      updateData.rateCardDetails.length === 0
+    ) {
       // Handle case where rateCardDetails is explicitly emptied
-
 
       updateData.subtotal = 0;
       updateData.gst = 0;
       updateData.grandTotal = 0;
     }
-
 
     // Fetch the existing quotation to compare totals if ticketId exists and to get quoteNo for PDF naming
     const existingQuotationForUpdate = await prisma.quotation.findUnique({
@@ -85,11 +103,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       // Select all fields needed for PDF generation and ticket due update, and the actual update
       // For simplicity, fetching the whole record if not too large, or specify necessary fields.
       // We need quoteNo for PDF naming.
-      include: { client: { select: { name: true } } }
+      include: { client: { select: { name: true } } },
     });
 
     if (!existingQuotationForUpdate) {
-      return NextResponse.json({ message: "Quotation not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Quotation not found" },
+        { status: 404 },
+      );
     }
 
     const { ticketId, ...restOfUpdateData } = updateData;
@@ -103,10 +124,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Handle ticketId explicitly:
     // If ticketId is provided in the payload (even if null), include it in the update.
     // If ticketId is undefined in the payload, it means the client doesn't want to change it.
-    if (updateData.hasOwnProperty('ticketId')) {
-        dataToUpdate.ticketId = ticketId; // This will be null if client sent null, or a string UUID
+    if (updateData.hasOwnProperty("ticketId")) {
+      dataToUpdate.ticketId = ticketId; // This will be null if client sent null, or a string UUID
     }
-
 
     // Determine if PDF regeneration is needed and set the new pdfUrl
     // PDF is regenerated if rateCardDetails, name, or other financial details affecting PDF are changed.
@@ -115,27 +135,31 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const newPdfFilename = `${existingQuotationForUpdate.quoteNo}.pdf`;
     dataToUpdate.pdfUrl = `/quotations/${newPdfFilename}`;
 
-
     const updatedQuotation = await prisma.quotation.update({
       where: { id },
       data: dataToUpdate,
-      include: { client: { select: { name: true } } } // Include client name for PDF generation
+      include: { client: { select: { name: true } } }, // Include client name for PDF generation
     });
 
     // If grandTotal has changed and there's an associated ticket, update ticket.due
-    if (updateData.grandTotal !== undefined && existingQuotationForUpdate.ticketId && updatedQuotation.grandTotal !== existingQuotationForUpdate.grandTotal) {
+    if (
+      updateData.grandTotal !== undefined &&
+      existingQuotationForUpdate.ticketId &&
+      updatedQuotation.grandTotal !== existingQuotationForUpdate.grandTotal
+    ) {
       const ticket = await prisma.ticket.findUnique({
         where: { id: existingQuotationForUpdate.ticketId },
-        select: { due: true }
+        select: { due: true },
       });
 
       if (ticket?.due !== null && ticket?.due !== undefined) {
-        const dueAdjustment = updatedQuotation.grandTotal - existingQuotationForUpdate.grandTotal;
+        const dueAdjustment =
+          updatedQuotation.grandTotal - existingQuotationForUpdate.grandTotal;
         const newTicketDue = Math.max(0, ticket.due + dueAdjustment);
 
         await prisma.ticket.update({
           where: { id: existingQuotationForUpdate.ticketId },
-          data: { due: newTicketDue }
+          data: { due: newTicketDue },
         });
       }
     }
@@ -143,28 +167,37 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Regenerate PDF
     // Prepare fullRateCardsForPdf based on the *updated* quotation's rateCardDetails
     let fullRateCardsForPdf: any[] = [];
-    if (updatedQuotation.rateCardDetails && Array.isArray(updatedQuotation.rateCardDetails) && updatedQuotation.rateCardDetails.length > 0) {
-        const rateCardIds = (updatedQuotation.rateCardDetails as Array<{ rateCardId: string }>).map(detail => detail.rateCardId);
-        fullRateCardsForPdf = await prisma.rateCard.findMany({
-            where: { id: { in: rateCardIds } },
-        });
+    if (
+      updatedQuotation.rateCardDetails &&
+      Array.isArray(updatedQuotation.rateCardDetails) &&
+      updatedQuotation.rateCardDetails.length > 0
+    ) {
+      const rateCardIds = (
+        updatedQuotation.rateCardDetails as Array<{ rateCardId: string }>
+      ).map((detail) => detail.rateCardId);
+      fullRateCardsForPdf = await prisma.rateCard.findMany({
+        where: { id: { in: rateCardIds } },
+      });
     }
 
     const pdfBuffer = await generateQuotationPdf({
-        quotationId: updatedQuotation.quoteNo, // Use quoteNo for display in PDF
-        clientName: updatedQuotation.client.name, // Client name from included relation
-        clientId: updatedQuotation.clientId,
-        name: updatedQuotation.name,
-        rateCards: fullRateCardsForPdf,
-        subtotal: updatedQuotation.subtotal,
-        gst: updatedQuotation.gst,
-        grandTotal: updatedQuotation.grandTotal,
-        rateCardDetails: updatedQuotation.rateCardDetails as any[],
+      quotationId: updatedQuotation.quoteNo, // Use quoteNo for display in PDF
+      clientName: updatedQuotation.client.name, // Client name from included relation
+      clientId: updatedQuotation.clientId,
+      name: updatedQuotation.name,
+      rateCards: fullRateCardsForPdf,
+      subtotal: updatedQuotation.subtotal,
+      gst: updatedQuotation.gst,
+      grandTotal: updatedQuotation.grandTotal,
+      rateCardDetails: updatedQuotation.rateCardDetails as any[],
+      expectedExpense: updatedQuotation.expectedExpense || 0,
+      quoteNo: updatedQuotation.quoteNo,
+      validUntil: updatedQuotation.validUntil?.toISOString(),
     });
 
     const folderPath = path.join(process.cwd(), "public", "quotations");
     if (!existsSync(folderPath)) {
-        mkdirSync(folderPath, { recursive: true });
+      mkdirSync(folderPath, { recursive: true });
     }
     // newPdfFilename already defined based on quoteNo
     const filePath = path.join(folderPath, newPdfFilename);
@@ -173,22 +206,41 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // The updatedQuotation object already has the correct pdfUrl due to the earlier dataToUpdate.pdfUrl assignment
 
     return NextResponse.json(updatedQuotation);
-  } catch (error:any) {
+  } catch (error: any) {
     console.error("[PUT_QUOTATION_ERROR]", error);
-    if (error.code === 'P2025') { // Prisma error code for record not found during update
-        return NextResponse.json({ message: "Quotation not found or related data missing" }, { status: 404 });
+    if (error.code === "P2025") {
+      // Prisma error code for record not found during update
+      return NextResponse.json(
+        { message: "Quotation not found or related data missing" },
+        { status: 404 },
+      );
     }
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
-    // Optional: Add authentication if you have a way to verify tokens for GET requests
-    // For example, if using NextAuth.js or a similar library, you'd get the session here.
-    // const token = req.cookies.get("token")?.value;
-    // if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    // jwt.verify(token, process.env.JWT_SECRET!); // Example verification
+    // Add role-based access control
+    const token = req.cookies.get("token")?.value;
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
+      role: string;
+    };
+    if (role !== "ADMIN") {
+      return NextResponse.json(
+        { message: "Need Admin Access" },
+        { status: 403 },
+      );
+    }
 
     const { id } = params;
     const quotation = await prisma.quotation.findUnique({
@@ -196,12 +248,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       include: {
         client: true,
         // ticket: true, // Only include if ticket details are needed on the edit page directly
-                       // Otherwise, ticketId is usually sufficient and ticket details can be fetched separately if needed.
+        // Otherwise, ticketId is usually sufficient and ticket details can be fetched separately if needed.
       },
     });
 
     if (!quotation) {
-      return NextResponse.json({ message: "Quotation not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Quotation not found" },
+        { status: 404 },
+      );
     }
     return NextResponse.json(quotation);
   } catch (error) {
@@ -209,18 +264,30 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // if (error instanceof jwt.JsonWebTokenError) { // Uncomment if JWT verification is added
     //     return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     // }
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
-
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const token = req.cookies.get("token")?.value;
-    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
-    if (role !== "ADMIN") return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
+    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
+      role: string;
+    };
+    if (role !== "ADMIN")
+      return NextResponse.json(
+        { message: "Need Admin Access" },
+        { status: 403 },
+      );
 
     const { id } = params;
 
@@ -230,11 +297,18 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     });
 
     if (!quotation) {
-      return NextResponse.json({ message: "Quotation not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Quotation not found" },
+        { status: 404 },
+      );
     }
 
     // Delete PDF file
-    const pdfPath = path.join(process.cwd(), "public", quotation?.pdfUrl ? quotation?.pdfUrl : "");
+    const pdfPath = path.join(
+      process.cwd(),
+      "public",
+      quotation?.pdfUrl ? quotation?.pdfUrl : "",
+    );
     if (fs.existsSync(pdfPath)) {
       fs.unlinkSync(pdfPath);
     }
@@ -265,9 +339,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       where: { id },
     });
 
-    return NextResponse.json({ message: "Quotation and related data deleted successfully" });
+    return NextResponse.json({
+      message: "Quotation and related data deleted successfully",
+    });
   } catch (error) {
     console.error("[DELETE_QUOTATION_ERROR]", error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

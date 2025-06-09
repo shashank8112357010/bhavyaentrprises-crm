@@ -62,8 +62,8 @@ type Ticket = {
     poNumber: string;
     jcrStatus: Boolean;
     agentName: string;
-    jcrFilePath : string;
-    poFilePath : string
+    jcrFilePath: string;
+    poFilePath: string;
   };
   expenses: {
     id: string;
@@ -136,7 +136,6 @@ export default function KanbanPage() {
   const [ticketToHold, setTicketToHold] = useState<Ticket | null>(null);
   const [isLoadingHold, setLoadingHold] = useState(false);
   const { user } = useAuthStore();
-
 
   useEffect(() => {
     fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
@@ -310,13 +309,21 @@ export default function KanbanPage() {
               assigneeFilter === "all" ||
               ticket.assignee?.id === assigneeFilter;
 
-            return matchesSearch && matchesClient && matchesAssignee;
+            // Role-based filtering: Agents can only see their own tickets
+            const matchesRole =
+              user?.role === "ADMIN" ||
+              user?.role === "ACCOUNTS" ||
+              ticket.assignee?.id === user?.userId;
+
+            return (
+              matchesSearch && matchesClient && matchesAssignee && matchesRole
+            );
           });
       }
 
       return acc;
     },
-    {} as TicketsState
+    {} as TicketsState,
   );
 
   const ticketStatuses: Status[] = [
@@ -351,7 +358,7 @@ export default function KanbanPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        {user?.role === "ADMIN" && (
+        {(user?.role === "ADMIN" || user?.role === "ACCOUNTS") && (
           <>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <Select value={clientFilter} onValueChange={setClientFilter}>

@@ -1,4 +1,4 @@
-// lib/services/quotationService.ts
+// lib/services/quotations.ts
 import axios from "@/lib/axios";
 
 interface RateCardDetail {
@@ -14,6 +14,7 @@ interface CreateQuotationParams {
   ticketId?: string;
   salesType: string;
   validUntil?: string;
+  expectedExpense?: number; // Add expectedExpense field
   // status: string; // Removed status
 }
 interface UpdateRateCardDetail {
@@ -26,7 +27,8 @@ export interface UpdateQuotationParams {
   name?: string;
   clientId?: string;
   rateCardDetails?: UpdateRateCardDetail[];
-  ticketId : string
+  ticketId: string;
+  expectedExpense?: number; // Add expectedExpense field
   // Include other fields that can be updated, matching the PUT route's Zod schema
 }
 
@@ -44,12 +46,11 @@ export async function createQuotation(params: CreateQuotationParams) {
     return response.data;
   } catch (error: any) {
     console.error("Quotation Creation Error:", error);
-    const message = error.response?.data?.message || "Failed to create quotation.";
+    const message =
+      error.response?.data?.message || "Failed to create quotation.";
     throw new Error(message);
   }
 }
-
-
 
 export async function updateQuotation(id: string, data: UpdateQuotationParams) {
   try {
@@ -57,18 +58,21 @@ export async function updateQuotation(id: string, data: UpdateQuotationParams) {
       withCredentials: true,
       headers: {
         "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
     return response.data;
   } catch (error: any) {
     console.error("Quotation Update Error:", error);
-    const message = error.response?.data?.message || error.response?.data?.error || "Failed to update quotation.";
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Failed to update quotation.";
     throw new Error(message);
   }
 }
-
-
-
 
 export async function getAllQuotations(params: GetAllQuotationsParams = {}) {
   try {
@@ -81,7 +85,8 @@ export async function getAllQuotations(params: GetAllQuotationsParams = {}) {
 
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch quotations.";
+    const message =
+      error.response?.data?.error || "Failed to fetch quotations.";
     throw new Error(message);
   }
 }
@@ -98,4 +103,3 @@ export async function getQuotationById(id: string) {
     throw new Error(message);
   }
 }
-

@@ -12,8 +12,15 @@
     "prisma:reset": "prisma migrate reset",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "db:studio": "prisma studio",
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "reset-ids": "node scripts/reset-ids.js",
+    "migrate-ids": "node scripts/migrate-ids.js",
+    "setup-db": "node scripts/setup-db.js",
+    "generate-display-ids": "node scripts/generate-display-ids.js",
+    "check-db-status": "node scripts/check-db-status.js",
+    "test-client-creation": "node scripts/test-client-creation.js",
+    "add-expected-expense": "node scripts/add-expected-expense-field.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { role: adminRole } = jwt.verify(token, process.env.JWT_SECRET!) as { // Renamed role to adminRole to avoid conflict
+  const { role: adminRole } = jwt.verify(token, process.env.JWT_SECRET!) as {
+    // Renamed role to adminRole to avoid conflict
     role: string;
   };
   if (adminRole !== "ADMIN") {
@@ -33,7 +34,8 @@ export async function GET(req: NextRequest) {
     if (search) {
       where = {
         ...where,
-        AND: [ // Ensures role filter is always applied
+        AND: [
+          // Ensures role filter is always applied
           {
             OR: [
               { name: { contains: search, mode: "insensitive" } },
@@ -44,8 +46,8 @@ export async function GET(req: NextRequest) {
               { mobile: { contains: search, mode: "insensitive" } },
               { department: { contains: search, mode: "insensitive" } },
             ],
-          }
-        ]
+          },
+        ],
       };
     }
 
@@ -58,7 +60,8 @@ export async function GET(req: NextRequest) {
     });
 
     const modifiedAgents = users.map((agent) => ({
-      id: agent.id,
+      id: agent.displayId || agent.id, // Show displayId if available, otherwise UUID
+      originalId: agent.id, // Keep original UUID for database operations
       name: agent.name,
       email: agent.email,
       mobile: agent.mobile,
@@ -92,7 +95,7 @@ export async function GET(req: NextRequest) {
     console.error("Failed to fetch agents:", error); // Log the actual error
     return NextResponse.json(
       { message: "Failed to fetch agents" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

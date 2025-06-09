@@ -25,11 +25,16 @@ const expenseSchema = z.object({
   ticketId: z.string().optional(),
   requester: z.string().min(1),
   paymentType: z.enum(["VCASH", "REST", "ONLINE"]),
+  approvalName: z.string().optional(),
 });
 
 async function parseFormData(
-  req: NextRequest
-): Promise<{ fields: Record<string, any>; filePath: string }> {
+  req: NextRequest,
+): Promise<{
+  fields: Record<string, any>;
+  filePath: string;
+  screenshotPath?: string;
+}> {
   return new Promise((resolve, reject) => {
     const busboy = Busboy({
       headers: Object.fromEntries(req.headers.entries()),
@@ -37,6 +42,7 @@ async function parseFormData(
 
     const fields: Record<string, any> = {};
     let savedFilePath = "";
+    let savedScreenshotPath = "";
 
     const allowedMimeTypes = ["application/pdf", "image/png", "image/jpeg"];
     const uploadDir = path.join(process.cwd(), "public", "expenses");
@@ -52,9 +58,17 @@ async function parseFormData(
 
       const ext = path.extname(filename) || ".file";
       const tempFileName = `${Date.now()}-${randomUUID()}${ext}`;
-      savedFilePath = path.join(uploadDir, tempFileName);
+      const filePath = path.join(uploadDir, tempFileName);
 
-      const writeStream = fs.createWriteStream(savedFilePath);
+      if (name === "file") {
+        // Main receipt/bill file
+        savedFilePath = filePath;
+      } else if (name === "screenshot") {
+        // Screenshot file for online payments
+        savedScreenshotPath = filePath;
+      }
+
+      const writeStream = fs.createWriteStream(filePath);
       file.pipe(writeStream);
 
       writeStream.on("error", (err) => reject(err));
@@ -66,10 +80,14 @@ async function parseFormData(
 
     busboy.on("finish", () => {
       if (!savedFilePath) {
-        reject(new Error("No file uploaded"));
+        reject(new Error("No main file uploaded"));
         return;
       }
-      resolve({ fields, filePath: savedFilePath });
+      resolve({
+        fields,
+        filePath: savedFilePath,
+        screenshotPath: savedScreenshotPath || undefined,
+      });
     });
 
     busboy.on("error", reject);
@@ -94,7 +112,7 @@ async function parseFormData(
 
 export async function POST(req: NextRequest) {
   try {
-    const { fields, filePath } = await parseFormData(req);
+    const { fields, filePath, screenshotPath } = await parseFormData(req);
 
     const formData = JSON.parse(getField(fields.data));
 
@@ -106,6 +124,7 @@ export async function POST(req: NextRequest) {
       ticketId: formData.ticketId,
       requester: formData.requester,
       paymentType: formData.paymentType,
+      approvalName: formData.approvalName,
     };
 
     const parsed = expenseSchema.safeParse(normalizedFields);
@@ -113,7 +132,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { message: "Invalid data", errors: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -124,6 +143,7 @@ export async function POST(req: NextRequest) {
       quotationId,
       requester,
       paymentType,
+      approvalName,
     } = parsed.data;
 
     const quotation = await prisma.quotation.findUnique({
@@ -134,44 +154,82 @@ export async function POST(req: NextRequest) {
     if (!quotation) {
       return NextResponse.json(
         { message: "Quotation not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const finalTicketId = quotation.ticketId || null;
 
+    // Generate new expense display ID (e.g., EXPENSE/January/0001)
+    const currentDate = new Date();
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const currentMonth = monthNames[currentDate.getMonth()];
+
     const latestExpense = await prisma.expense.findFirst({
-      where: { quotationId },
+      where: { displayId: { not: null } },
       orderBy: { createdAt: "desc" },
     });
 
     let serial = 1;
-    if (latestExpense) {
-      const prefix = `EXPENSE${quotationId}`;
-      if (latestExpense.id.startsWith(prefix)) {
-        const lastSerialStr = latestExpense.id.slice(prefix.length);
-        const lastSerial = parseInt(lastSerialStr);
-        if (!isNaN(lastSerial)) serial = lastSerial + 1;
+    const prefix = `EXPENSE/${currentMonth}/`;
+    if (latestExpense && latestExpense.displayId) {
+      // Check if the latest expense is from current month
+      if (latestExpense.displayId.startsWith(prefix)) {
+        const numericPartMatch = latestExpense.displayId
+          .substring(prefix.length)
+          .match(/^\d+/);
+        if (numericPartMatch) {
+          serial = parseInt(numericPartMatch[0], 10) + 1;
+        }
       }
+      // If it's from a different month, start from 1
     }
 
-    const expenseId = `EXPENSE${quotationId}${serial
-      .toString()
-      .padStart(2, "0")}`;
+    const expenseDisplayId = `${prefix}${serial.toString().padStart(4, "0")}`;
+
+    // Keep existing logic for file naming
+    const expenseId = `EXPENSE${quotationId}${serial.toString().padStart(2, "0")}`;
 
     const finalFilename = `${expenseId}${path.extname(filePath)}`;
     const finalPath = path.join(
       process.cwd(),
       "public",
       "expenses",
-      finalFilename
+      finalFilename,
     );
 
     fs.renameSync(filePath, finalPath);
 
+    // Handle screenshot file if provided
+    let screenshotUrl = null;
+    if (screenshotPath) {
+      const screenshotFilename = `${expenseId}-screenshot${path.extname(screenshotPath)}`;
+      const finalScreenshotPath = path.join(
+        process.cwd(),
+        "public",
+        "expenses",
+        screenshotFilename,
+      );
+      fs.renameSync(screenshotPath, finalScreenshotPath);
+      screenshotUrl = `/expenses/${screenshotFilename}`;
+    }
+
     const expense = await prisma.expense.create({
       data: {
-        id: expenseId,
+        displayId: expenseDisplayId,
         customId: expenseId,
         amount,
         description,
@@ -181,6 +239,8 @@ export async function POST(req: NextRequest) {
         quotationId,
         ticketId: finalTicketId,
         pdfUrl: `/expenses/${finalFilename}`,
+        screenshotUrl,
+        approvalName,
       },
     });
 
@@ -192,7 +252,7 @@ export async function POST(req: NextRequest) {
         message: "Internal server error",
         error: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

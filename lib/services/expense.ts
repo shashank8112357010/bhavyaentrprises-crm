@@ -1,16 +1,17 @@
 // lib/services/expenseService.ts
 import axios from "@/lib/axios";
 
-
 interface CreateExpenseParams {
   amount: number;
   description: string;
   category: "LABOR" | "TRANSPORT" | "MATERIAL" | "OTHER";
   quotationId?: string;
-  requester : string;
-  paymentType: "VCASH" | "REST" | "ONLINE" ;
+  requester: string;
+  paymentType: "VCASH" | "REST" | "ONLINE";
   ticketId?: string;
-  file: File;  // PDF file to upload
+  file: File; // PDF file to upload
+  screenshotFile?: File; // Screenshot for online payments
+  approvalName?: string; // Approval name for offline payments
 }
 
 export async function createExpense(params: CreateExpenseParams) {
@@ -25,11 +26,17 @@ export async function createExpense(params: CreateExpenseParams) {
         category: params.category,
         quotationId: params.quotationId,
         paymentType: params.paymentType,
-        requester : params.requester
-      })
+        requester: params.requester,
+        approvalName: params.approvalName,
+      }),
     );
     // Append PDF file
     formData.append("file", params.file);
+
+    // Append screenshot file for online payments
+    if (params.screenshotFile) {
+      formData.append("screenshot", params.screenshotFile);
+    }
 
     const response = await axios.post("/expense/create-expense", formData, {
       withCredentials: true,
@@ -41,7 +48,8 @@ export async function createExpense(params: CreateExpenseParams) {
     return response.data;
   } catch (error: any) {
     console.error("Expense Creation Error:", error);
-    const message = error.response?.data?.message || "Failed to create expense.";
+    const message =
+      error.response?.data?.message || "Failed to create expense.";
     throw new Error(message);
   }
 }

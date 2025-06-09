@@ -2,43 +2,49 @@
 import axios from "../axios";
 
 export type Ticket = {
-    id: string;
-    title: string;
-    client: string;
-    branch: string;
-    priority: string;
-    assignee: {
-      name: string;
-      avatar: string;
-      initials: string;
-    };
-    workStage: {
-      stateName: string;
-      adminName: string;
-      clientName: string;
-      siteName: string;
-      quoteNo: string;
-      dateReceived: string;
-      quoteTaxable: number;
-      quoteAmount: number;
-      workStatus: string;
-      approval: string;
-      poStatus: Boolean;
-      poNumber: string;
-      jcrStatus: string;
-      agentName: string;
-    };
-    dueDate: string;
-    scheduledDate?: string;
-    completedDate?: string;
-    createdAt: string;
-    description: string;
-    comments: number;
-    holdReason?: string;
-    status: Status;
+  id: string;
+  title: string;
+  client: string;
+  branch: string;
+  priority: string;
+  assignee: {
+    name: string;
+    avatar: string;
+    initials: string;
   };
+  workStage: {
+    stateName: string;
+    adminName: string;
+    clientName: string;
+    siteName: string;
+    quoteNo: string;
+    dateReceived: string;
+    quoteTaxable: number;
+    quoteAmount: number;
+    workStatus: string;
+    approval: string;
+    poStatus: Boolean;
+    poNumber: string;
+    jcrStatus: string;
+    agentName: string;
+  };
+  dueDate: string;
+  scheduledDate?: string;
+  completedDate?: string;
+  createdAt: string;
+  description: string;
+  comments: number;
+  holdReason?: string;
+  status: Status;
+};
 
-type Status = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
+type Status =
+  | "new"
+  | "inProgress"
+  | "onHold"
+  | "completed"
+  | "billing_pending"
+  | "billing_completed";
 
 interface CreateTicketInput {
   title: string;
@@ -47,7 +53,7 @@ interface CreateTicketInput {
   priority: string;
   assigneeId: string;
   dueDate?: string;
-  comments? : number;
+  comments?: number;
   scheduledDate?: string;
   completedDate?: string;
   description: string;
@@ -69,8 +75,8 @@ interface CreateTicketInput {
       poNumber: string;
       jcrStatus: Boolean;
       agentName: string;
-    }
-  }
+    };
+  };
 }
 
 export async function createTicket(payload: CreateTicketInput) {
@@ -93,7 +99,8 @@ export interface TicketForSelection {
 
 export async function getTicketsForSelection(): Promise<TicketForSelection[]> {
   try {
-    const response = await axios.get("/tickets/selection", { // Using /api prefix implicitly from axios config
+    const response = await axios.get("/tickets/selection", {
+      // Using /api prefix implicitly from axios config
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -104,18 +111,27 @@ export async function getTicketsForSelection(): Promise<TicketForSelection[]> {
     return response.data;
   } catch (error: any) {
     console.error("Error fetching tickets for selection:", error);
-    const message = error.response?.data?.error || "Failed to fetch tickets for selection.";
+    const message =
+      error.response?.data?.error || "Failed to fetch tickets for selection.";
     throw new Error(message);
   }
 }
 
-export async function getAllTickets(filters?: { status?: Status; startDate?: string; endDate?: string }) {
+export async function getAllTickets(filters?: {
+  status?: Status;
+  startDate?: string;
+  endDate?: string;
+  role?: string;
+  userId?: string;
+}) {
   try {
     const params = new URLSearchParams();
 
     if (filters?.status) params.append("status", filters.status);
     if (filters?.startDate) params.append("startDate", filters.startDate);
     if (filters?.endDate) params.append("endDate", filters.endDate);
+    if (filters?.role) params.append("role", filters.role);
+    if (filters?.userId) params.append("userId", filters.userId);
 
     const response = await axios.get(`/ticket?${params.toString()}`, {
       withCredentials: true,
@@ -133,8 +149,11 @@ export async function getAllTickets(filters?: { status?: Status; startDate?: str
   }
 }
 
-
-export async function exportTicketsToExcel(filters: { status?: Status; startDate: string; endDate: string }) {
+export async function exportTicketsToExcel(filters: {
+  status?: Status;
+  startDate: string;
+  endDate: string;
+}) {
   try {
     const params = new URLSearchParams();
     if (filters.status) params.append("status", filters.status);
@@ -160,11 +179,11 @@ export async function exportTicketsToExcel(filters: { status?: Status; startDate
     link.click();
     document.body.removeChild(link);
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to export tickets.";
+    const message =
+      error.response?.data?.message || "Failed to export tickets.";
     throw new Error(message);
   }
 }
-
 
 export async function deleteTicket(id: string) {
   try {
@@ -197,31 +216,40 @@ export async function getTicketById(id: string) {
 
 export async function updateTicketStatus(id: string, status: Status) {
   try {
-    const response = await axios.patch(`/ticket/${id}`, { status }, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
+    const response = await axios.patch(
+      `/ticket/${id}`,
+      { status },
+      {
+        withCredentials: true,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
       },
-    });
+    );
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to update ticket status.";
+    const message =
+      error.response?.data?.error || "Failed to update ticket status.";
     throw new Error(message);
   }
 }
 
-export async function updateTicket( updatedTicket: any) {
+export async function updateTicket(updatedTicket: any) {
   try {
-    const response = await axios.patch(`/ticket/${updatedTicket.id}`, updatedTicket, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
+    const response = await axios.patch(
+      `/ticket/${updatedTicket.id}`,
+      updatedTicket,
+      {
+        withCredentials: true,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
       },
-    });
+    );
     return response.data;
   } catch (error: any) {
     const message = error.response?.data?.error || "Failed to update ticket.";
@@ -243,7 +271,8 @@ export async function getComments(id: string) {
     return response.data;
   } catch (error: any) {
     console.error("Error fetching comments:", error);
-    const message = error.response?.data?.message || "Failed to fetch comments.";
+    const message =
+      error.response?.data?.message || "Failed to fetch comments.";
     throw new Error(message);
   }
 }
@@ -260,7 +289,10 @@ export async function addComment(id: string, text: string, userId: string) {
     throw new Error("Ticket ID, comment text, and user ID are required.");
   }
   try {
-    const response = await axios.post(`/ticket/${id}/comment`, { text, userId });
+    const response = await axios.post(`/ticket/${id}/comment`, {
+      text,
+      userId,
+    });
     return response.data;
   } catch (error: any) {
     console.error("Error adding comment:", error);

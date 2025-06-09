@@ -20,11 +20,11 @@ import {
   FileText,
   Receipt,
   User,
-  MessageSquare // For comments/timeline
+  MessageSquare, // For comments/timeline
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
-import { NewQuotationDialog } from "@/components/finances/new-quotation-dialog";
-import { NewExpenseDialog } from "@/components/finances/new-expense-dialog"; // Added import
+import { NewExpenseDialog } from "@/components/finances/new-expense-dialog";
+import Link from "next/link";
 
 // Placeholder for ticket store or service - replace with actual later
 // import { useTicketStore } from "@/store/ticketStore";
@@ -33,7 +33,7 @@ import { NewExpenseDialog } from "@/components/finances/new-expense-dialog"; // 
 // This function should parse your JWT token / session cookie
 // and return the authenticated user's ID.
 const getCurrentUserIdFromAuth = (): string | null => {
-  return localStorage.getItem("userId")
+  return localStorage.getItem("userId");
 };
 
 // Type for User details within a Comment
@@ -148,13 +148,12 @@ interface TicketData {
   assignee: Assignee | null;
   workStage: WorkStage | null;
   Quotation: Quotation[]; // Array of Quotations
-  expenses: Expense[];   // Array of Expenses
-  comments: Comment[];   // Array of Comments
+  expenses: Expense[]; // Array of Expenses
+  comments: Comment[]; // Array of Comments
   // Prisma schema also has due: Int? and paid: Boolean?
   due?: number | null;
   paid?: boolean | null;
 }
-
 
 export default function TicketDetailsPage() {
   const params = useParams();
@@ -165,7 +164,8 @@ export default function TicketDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const loadTicketData = async () => { // Ensure loadTicketData is defined before it's used in useEffect or passed as prop
+  const loadTicketData = async () => {
+    // Ensure loadTicketData is defined before it's used in useEffect or passed as prop
     setLoading(true);
     setError(null);
     try {
@@ -177,7 +177,9 @@ export default function TicketDetailsPage() {
       }
     } catch (err: any) {
       console.error("Error fetching ticket:", err);
-      setError(err.message || "An error occurred while fetching ticket details.");
+      setError(
+        err.message || "An error occurred while fetching ticket details.",
+      );
     } finally {
       setLoading(false);
     }
@@ -193,14 +195,16 @@ export default function TicketDetailsPage() {
     if (!currentUserId) {
       toast({
         title: "Error Adding Comment",
-        description: "Could not identify current user. Please ensure you are logged in.",
+        description:
+          "Could not identify current user. Please ensure you are logged in.",
         variant: "destructive",
       });
       setIsSubmittingComment(false); // Ensure button is re-enabled
       return;
     }
 
-    if (!newCommentText.trim() || !ticketId) { // currentUserId is now checked above
+    if (!newCommentText.trim() || !ticketId) {
+      // currentUserId is now checked above
       toast({
         title: "Error",
         description: "Comment text is required.", // Simplified message
@@ -213,9 +217,13 @@ export default function TicketDetailsPage() {
     try {
       // The addComment service should return the newly created comment,
       // ideally with user details populated as defined in Comment and CommentUser types.
-      const addedComment: Comment = await addComment(ticketId, newCommentText, currentUserId);
+      const addedComment: Comment = await addComment(
+        ticketId,
+        newCommentText,
+        currentUserId,
+      );
 
-      setTicket(prevTicket => {
+      setTicket((prevTicket) => {
         if (!prevTicket) return null;
         // Optimistically update the comments list
         const updatedComments = [...(prevTicket.comments || []), addedComment];
@@ -354,16 +362,26 @@ export default function TicketDetailsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <p><strong>Client:</strong> {ticket.client?.name || "N/A"}</p>
-                <p><strong>Branch:</strong> {ticket.branch}</p>
+                <p>
+                  <strong>Client:</strong> {ticket.client?.name || "N/A"}
+                </p>
+                <p>
+                  <strong>Branch:</strong> {ticket.branch}
+                </p>
                 {ticket.workStage?.clientName && (
-                  <p><strong>Contact:</strong> {ticket.workStage.clientName}</p>
+                  <p>
+                    <strong>Contact:</strong> {ticket.workStage.clientName}
+                  </p>
                 )}
                 {ticket.client?.contactEmail && (
-                  <p><strong>Email:</strong> {ticket.client.contactEmail}</p>
+                  <p>
+                    <strong>Email:</strong> {ticket.client.contactEmail}
+                  </p>
                 )}
-                 {ticket.client?.gstn && (
-                  <p><strong>GSTN:</strong> {ticket.client.gstn}</p>
+                {ticket.client?.gstn && (
+                  <p>
+                    <strong>GSTN:</strong> {ticket.client.gstn}
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -379,30 +397,63 @@ export default function TicketDetailsPage() {
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={ticket.assignee?.avatar || undefined} />
-                    <AvatarFallback>{ticket.assignee?.initials || "N/A"}</AvatarFallback>
+                    <AvatarFallback>
+                      {ticket.assignee?.initials || "N/A"}
+                    </AvatarFallback>
                   </Avatar>
-                  <span>Assigned to: {ticket.assignee?.name || "Unassigned"}</span>
+                  <span>
+                    Assigned to: {ticket.assignee?.name || "Unassigned"}
+                  </span>
                 </div>
-                <p><strong>Priority:</strong> <Badge variant={ticket.priority?.toLowerCase() === 'high' ? 'destructive' : ticket.priority?.toLowerCase() === 'medium' ? 'secondary' : 'outline' }>{ticket.priority || "N/A"}</Badge></p>
-                <p><strong>Status:</strong> <Badge variant="default">{ticket.status || "N/A"}</Badge></p>
+                <p>
+                  <strong>Priority:</strong>{" "}
+                  <Badge
+                    variant={
+                      ticket.priority?.toLowerCase() === "high"
+                        ? "destructive"
+                        : ticket.priority?.toLowerCase() === "medium"
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
+                    {ticket.priority || "N/A"}
+                  </Badge>
+                </p>
+                <p>
+                  <strong>Status:</strong>{" "}
+                  <Badge variant="default">{ticket.status || "N/A"}</Badge>
+                </p>
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>Due Date: {ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString() : "N/A"}</span>
+                  <span>
+                    Due Date:{" "}
+                    {ticket.dueDate
+                      ? new Date(ticket.dueDate).toLocaleDateString()
+                      : "N/A"}
+                  </span>
                 </div>
                 {ticket.scheduledDate && (
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2" />
-                    <span>Scheduled: {new Date(ticket.scheduledDate).toLocaleDateString()}</span>
+                    <span>
+                      Scheduled:{" "}
+                      {new Date(ticket.scheduledDate).toLocaleDateString()}
+                    </span>
                   </div>
                 )}
                 {ticket.completedDate && (
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2" />
-                    <span>Completed: {new Date(ticket.completedDate).toLocaleDateString()}</span>
+                    <span>
+                      Completed:{" "}
+                      {new Date(ticket.completedDate).toLocaleDateString()}
+                    </span>
                   </div>
                 )}
-                 {ticket.holdReason && (
-                  <p className="text-sm text-orange-600"><strong>On Hold:</strong> {ticket.holdReason}</p>
+                {ticket.holdReason && (
+                  <p className="text-sm text-orange-600">
+                    <strong>On Hold:</strong> {ticket.holdReason}
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -411,16 +462,37 @@ export default function TicketDetailsPage() {
           {ticket.workStage && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Work Stage Details</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Work Stage Details
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
-                <p><strong>State:</strong> {ticket.workStage.stateName}</p>
-                <p><strong>Admin:</strong> {ticket.workStage.adminName}</p>
-                <p><strong>Site:</strong> {ticket.workStage.siteName}</p>
-                <p><strong>Work Status:</strong> {ticket.workStage.workStatus}</p>
-                <p><strong>Approval:</strong> {ticket.workStage.approval}</p>
-                {ticket.workStage.quoteNo && <p><strong>Quote No:</strong> {ticket.workStage.quoteNo}</p>}
-                {ticket.workStage.poNumber && <p><strong>PO No:</strong> {ticket.workStage.poNumber} (Status: {ticket.workStage.poStatus ? 'Received' : 'Pending'})</p>}
+                <p>
+                  <strong>State:</strong> {ticket.workStage.stateName}
+                </p>
+                <p>
+                  <strong>Admin:</strong> {ticket.workStage.adminName}
+                </p>
+                <p>
+                  <strong>Site:</strong> {ticket.workStage.siteName}
+                </p>
+                <p>
+                  <strong>Work Status:</strong> {ticket.workStage.workStatus}
+                </p>
+                <p>
+                  <strong>Approval:</strong> {ticket.workStage.approval}
+                </p>
+                {ticket.workStage.quoteNo && (
+                  <p>
+                    <strong>Quote No:</strong> {ticket.workStage.quoteNo}
+                  </p>
+                )}
+                {ticket.workStage.poNumber && (
+                  <p>
+                    <strong>PO No:</strong> {ticket.workStage.poNumber} (Status:{" "}
+                    {ticket.workStage.poStatus ? "Received" : "Pending"})
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -430,7 +502,9 @@ export default function TicketDetailsPage() {
               <CardTitle className="text-sm font-medium">Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {ticket.description}
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -438,27 +512,50 @@ export default function TicketDetailsPage() {
         {/* Financials Tab Content */}
         <TabsContent value="financials" className="space-y-4 mt-4">
           <div className="mb-4  flex gap-2 flex-wrap">
-            <NewQuotationDialog
+            <Link
+              href={`/dashboard/quotations/new?ticketId=${ticket.id}&clientId=${ticket.client?.id}`}
+            >
+              <Button className="flex items-center gap-2">
+                <Receipt className="h-4 w-4" />
+                Create Quotation
+              </Button>
+            </Link>
+            <NewExpenseDialog
               onSuccess={loadTicketData}
-              initialTicketId={ticket.id}
-              initialClientId={ticket.client?.id}
+              ticketId={ticket.id}
+              ticketQuotations={ticket.Quotation || []}
             />
-           
           </div>
           {ticket.Quotation && ticket.Quotation.length > 0 ? (
-            ticket.Quotation.map(quotation => (
+            ticket.Quotation.map((quotation) => (
               <Card key={quotation.id}>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Quotation: {quotation.name } </CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Quotation: {quotation.name}{" "}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm">
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <div>Amount:</div><div className="text-right font-medium">₹{quotation.subtotal?.toFixed(2) || '0.00'}</div>
-                    <div>GST:</div><div className="text-right font-medium">₹{quotation.gst?.toFixed(2) || '0.00'}</div>
-                    <div className="border-t mt-1 pt-1">Total:</div><div className="text-right font-bold border-t mt-1 pt-1">₹{quotation.grandTotal?.toFixed(2) || '0.00'}</div>
+                    <div>Amount:</div>
+                    <div className="text-right font-medium">
+                      ₹{quotation.subtotal?.toFixed(2) || "0.00"}
+                    </div>
+                    <div>GST:</div>
+                    <div className="text-right font-medium">
+                      ₹{quotation.gst?.toFixed(2) || "0.00"}
+                    </div>
+                    <div className="border-t mt-1 pt-1">Total:</div>
+                    <div className="text-right font-bold border-t mt-1 pt-1">
+                      ₹{quotation.grandTotal?.toFixed(2) || "0.00"}
+                    </div>
                   </div>
                   {quotation.pdfUrl && (
-                    <Button variant="outline" size="sm" className="mt-3" onClick={() => window.open(quotation.pdfUrl, '_blank')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => window.open(quotation.pdfUrl, "_blank")}
+                    >
                       <Receipt className="mr-2 h-4 w-4" /> View Quotation PDF
                     </Button>
                   )}
@@ -467,8 +564,14 @@ export default function TicketDetailsPage() {
             ))
           ) : (
             <Card>
-              <CardHeader><CardTitle className="text-sm font-medium">Quotation</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground">No quotation details available.</p></CardContent>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Quotation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  No quotation details available.
+                </p>
+              </CardContent>
             </Card>
           )}
 
@@ -479,30 +582,48 @@ export default function TicketDetailsPage() {
             <CardContent className="text-sm">
               {ticket.expenses && ticket.expenses.length > 0 ? (
                 <>
-                  {ticket.expenses.map(expense => (
-                    <div key={expense.id} className="flex justify-between py-1 border-b last:border-none">
+                  {ticket.expenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="flex justify-between py-1 border-b last:border-none"
+                    >
                       <div>
-                        <p>{expense.description} ({expense.category})</p>
-                        <p className="text-xs text-muted-foreground">ID: {expense.customId} | By: {expense.requester}</p>
+                        <p>
+                          {expense.description} ({expense.category})
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ID: {expense.customId} | By: {expense.requester}
+                        </p>
                       </div>
-                      <span className="font-medium">₹{expense.amount.toFixed(2)}</span>
+                      <span className="font-medium">
+                        ₹{expense.amount.toFixed(2)}
+                      </span>
                     </div>
                   ))}
                   <div className="flex justify-between border-t pt-2 mt-2">
                     <span className="font-medium">Total Expenses:</span>
-                    <span className="font-bold">₹{ticket.expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2)}</span>
+                    <span className="font-bold">
+                      ₹
+                      {ticket.expenses
+                        .reduce((sum, exp) => sum + exp.amount, 0)
+                        .toFixed(2)}
+                    </span>
                   </div>
                 </>
               ) : (
-                <p className="text-muted-foreground">No expenses recorded for this ticket.</p>
+                <p className="text-muted-foreground">
+                  No expenses recorded for this ticket.
+                </p>
               )}
             </CardContent>
           </Card>
 
           {/* Placeholder for Profit Analysis and other Documents as in dialog */}
-           <Card>
+          <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Profit Analysis (Placeholder)</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Profit Analysis (Placeholder)
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               <p>Expected Profit: Calculation pending</p>
@@ -512,12 +633,22 @@ export default function TicketDetailsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Other Documents</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Other Documents
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="justify-start w-full" disabled={!ticket.workStage?.poNumber} onClick={() => alert(`PO Number: ${ticket.workStage?.poNumber}`)}>
+              <Button
+                variant="outline"
+                className="justify-start w-full"
+                disabled={!ticket.workStage?.poNumber}
+                onClick={() =>
+                  alert(`PO Number: ${ticket.workStage?.poNumber}`)
+                }
+              >
                 <FileText className="mr-2 h-4 w-4" />
-                View Purchase Order (Details: {ticket.workStage?.poNumber || 'N/A'})
+                View Purchase Order (Details:{" "}
+                {ticket.workStage?.poNumber || "N/A"})
               </Button>
             </CardContent>
           </Card>
@@ -539,29 +670,41 @@ export default function TicketDetailsPage() {
                     <div key={comment.id} className="flex gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={comment.user?.avatar || undefined} />
-                        <AvatarFallback>{comment.user?.initials || comment.user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                        <AvatarFallback>
+                          {comment.user?.initials ||
+                            comment.user?.name?.charAt(0) ||
+                            "U"}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">
-                           <span className="font-medium text-sm">{comment.user?.name || 'Unknown User'}</span>
-                           <span className="text-xs text-muted-foreground">
-                             {new Date(comment.createdAt).toLocaleString()}
-                           </span>
+                          <span className="font-medium text-sm">
+                            {comment.user?.name || "Unknown User"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">{comment.text}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {comment.text}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No comments or activity recorded yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No comments or activity recorded yet.
+                </p>
               )}
 
               {/* Add Comment Form */}
               <div className="mt-6 pt-4 border-t">
                 <h4 className="text-lg font-semibold mb-3">Add New Comment</h4>
                 <div className="grid gap-2 mb-2">
-                  <Label htmlFor="newComment" className="sr-only">Your Comment</Label>
+                  <Label htmlFor="newComment" className="sr-only">
+                    Your Comment
+                  </Label>
                   <Textarea
                     id="newComment"
                     value={newCommentText}

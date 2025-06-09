@@ -1,13 +1,32 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from 'next/link'; // Import Link
+import Link from "next/link";
 import ReactPaginate from "react-paginate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,12 +35,19 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, Download, MoreHorizontal, FileText, Plus, FileEdit } from "lucide-react"; // Added FileEdit
+import {
+  Search,
+  Download,
+  MoreHorizontal,
+  FileText,
+  Plus,
+  FileEdit,
+} from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Spinner } from "@/components/ui/spinner";
-import { getAllQuotations } from "@/lib/services/quotations";
-// import { NewQuotationDialog } from "@/components/finances/new-quotation-dialog"; // Removed
+import { useQuotationStore } from "@/store/quotationStore";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
 
 // Interfaces
 interface QuotationClient {
@@ -49,48 +75,59 @@ interface QuotationItem {
 
 interface PaginatedQuotationsResponse {
   quotations: QuotationItem[];
-  pagination : {
+  pagination: {
     total: number;
     page: number;
     limit: number;
-  }
- 
+  };
 }
 
 export default function QuotationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [quotations, setQuotations] = useState<QuotationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0); // 0-based for react-paginate
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { toast } = useToast();
+  const { user } = useAuthStore();
+
+  // Role-based access control - only ADMIN users can access quotations
+  if (user?.role !== "ADMIN") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground">
+              Only administrators can access quotations.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Use Zustand store instead of local state
+  const { quotations, loading, error, totalQuotations, fetchQuotations } =
+    useQuotationStore();
 
   const fetchQuotationsList = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response: PaginatedQuotationsResponse = await getAllQuotations({
+      await fetchQuotations({
         page: page + 1, // API is 1-based
         limit: itemsPerPage,
         searchQuery: debouncedSearchQuery,
       });
-      setQuotations(response.quotations || []);
-      setTotalCount(response?.pagination.total || 0);
     } catch (err: any) {
       console.error("Error fetching quotations:", err);
-      setError(err.message || "Failed to fetch quotations.");
       toast({
         title: "Error",
         description: err.message || "Failed to fetch quotations.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  }, [page, itemsPerPage, debouncedSearchQuery, toast]);
+  }, [page, itemsPerPage, debouncedSearchQuery, fetchQuotations, toast]);
 
   useEffect(() => {
     fetchQuotationsList();
@@ -122,9 +159,9 @@ export default function QuotationsPage() {
   //   });
   // };
 
-  const pageCount = Math.ceil(totalCount / itemsPerPage);
-  const currentPageStart = totalCount > 0 ? page * itemsPerPage + 1 : 0;
-  const currentPageEnd = Math.min((page + 1) * itemsPerPage, totalCount);
+  const pageCount = Math.ceil(totalQuotations / itemsPerPage);
+  const currentPageStart = totalQuotations > 0 ? page * itemsPerPage + 1 : 0;
+  const currentPageEnd = Math.min((page + 1) * itemsPerPage, totalQuotations);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 pt-6">
@@ -136,7 +173,6 @@ export default function QuotationsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* Replaced NewQuotationDialog with a Link to the new page */}
           <Link href="/dashboard/quotations/new" passHref>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -171,10 +207,18 @@ export default function QuotationsPage() {
           </CardDescription> */}
         </CardHeader>
         <CardContent>
-          {loading && <div className="flex justify-center items-center py-10"><Spinner size="8" /></div>}
-          {!loading && error && <p className="text-red-500 text-center py-10">{error}</p>}
+          {loading && (
+            <div className="flex justify-center items-center py-10">
+              <Spinner size="8" />
+            </div>
+          )}
+          {!loading && error && (
+            <p className="text-red-500 text-center py-10">{error}</p>
+          )}
           {!loading && !error && quotations.length === 0 && (
-            <p className="text-muted-foreground text-center py-10">No quotations found.</p>
+            <p className="text-muted-foreground text-center py-10">
+              No quotations found.
+            </p>
           )}
           {!loading && !error && quotations.length > 0 && (
             <Table>
@@ -194,26 +238,53 @@ export default function QuotationsPage() {
               <TableBody>
                 {quotations.map((q) => (
                   <TableRow key={q.id}>
-                    <TableCell>{new Date(q.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(q.createdAt).toLocaleDateString()}
+                    </TableCell>
                     <TableCell>{q.quoteNo}</TableCell> {/* Use quoteNo */}
                     {/* <TableCell className="font-medium max-w-xs truncate">{q.name}</TableCell> */}
                     <TableCell>{q.client?.name || "N/A"}</TableCell>
                     <TableCell>
                       {q.ticket && q.ticket.id ? (
-                        <Link href={`/dashboard/ticket/${q.ticket.id}`} className="hover:underline">
+                        <Link
+                          href={`/dashboard/ticket/${q.ticket.id}`}
+                          className="hover:underline"
+                        >
                           {q.ticket.title || "N/A"}
                         </Link>
                       ) : (
                         q.ticket?.title || "N/A"
                       )}
                     </TableCell>
-                    <TableCell className="text-right">₹{q.subtotal?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
-                    <TableCell className="text-right">₹{q.gst?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
-                    <TableCell className="text-right">₹{q.grandTotal?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
+                    <TableCell className="text-right">
+                      ₹
+                      {q.subtotal?.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }) || "0.00"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ₹
+                      {q.gst?.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }) || "0.00"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ₹
+                      {q.grandTotal?.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }) || "0.00"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -221,18 +292,34 @@ export default function QuotationsPage() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           {q.pdfUrl && (
                             <>
-                              <DropdownMenuItem onClick={() => handleViewPdf(q.pdfUrl)}>
+                              <DropdownMenuItem
+                                onClick={() => handleViewPdf(q.pdfUrl)}
+                              >
                                 <FileText className="mr-2 h-4 w-4" /> View PDF
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDownloadPdf(q.pdfUrl, q.quoteNo || q.name || `quotation-${q.id}.pdf`)}>
-                                <Download className="mr-2 h-4 w-4" /> Download PDF
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleDownloadPdf(
+                                    q.pdfUrl,
+                                    q.quoteNo ||
+                                      q.name ||
+                                      `quotation-${q.id}.pdf`,
+                                  )
+                                }
+                              >
+                                <Download className="mr-2 h-4 w-4" /> Download
+                                PDF
                               </DropdownMenuItem>
                             </>
                           )}
                           <DropdownMenuSeparator />
-                          <Link href={`/dashboard/quotations/${q.id}/edit`} passHref>
+                          <Link
+                            href={`/dashboard/quotations/${q.id}/edit`}
+                            passHref
+                          >
                             <DropdownMenuItem>
-                              <FileEdit className="mr-2 h-4 w-4" /> Edit Quotation
+                              <FileEdit className="mr-2 h-4 w-4" /> Edit
+                              Quotation
                             </DropdownMenuItem>
                           </Link>
                           {/* <DropdownMenuItem onClick={() => handleSendMail(q.id)}>
@@ -252,9 +339,10 @@ export default function QuotationsPage() {
       {/* Pagination */}
       <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
         <div className="text-sm text-muted-foreground mb-2 md:mb-0">
-          Showing {currentPageStart} to {currentPageEnd} of {totalCount} entries
+          Showing {currentPageStart} to {currentPageEnd} of {totalQuotations}{" "}
+          entries
         </div>
-        {totalCount > itemsPerPage && (
+        {totalQuotations > itemsPerPage && (
           <div className="flex items-center space-x-2">
             <span className="text-sm text-muted-foreground">Rows:</span>
             <Select
@@ -283,11 +371,21 @@ export default function QuotationsPage() {
               marginPagesDisplayed={1}
               pageRangeDisplayed={2}
               onPageChange={handlePageChange}
-              containerClassName={"flex items-center space-x-1 text-sm select-none"}
-              pageLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-              previousLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-              nextLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-              activeLinkClassName={"bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"}
+              containerClassName={
+                "flex items-center space-x-1 text-sm select-none"
+              }
+              pageLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              previousLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              nextLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              activeLinkClassName={
+                "bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+              }
               disabledLinkClassName={"opacity-50 cursor-not-allowed"}
               forcePage={page}
             />

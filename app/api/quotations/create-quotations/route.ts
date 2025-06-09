@@ -10,167 +10,275 @@ import path from "path";
 export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("token")?.value;
-    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
-    if (role !== "ADMIN") return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
+    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
+      role: string;
+    };
+    if (role !== "ADMIN")
+      return NextResponse.json(
+        { message: "Need Admin Access" },
+        { status: 403 },
+      );
 
     const body = await req.json();
+    console.log(
+      "Received quotation creation request:",
+      JSON.stringify(body, null, 2),
+    );
+
     const parsed = quotationSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ message: "Invalid input", errors: parsed.error }, { status: 400 });
+      console.error("Quotation validation failed:", parsed.error);
+      return NextResponse.json(
+        { message: "Invalid input", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
     }
 
-    const { name, clientId, rateCardDetails, ticketId , salesType } = parsed.data;
+    const {
+      name,
+      clientId,
+      rateCardDetails,
+      ticketId,
+      salesType,
+      expectedExpense,
+    } = parsed.data;
 
     // Extract rateCardIds from rateCardDetails
-    const rateCardIds = rateCardDetails.map((detail: { rateCardId: string }) => detail.rateCardId);
+    const rateCardIds = rateCardDetails.map(
+      (detail: { rateCardId: string }) => detail.rateCardId,
+    );
+
+    console.log("Looking for rate cards with IDs:", rateCardIds);
 
     // Fetch rate cards to get full details
     const rateCards = await prisma.rateCard.findMany({
       where: { id: { in: rateCardIds } },
     });
 
+    console.log(
+      "Found rate cards:",
+      rateCards.length,
+      "out of",
+      rateCardIds.length,
+    );
+
     if (rateCards.length !== rateCardIds.length) {
-      return NextResponse.json({ message: "Some RateCard entries not found" }, { status: 404 });
+      const foundIds = rateCards.map((rc) => rc.id);
+      const missingIds = rateCardIds.filter((id) => !foundIds.includes(id));
+      console.error("Missing rate card IDs:", missingIds);
+
+      return NextResponse.json(
+        {
+          message: "Some RateCard entries not found",
+          missingIds: missingIds,
+          requestedIds: rateCardIds,
+          foundIds: foundIds,
+        },
+        { status: 404 },
+      );
     }
 
     // Compute totals
     const subtotal = rateCardDetails.reduce((sum, detail) => {
-      const rateCard = rateCards.find(rc => rc.id === detail.rateCardId);
+      const rateCard = rateCards.find((rc) => rc.id === detail.rateCardId);
       return sum + (rateCard ? rateCard.rate * detail.quantity : 0);
     }, 0);
 
     const gst = subtotal * 0.18; // Assuming GST is 18%
     const grandTotal = subtotal + gst;
 
-    // Generate new quoteNo (e.g., QUOT-BE-0001)
+    console.log("Calculated totals:", { subtotal, gst, grandTotal });
+
+    // Generate new displayId (e.g., BE/January/0001)
+    const currentDate = new Date();
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const currentMonth = monthNames[currentDate.getMonth()];
+
     const latestQuotation = await prisma.quotation.findFirst({
-      orderBy: { quoteNo: "desc" }, // Order by quoteNo
-      select: { quoteNo: true }
+      where: { displayId: { not: null } },
+      orderBy: { createdAt: "desc" },
+      select: { displayId: true },
     });
 
     let serial = 1;
-    const prefix = "QUOT-BE-";
-    if (latestQuotation && latestQuotation.quoteNo) {
-      // Ensure we only attempt to parse if quoteNo actually follows the expected prefix format
-      if (latestQuotation.quoteNo.startsWith(prefix)) {
-        const numericPartMatch = latestQuotation.quoteNo.substring(prefix.length).match(/^\d+/);
+    const prefix = `BE/${currentMonth}/`;
+    if (latestQuotation && latestQuotation.displayId) {
+      // Check if the latest quotation is from current month
+      if (latestQuotation.displayId.startsWith(prefix)) {
+        const numericPartMatch = latestQuotation.displayId
+          .substring(prefix.length)
+          .match(/^\d+/);
         if (numericPartMatch) {
           serial = parseInt(numericPartMatch[0], 10) + 1;
         }
       }
-      // If quoteNo does not start with the prefix (e.g. old data), we might want a different strategy
-      // For now, if it doesn't match, it will restart from 1 with the new prefix.
-      // Or, consider parsing non-prefixed numbers if that's a case:
-      // else if (!isNaN(parseInt(latestQuotation.quoteNo))) { serial = parseInt(latestQuotation.quoteNo) + 1; }
+      // If it's from a different month, start from 1
     }
-    const newSequentialId = `${prefix}${serial.toString().padStart(4, "0")}`;
+    const newDisplayId = `${prefix}${serial.toString().padStart(4, "0")}`;
+
+    // Keep the original quoteNo logic for backward compatibility
+    const newSequentialId = newDisplayId;
+
+    console.log("Generated new display ID:", newDisplayId);
 
     // Fetch client name for PDF
-    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { name: true },
+    });
     if (!client) {
-        return NextResponse.json({ message: "Client not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Client not found" },
+        { status: 404 },
+      );
     }
+
+    console.log("Found client:", client.name);
 
     // Generate PDF buffer
-    // The UUID id will be generated by Prisma automatically. We pass newSequentialId for display in PDF.
-    const pdfBuffer = await generateQuotationPdf({
-      quotationId: newSequentialId, // Display this human-readable ID in the PDF
-      clientName: client.name,
-      clientId, // Keep for consistency if generateQuotationPdf uses it
-      name, // This is the quotation title/name
-      rateCards,
-      subtotal,
-      gst,
-      rateCardDetails,
-      grandTotal,
-    });
-
-    // Save PDF to disk
-    const folderPath = path.join(process.cwd(), "public", "quotations");
-    if (!existsSync(folderPath)) mkdirSync(folderPath, { recursive: true });
-
-    // PDF filename should use the newSequentialId (human-readable)
-    const filename = `${newSequentialId}.pdf`;
-    const filePath = path.join(folderPath, filename);
-    writeFileSync(filePath, pdfBuffer);
-
-    // Save in DB
-    // Prisma will auto-generate the UUID for 'id'
-    const quotation = await prisma.quotation.create({
-      data: {
-        quoteNo: newSequentialId, // Store the new sequential ID in quoteNo
-        name,                     // This is the quotation title
+    try {
+      const pdfBuffer = await generateQuotationPdf({
+        quotationId: newSequentialId,
+        clientName: client.name,
         clientId,
-        ticketId,
-        pdfUrl: `/quotations/${filename}`, // PDF URL uses the new quoteNo in filename
+        name,
+        rateCards,
         subtotal,
         gst,
+        rateCardDetails,
         grandTotal,
-        salesType,
-        rateCardDetails : rateCardDetails as any, // Store the rate card details as JSON
-        // Ensure formattedId is not attempted to be saved here unless it has a different purpose
-        // If formattedId was purely for the new sequence, it's now replaced by quoteNo for that.
-        // If the prisma schema still has `formattedId` and it's mandatory, it needs a value.
-        // Assuming for this reversion, `formattedId` is either removed from schema or will be handled differently.
-        // For now, we are focusing on populating `quoteNo`.
-      },
-    });
-
-    if (ticketId) {
-      const ticket = await prisma.ticket.findUnique({
-        where: { id: ticketId },
-        select: { workStageId: true },
+        expectedExpense: expectedExpense || 0,
+        quoteNo: newSequentialId,
+        validUntil: parsed.data.validUntil,
       });
 
-      if (ticket?.workStageId) {
-        // Update existing workStage
-        await prisma.workStage.update({
-          where: { id: ticket.workStageId },
-          data: {
-            quoteNo: newSequentialId, // Use the new sequential ID
-            quoteTaxable: subtotal,
-            quoteAmount: grandTotal,
-          },
-        });
-      } else {
-        // Create new workStage and link to ticket
-        const newWorkStage = await prisma.workStage.create({
-          data: {
-            ticket: {
-              connect: { id: ticketId },
-            },
-            stateName: "N/A",
-            adminName: "N/A",
-            clientName: "N/A", // This should ideally be client.name if available
-            siteName: "N/A",
-            quoteNo: newSequentialId, // Use the new sequential ID
-            dateReceived: new Date(),
-            quoteTaxable: subtotal,
-            quoteAmount: grandTotal,
-            workStatus: "N/A",
-            approval: "N/A",
-            poStatus: false,
-            poNumber: "N/A",
-            jcrStatus: false,
-            agentName: "N/A",
-          },
-        });
+      console.log("PDF generated successfully");
 
-        // Link the new WorkStage to the ticket
-        await prisma.ticket.update({
-          where: { id: ticketId },
-          data: {
-            workStageId: newWorkStage.id,
-          },
-        });
+      // Save PDF to disk
+      const folderPath = path.join(process.cwd(), "public", "quotations");
+      if (!existsSync(folderPath)) mkdirSync(folderPath, { recursive: true });
+
+      // PDF filename should use the newSequentialId (human-readable)
+      const filename = `${newSequentialId.replace(/\//g, "-")}.pdf`;
+      const filePath = path.join(folderPath, filename);
+      writeFileSync(filePath, pdfBuffer);
+
+      console.log("PDF saved to:", filePath);
+
+      // Save in DB
+      const quotation = await prisma.quotation.create({
+        data: {
+          displayId: newDisplayId,
+          quoteNo: newSequentialId,
+          name,
+          clientId,
+          ticketId: ticketId || null,
+          pdfUrl: `/quotations/${filename}`,
+          subtotal,
+          gst,
+          grandTotal,
+          salesType,
+          expectedExpense: expectedExpense || 0,
+          rateCardDetails: rateCardDetails as any,
+        },
+      });
+
+      console.log("Quotation saved to database with ID:", quotation.id);
+
+      // Update ticket work stage if ticketId is provided
+      if (ticketId) {
+        try {
+          const ticket = await prisma.ticket.findUnique({
+            where: { id: ticketId },
+            select: { workStageId: true },
+          });
+
+          if (ticket?.workStageId) {
+            // Update existing workStage
+            await prisma.workStage.update({
+              where: { id: ticket.workStageId },
+              data: {
+                quoteNo: newSequentialId,
+                quoteTaxable: subtotal,
+                quoteAmount: grandTotal,
+              },
+            });
+            console.log("Updated existing work stage");
+          } else {
+            // Create new workStage and link to ticket
+            const newWorkStage = await prisma.workStage.create({
+              data: {
+                ticket: { connect: { id: ticketId } },
+                stateName: "N/A",
+                adminName: "N/A",
+                clientName: client.name,
+                siteName: "N/A",
+                quoteNo: newSequentialId,
+                dateReceived: new Date(),
+                quoteTaxable: subtotal,
+                quoteAmount: grandTotal,
+                workStatus: "N/A",
+                approval: "N/A",
+                poStatus: false,
+                poNumber: "N/A",
+                jcrStatus: false,
+                agentName: "N/A",
+              },
+            });
+
+            // Link the new WorkStage to the ticket
+            await prisma.ticket.update({
+              where: { id: ticketId },
+              data: { workStageId: newWorkStage.id },
+            });
+            console.log("Created new work stage and linked to ticket");
+          }
+        } catch (workStageError) {
+          console.error("Error updating work stage:", workStageError);
+          // Don't fail the quotation creation if work stage update fails
+        }
       }
-    }
 
-    return NextResponse.json({ message: "Quotation created", quotation });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+      return NextResponse.json({
+        message: "Quotation created successfully",
+        quotation: {
+          ...quotation,
+          client: { name: client.name },
+        },
+      });
+    } catch (pdfError) {
+      console.error("PDF generation error:", pdfError);
+      return NextResponse.json(
+        { message: "Failed to generate PDF", error: pdfError.message },
+        { status: 500 },
+      );
+    }
+  } catch (error: any) {
+    console.error("Quotation creation error:", error);
+    return NextResponse.json(
+      {
+        message: "Failed to create quotation",
+        error: error.message,
+        details: error.code || "Unknown error",
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
+      { status: 500 },
+    );
   }
 }

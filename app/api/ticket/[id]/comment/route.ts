@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { createTicketCommentNotification } from "@/lib/services/notification-helpers";
 
 // Schema for validating comment creation
 const createCommentSchema = z.object({
@@ -10,7 +11,7 @@ const createCommentSchema = z.object({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const { id } = params;
@@ -18,19 +19,20 @@ export async function GET(
     if (!id) {
       return NextResponse.json(
         { message: "Ticket ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const comments = await prisma.comment.findMany({
       where: { ticketId: id },
       include: {
-        user: { // Include user details for the commenter
+        user: {
+          // Include user details for the commenter
           select: {
             id: true,
             name: true,
             avatar: true, // Assuming user model has avatar
-            initials: true // Assuming user model has initials
+            initials: true, // Assuming user model has initials
           },
         },
       },
@@ -44,14 +46,14 @@ export async function GET(
     console.error("Error fetching comments:", error);
     return NextResponse.json(
       { message: "Internal server error while fetching comments" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const { id } = params;
@@ -59,7 +61,7 @@ export async function POST(
     if (!id) {
       return NextResponse.json(
         { message: "Ticket ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,7 +71,7 @@ export async function POST(
     if (!parsedBody.success) {
       return NextResponse.json(
         { message: "Invalid input", errors: parsedBody.error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -78,12 +80,24 @@ export async function POST(
     // Verify ticket exists
     const ticket = await prisma.ticket.findUnique({
       where: { id: id },
+      select: {
+        id: true,
+        title: true,
+        ticketId: true,
+        assigneeId: true,
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!ticket) {
       return NextResponse.json(
         { message: "Ticket not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -93,10 +107,7 @@ export async function POST(
     });
 
     if (!user) {
-      return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
     const newComment = await prisma.comment.create({
@@ -105,28 +116,56 @@ export async function POST(
         ticketId: id,
         userId,
       },
-      include: { // Include user details in the response for the new comment
+      include: {
+        // Include user details in the response for the new comment
         user: {
           select: {
             id: true,
             name: true,
             avatar: true,
-            initials: true
+            initials: true,
           },
         },
-      }
+      },
     });
+
+    // Create notification for ticket assignee if they're not the commenter
+    if (ticket.assigneeId && ticket.assigneeId !== userId) {
+      try {
+        await createTicketCommentNotification(
+          ticket.assigneeId,
+          ticket.id,
+          ticket.title || "Unknown Ticket",
+          ticket.ticketId || "Unknown ID",
+          user.name || "Someone",
+          userId,
+        );
+      } catch (notificationError) {
+        console.error(
+          "Failed to create comment notification:",
+          notificationError,
+        );
+        // Don't fail the comment creation if notification fails
+      }
+    }
 
     return NextResponse.json(newComment, { status: 201 });
   } catch (error) {
     console.error("Error creating comment:", error);
     // Handle potential Prisma errors, e.g., foreign key constraint
-    if (error instanceof Error && 'code' in error && (error as any).code === 'P2003') {
-        return NextResponse.json({ message: "Invalid ticket ID or user ID provided." }, { status: 400 });
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as any).code === "P2003"
+    ) {
+      return NextResponse.json(
+        { message: "Invalid ticket ID or user ID provided." },
+        { status: 400 },
+      );
     }
     return NextResponse.json(
       { message: "Internal server error while creating comment" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

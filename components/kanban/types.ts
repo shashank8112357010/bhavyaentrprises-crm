@@ -1,11 +1,11 @@
 // components/agent/types.ts
-export type Role = 'ADMIN' | 'BACKEND' | 'RM' | 'MST' | 'ACCOUNTS';
-export type Status = 'ACTIVE' | 'INACTIVE' | 'PENDING';
-export type PerformanceTrend = 'UP' | 'DOWN' | 'STABLE';
+export type Role = "ADMIN" | "BACKEND" | "RM" | "MST" | "ACCOUNTS";
+export type Status = "ACTIVE" | "INACTIVE" | "PENDING";
+export type PerformanceTrend = "UP" | "DOWN" | "STABLE";
 
 export type Agent = {
   id: string;
- 
+
   name: string;
   email: string;
   password: string;
@@ -26,11 +26,30 @@ export type Agent = {
   activeTickets: number;
   rating: number;
   completedTickets: number;
-}
+};
 
-export type CreateAgentPayload = Omit<Agent, 'id' | 'createdAt' | 'joinedDate' | 'leadsAssigned' | 'leadsActive' | 'leadsClosed' | 'conversionRate' | 'performanceTrend' | 'activeTickets' | 'rating' | 'completedTickets'>;
+export type CreateAgentPayload = Omit<
+  Agent,
+  | "id"
+  | "createdAt"
+  | "joinedDate"
+  | "leadsAssigned"
+  | "leadsActive"
+  | "leadsClosed"
+  | "conversionRate"
+  | "performanceTrend"
+  | "activeTickets"
+  | "rating"
+  | "completedTickets"
+>;
 // components/kanban/types.ts
-export type TicketStatus = 'new' | 'inProgress'  | 'onHold' | 'completed' | 'billing_pending' | 'billing_completed';
+export type TicketStatus =
+  | "new"
+  | "inProgress"
+  | "onHold"
+  | "completed"
+  | "billing_pending"
+  | "billing_completed";
 export interface Expense {
   id: string;
   amount: string;
@@ -42,6 +61,7 @@ export interface Expense {
 export interface Quotation {
   id: string;
   name: string;
+  quoteNo: string;
   pdfUrl: string;
   clientId: string;
   ticketId: string;
@@ -52,16 +72,16 @@ export interface Quotation {
 }
 
 type Comment = {
-  text: string,
-  ticketId: string,
-  userId: string, // Assuming GST types are 18 and 28
-}
+  text: string;
+  ticketId: string;
+  userId: string; // Assuming GST types are 18 and 28
+};
 
-export interface Ticket  {
+export interface Ticket {
   id: string;
   title: string;
-  ticketId : string;
- 
+  ticketId: string;
+
   branch: string;
   priority: string;
   assignee: {
@@ -84,19 +104,18 @@ export interface Ticket  {
     poNumber: string;
     jcrStatus: Boolean;
     agentName: string;
-    jcrFilePath : string;
-    poFilePath : string
-
+    jcrFilePath: string;
+    poFilePath: string;
   };
-  due?: number; 
-  paid?: Boolean; 
-  client:{
+  due?: number;
+  paid?: Boolean;
+  client: {
     id: string;
     name: string;
     type: string;
     contactPerson: string;
-  }
-  expenses: Expense[];  
+  };
+  expenses: Expense[];
   dueDate: string | undefined;
   scheduledDate?: string;
   completedDate?: string;
@@ -105,11 +124,10 @@ export interface Ticket  {
   comments: Comment[];
   holdReason?: string;
   status: TicketStatus;
-  quotations?: Quotation[];  
-};
+  quotations?: Quotation[];
+}
 
 // jcr status => red(N/A) , orange (hard copy) , green (soft copy)
-// removed scheduled 
-// after complete billing board 
-// quote form fix 
-
+// removed scheduled
+// after complete billing board
+// quote form fix

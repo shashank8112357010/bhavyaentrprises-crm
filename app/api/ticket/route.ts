@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   try {
     console.log("reaching ...");
-    
+
     const url = new URL(req.url);
     const startDateStr = url.searchParams.get("startDate");
     const endDateStr = url.searchParams.get("endDate");
     const statusFilter = url.searchParams.get("status"); // optional status filter
+    const role = url.searchParams.get("role");
+    const userId = url.searchParams.get("userId");
 
     // Default to today's date range (00:00 to 23:59)
     const today = new Date();
@@ -47,11 +49,17 @@ export async function GET(req: NextRequest) {
       whereConditions.AND.push({ status: statusFilter });
     }
 
+    // Role-based access control
+    // If user is not ADMIN or ACCOUNTS, they should only see their assigned tickets
+    if (role && userId && !["ADMIN", "ACCOUNTS"].includes(role)) {
+      whereConditions.AND.push({ assigneeId: userId });
+    }
+
     const tickets = await prisma.ticket.findMany({
       where: whereConditions,
       include: {
         assignee: {
-          select: { name: true, avatar: true, initials: true  },
+          select: { id: true, name: true, avatar: true, initials: true },
         },
         workStage: {
           select: {
@@ -68,8 +76,8 @@ export async function GET(req: NextRequest) {
             poStatus: true,
             poNumber: true,
             jcrStatus: true,
-            poFilePath : true,
-            jcrFilePath : true
+            poFilePath: true,
+            jcrFilePath: true,
           },
         },
         client: {
@@ -103,7 +111,7 @@ export async function GET(req: NextRequest) {
     const transformedTickets = tickets.map((ticket: any) => ({
       id: ticket.id,
       title: ticket.title || "N/A",
-      ticketId : ticket.ticketId || 'NA',
+      ticketId: ticket.ticketId || "NA",
       client: {
         id: ticket.client.id,
         name: ticket.client.name,
@@ -114,11 +122,12 @@ export async function GET(req: NextRequest) {
       priority: ticket.priority || "N/A",
       assignee: ticket.assignee
         ? {
+            id: ticket.assignee.id,
             name: ticket.assignee.name,
             avatar: ticket.assignee.avatar,
             initials: ticket.assignee.initials,
           }
-        : { name: "N/A", avatar: "N/A", initials: "N/A" },
+        : { id: "N/A", name: "N/A", avatar: "N/A", initials: "N/A" },
       workStage: ticket.workStage
         ? {
             quoteNo: ticket.workStage.quoteNo || "N/A",
@@ -134,8 +143,8 @@ export async function GET(req: NextRequest) {
             poStatus: ticket.workStage.poStatus || false,
             poNumber: ticket.workStage.poNumber || "N/A",
             jcrStatus: ticket.workStage.jcrStatus || false,
-            poFilePath: ticket.workStage.poFilePath || '',
-            jcrFilePath: ticket.workStage.jcrFilePath || '',
+            poFilePath: ticket.workStage.poFilePath || "",
+            jcrFilePath: ticket.workStage.jcrFilePath || "",
           }
         : undefined,
       dueDate: ticket.dueDate ?? "N/A",
@@ -165,7 +174,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching tickets:", error);
     return NextResponse.json(
       { message: "Failed to fetch tickets", error: error.message },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

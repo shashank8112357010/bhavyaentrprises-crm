@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createTicketSchema } from "@/lib/validations/ticketSchema";
 import { prisma } from "@/lib/prisma";
+import { createTicketAssignmentNotification } from "@/lib/services/notification-helpers";
+import { sendTicketAssignmentEmail } from "@/lib/services/email-notification";
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
                 (comment: { text: string; userId: string }) => ({
                   text: comment.text,
                   userId: comment.userId,
-                })
+                }),
               ),
             }
           : undefined,
@@ -86,13 +88,52 @@ export async function POST(req: NextRequest) {
           leadsAssigned: { increment: 1 },
         },
       });
+
+      // Create notification for assigned agent
+      try {
+        await createTicketAssignmentNotification(
+          ticket.assigneeId,
+          ticket.id,
+          ticket.title,
+          ticket.ticketId,
+        );
+      } catch (notificationError) {
+        console.error(
+          "Failed to create assignment notification:",
+          notificationError,
+        );
+        // Don't fail the ticket creation if notification fails
+      }
+
+      // Send email notification to assigned agent
+      try {
+        const assignee = await prisma.user.findUnique({
+          where: { id: ticket.assigneeId },
+          select: { name: true, email: true },
+        });
+
+        if (assignee && assignee.email) {
+          await sendTicketAssignmentEmail(
+            assignee.email,
+            assignee.name || "Agent",
+            ticket.title,
+            ticket.ticketId,
+            client.name,
+            validatedData.priority,
+            validatedData.dueDate,
+          );
+        }
+      } catch (emailError) {
+        console.error("Failed to send assignment email:", emailError);
+        // Don't fail the ticket creation if email fails
+      }
     }
 
     return NextResponse.json({ ticket: { ...ticket, comments: [] } });
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to create ticket", error: error.message },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

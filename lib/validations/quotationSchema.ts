@@ -4,7 +4,7 @@ import { z } from "zod";
 const rateCardDetailSchema = z.object({
   rateCardId: z.string(),
   quantity: z.number().min(1),
-  gstType: z.number().min(18).max(28),
+  gstType: z.number().min(0).max(100), // Allow 0-100% GST range
 });
 
 export const quotationSchema = z.object({
@@ -14,4 +14,5 @@ export const quotationSchema = z.object({
   ticketId: z.string().optional(),
   salesType: z.string().min(1),
   validUntil: z.string().optional(),
+  expectedExpense: z.number().min(0).optional(),
 });

@@ -9,7 +9,7 @@ import {
 
 type Ticket = {
   id: string;
-  ticketId : string;
+  ticketId: string;
   title: string;
 
   branch: string;
@@ -43,15 +43,15 @@ type Ticket = {
       category: string;
       createdAt: string;
       pdfUrl: string;
-    }
+    },
   ];
-  due?: number; 
-  paid?: Boolean; 
+  due?: number;
+  paid?: Boolean;
   client: {
     id: string;
     name: string;
     type: string;
-    
+
     contactPerson: string;
   };
   dueDate: string | undefined;
@@ -119,11 +119,15 @@ interface TicketState {
   all_tickets: Ticket[];
   loading: boolean;
   error: string | null;
-  fetchTickets: (filters?: { status?: Status; startDate?: string; endDate?: string }) => Promise<void>;
+  fetchTickets: (filters?: {
+    status?: Status;
+    startDate?: string;
+    endDate?: string;
+  }) => Promise<void>;
   updateTicketStatus: (id: string, status: Status) => Promise<void>;
   createTicket: (ticketData: CreateTicketInput) => Promise<void>;
   fetchTicketById: (id: string) => Ticket | undefined;
-  updateTicket: (updatedTicket: any) => Promise<void>;  // <-- Add this here
+  updateTicket: (updatedTicket: any) => Promise<void>; // <-- Add this here
 
   // New state and actions for dashboard counts
   openTicketsCount: number | null;
@@ -142,10 +146,12 @@ const getDashboardTicketCountsService = async (): Promise<{
   clientUpdatesNeededCount: number;
   completedThisWeekCount: number;
 }> => {
-  const response = await fetch('/api/ticket/counts');
+  const response = await fetch("/api/ticket/counts");
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to fetch dashboard ticket counts');
+    throw new Error(
+      errorData.message || "Failed to fetch dashboard ticket counts",
+    );
   }
   return response.json();
 };
@@ -159,7 +165,7 @@ export const useTicketStore = create<TicketState>((set) => ({
     billing_pending: [],
     billing_completed: [],
   },
-  all_tickets : [],
+  all_tickets: [],
   loading: false,
   error: null,
 
@@ -170,12 +176,26 @@ export const useTicketStore = create<TicketState>((set) => ({
   completedThisWeekCount: null,
   isLoadingDashboardCounts: false,
 
-  fetchTickets: async (filters?: { status?: Status; startDate?: string; endDate?: string }) => {
+  fetchTickets: async (filters?: {
+    status?: Status;
+    startDate?: string;
+    endDate?: string;
+  }) => {
     set({ loading: true, error: null });
     try {
-      const response = await getAllTickets(filters); // pass filters
+      // Get user role and ID from auth store for RBA
+      const { useAuthStore } = await import("./authStore");
+      const { user } = useAuthStore.getState();
+
+      const enhancedFilters = {
+        ...filters,
+        role: user?.role,
+        userId: user?.userId,
+      };
+
+      const response = await getAllTickets(enhancedFilters); // pass enhanced filters with RBA
       const { tickets } = response;
-  
+
       const statusGroups = {
         new: [] as Ticket[],
         inProgress: [] as Ticket[],
@@ -184,14 +204,14 @@ export const useTicketStore = create<TicketState>((set) => ({
         billing_pending: [] as Ticket[],
         billing_completed: [] as Ticket[],
       };
-  
+
       for (const ticket of tickets) {
         const status = ticket.status as Status;
         if (status in statusGroups) {
           statusGroups[status].push(ticket);
         }
       }
-  
+
       set({
         all_tickets: tickets,
         tickets: statusGroups,
@@ -201,8 +221,7 @@ export const useTicketStore = create<TicketState>((set) => ({
       set({ error: error.message, loading: false });
     }
   },
-  
-  
+
   updateTicketStatus: async (id: string, status: Status) => {
     set({ loading: true, error: null });
     try {
@@ -224,7 +243,7 @@ export const useTicketStore = create<TicketState>((set) => ({
         // Remove the ticket from its current status array
         const currentStatus = ticket.status;
         const currentStatusTickets = tickets[currentStatus].filter(
-          (t) => t.id !== id
+          (t) => t.id !== id,
         );
 
         // Add the ticket to the new status array
@@ -253,7 +272,10 @@ export const useTicketStore = create<TicketState>((set) => ({
       set((state) => ({
         tickets: {
           ...state.tickets,
-          new: [...state.tickets.new, { ...ticket, status: "new" , expenses :[], client : {name  : "" , } }],
+          new: [
+            ...state.tickets.new,
+            { ...ticket, status: "new", expenses: [], client: { name: "" } },
+          ],
         },
         loading: false,
       }));
@@ -267,18 +289,17 @@ export const useTicketStore = create<TicketState>((set) => ({
     const foundTicket = allTickets.find((t) => t.id === id);
     return foundTicket;
   },
-  updateTicket: async ( updatedTicket: Ticket) => {
+  updateTicket: async (updatedTicket: Ticket) => {
     set({ loading: true, error: null });
     try {
       const ticketFromServer = await updateTicket(updatedTicket);
-      
 
       set((state) => {
         const { tickets, all_tickets } = state;
 
         // Update all_tickets list
         const updatedAllTickets = all_tickets.map((t) =>
-          t.id === ticketFromServer.id ? ticketFromServer : t
+          t.id === ticketFromServer.id ? ticketFromServer : t,
         );
 
         // Find current ticket status group to update in that array
@@ -297,7 +318,7 @@ export const useTicketStore = create<TicketState>((set) => ({
 
         // Update the ticket in the appropriate status array
         const updatedStatusTickets = tickets[foundStatus].map((t) =>
-          t.id === ticketFromServer.id ? ticketFromServer : t
+          t.id === ticketFromServer.id ? ticketFromServer : t,
         );
 
         return {
@@ -327,7 +348,7 @@ export const useTicketStore = create<TicketState>((set) => ({
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to fetch dashboard counts',
+        error: error.message || "Failed to fetch dashboard counts",
         isLoadingDashboardCounts: false,
         openTicketsCount: null,
         scheduledTodayCount: null,

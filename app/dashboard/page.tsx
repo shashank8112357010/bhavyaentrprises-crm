@@ -1,17 +1,23 @@
-"use client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  AlertTriangle, 
-  BarChart3, 
-  Building2, 
-  CheckCircle, 
-  Clock, 
-  Phone, 
-  Plus, 
-  RotateCw, 
-  UserCheck
+import {
+  AlertTriangle,
+  BarChart3,
+  Building2,
+  CheckCircle,
+  Clock,
+  Phone,
+  Plus,
+  RotateCw,
+  UserCheck,
 } from "lucide-react";
 import RecentActivityFeed from "@/components/dashboard/recent-activity";
 import StatusSummary from "@/components/dashboard/status-summary";
@@ -20,42 +26,64 @@ import OverviewMetrics from "@/components/dashboard/overview-metrics";
 import ExternalCallsList from "@/components/dashboard/external-calls-list";
 import UpcomingSchedule from "@/components/dashboard/upcoming-schedule";
 import { useTicketStore } from "@/store/ticketStore";
+import { useClientStore } from "@/store/clientStore";
+import { useAgentStore } from "@/store/agentStore";
 import { useEffect } from "react";
-// import { useUserStore } from "@/store/crmStore"; // Replaced by useAuthStore
-import { useAuthStore } from "@/store/authStore"; // Import useAuthStore
-import TotalAgentsCard from "@/components/dashboard/total-agents-card"; // Import TotalAgentsCard
-
+import { useAuthStore } from "@/store/authStore";
+import TotalAgentsCard from "@/components/dashboard/total-agents-card";
+import TotalClientsCard from "@/components/dashboard/total-clients-card";
 
 export default function Home() {
   const {
-    fetchTickets, // Keep for other components like StatusSummary, PriorityIssues
-    fetchDashboardCounts, // New action for all dashboard counts
+    fetchTickets,
+    fetchDashboardCounts,
     openTicketsCount,
     scheduledTodayCount,
     clientUpdatesNeededCount,
     completedThisWeekCount,
-    isLoadingDashboardCounts, // New loading state for these counts
+    isLoadingDashboardCounts,
   } = useTicketStore();
-  // const { user } = useUserStore(); // Replaced by useAuthStore
-  const { user } = useAuthStore(); // Get user from useAuthStore
- 
+
+  const { fetchClients } = useClientStore();
+  const { fetchAgents } = useAgentStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    fetchTickets(); // Still needed for other parts of the dashboard
-    fetchDashboardCounts(); // Call the new consolidated fetch action
+    // Fetch all dashboard data from Zustand stores instead of individual API calls
+    const loadDashboardData = async () => {
+      try {
+        // Fetch tickets with role-based access
+        await fetchTickets();
+        await fetchDashboardCounts();
+
+        // Only fetch clients and agents data if user is admin
+        if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+          await fetchClients();
+          await fetchAgents();
+        }
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      }
+    };
+
+    loadDashboardData();
   }, [
     fetchTickets,
-    fetchDashboardCounts
-    // Removed individual count fetchers from dependency array
+    fetchDashboardCounts,
+    fetchClients,
+    fetchAgents,
+    user?.role,
   ]);
   return (
     <div className="flex flex-col gap-6 h-[100px]">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {user && user.name ? `Welcome, ${user.name}` : 'Dashboard'}
+            {user && user.name ? `Welcome, ${user.name}` : "Dashboard"}
           </h1>
-          <p className="text-muted-foreground">Monitor repairs, track progress, and manage client requests</p>
+          <p className="text-muted-foreground">
+            Monitor repairs, track progress, and manage client requests
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {/* <Button>
@@ -70,7 +98,9 @@ export default function Home() {
           <CardHeader className="pb-2">
             <CardDescription>Open Tickets</CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts ? "Loading..." : (openTicketsCount ?? 'N/A')}
+              {isLoadingDashboardCounts
+                ? "Loading..."
+                : (openTicketsCount ?? "N/A")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -84,7 +114,9 @@ export default function Home() {
           <CardHeader className="pb-2">
             <CardDescription>Scheduled Today</CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts ? "Loading..." : (scheduledTodayCount ?? 'N/A')}
+              {isLoadingDashboardCounts
+                ? "Loading..."
+                : (scheduledTodayCount ?? "N/A")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -98,7 +130,9 @@ export default function Home() {
           <CardHeader className="pb-2">
             <CardDescription>Client Updates Needed</CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts ? "Loading..." : (clientUpdatesNeededCount ?? 'N/A')}
+              {isLoadingDashboardCounts
+                ? "Loading..."
+                : (clientUpdatesNeededCount ?? "N/A")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -112,7 +146,9 @@ export default function Home() {
           <CardHeader className="pb-2">
             <CardDescription>Completed This Week</CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts ? "Loading..." : (completedThisWeekCount ?? 'N/A')}
+              {isLoadingDashboardCounts
+                ? "Loading..."
+                : (completedThisWeekCount ?? "N/A")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -122,15 +158,18 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
-        {/* Conditionally rendered TotalAgentsCard */}
-        {user?.role === 'ADMIN' && <TotalAgentsCard />}
+        {/* Conditionally rendered cards for admins */}
+        {user?.role === "ADMIN" && <TotalAgentsCard />}
+        {user?.role === "ADMIN" && <TotalClientsCard />}
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Status Summary</CardTitle>
-            <CardDescription>Current distribution of maintenance requests</CardDescription>
+            <CardDescription>
+              Current distribution of maintenance requests
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <StatusSummary />
@@ -139,7 +178,9 @@ export default function Home() {
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Priority Issues</CardTitle>
-            <CardDescription>Maintenance requests requiring immediate attention</CardDescription>
+            <CardDescription>
+              Maintenance requests requiring immediate attention
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <PriorityIssues />
@@ -174,7 +215,9 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>Performance Overview</CardTitle>
-              <CardDescription>Key metrics for the current month</CardDescription>
+              <CardDescription>
+                Key metrics for the current month
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <OverviewMetrics />
@@ -196,7 +239,9 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest actions taken on maintenance requests</CardDescription>
+              <CardDescription>
+                Latest actions taken on maintenance requests
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <RecentActivityFeed />
@@ -207,7 +252,9 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>Upcoming Schedule</CardTitle>
-              <CardDescription>Maintenance visits for the next 7 days</CardDescription>
+              <CardDescription>
+                Maintenance visits for the next 7 days
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <UpcomingSchedule />

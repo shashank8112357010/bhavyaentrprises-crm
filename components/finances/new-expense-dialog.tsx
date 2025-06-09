@@ -30,7 +30,7 @@ import { Spinner } from "../ui/spinner";
 type PaymentType = "VCASH" | "REST" | "ONLINE";
 type ClientDetail = {
   name: string;
-  id : string;
+  id: string;
 };
 interface QuotationForDialog {
   id: string;
@@ -48,7 +48,6 @@ export function NewExpenseDialog({
   onSuccess,
   ticketId,
   ticketQuotations,
-  
 }: NewExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [quotationsToDisplay, setQuotationsToDisplay] = useState<
@@ -63,8 +62,10 @@ export function NewExpenseDialog({
   const [file, setFile] = useState<File | null>(null);
   const [requester, setRequester] = useState("");
   const [paymentType, setPaymentType] = useState<PaymentType | undefined>(
-    undefined
+    undefined,
   );
+  const [approvalName, setApprovalName] = useState("");
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [remarks, setRemarks] = useState("");
   const { toast } = useToast(); // ✅
   const [loading, setLoading] = useState(false);
@@ -170,6 +171,30 @@ export function NewExpenseDialog({
       return;
     }
 
+    // Validate conditional fields based on payment type
+    if (paymentType === "ONLINE" && !screenshotFile) {
+      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Please upload payment screenshot for online payments",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      (paymentType === "VCASH" || paymentType === "REST") &&
+      !approvalName.trim()
+    ) {
+      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Please enter approval name for offline payments",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await createExpense({
         amount: Number(amount),
@@ -183,6 +208,11 @@ export function NewExpenseDialog({
         requester,
         paymentType,
         file,
+        screenshotFile: paymentType === "ONLINE" ? screenshotFile : undefined,
+        approvalName:
+          paymentType === "VCASH" || paymentType === "REST"
+            ? approvalName
+            : undefined,
       });
 
       toast({
@@ -199,6 +229,8 @@ export function NewExpenseDialog({
       setRequester("");
       setPaymentType(undefined);
       setRemarks("");
+      setApprovalName("");
+      setScreenshotFile(null);
       setLoading(false);
 
       onSuccess?.(); // ✅ trigger callback if provided
@@ -323,14 +355,49 @@ export function NewExpenseDialog({
               </Select>
             </div>
 
+            {/* Conditional fields based on payment type */}
+            {paymentType === "ONLINE" && (
+              <div className="grid gap-2">
+                <Label htmlFor="screenshot">Payment Screenshot *</Label>
+                <Input
+                  id="screenshot"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setScreenshotFile(e.target.files?.[0] ?? null)
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload a screenshot of the online payment confirmation
+                </p>
+              </div>
+            )}
+
+            {(paymentType === "VCASH" || paymentType === "REST") && (
+              <div className="grid gap-2">
+                <Label htmlFor="approvalName">Approval Name *</Label>
+                <Input
+                  id="approvalName"
+                  type="text"
+                  placeholder="Name of person who approved this expense"
+                  value={approvalName}
+                  onChange={(e) => setApprovalName(e.target.value)}
+                />
+              </div>
+            )}
+
             {/* File Upload */}
             <div className="grid gap-2">
-              <Label htmlFor="file">Upload PDF</Label>
+              <Label htmlFor="file">Upload Receipt/Bill</Label>
               <Input
                 id="file"
                 type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
+              <p className="text-xs text-muted-foreground">
+                Upload the expense receipt or bill (PDF, JPG, PNG)
+              </p>
             </div>
           </div>
           <DialogFooter>

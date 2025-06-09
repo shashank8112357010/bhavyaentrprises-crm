@@ -70,10 +70,10 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     ticket.priority === "Critical"
       ? "bg-destructive"
       : ticket.priority === "High"
-      ? "bg-orange-500"
-      : ticket.priority === "Medium"
-      ? "bg-yellow-500"
-      : "bg-blue-500";
+        ? "bg-orange-500"
+        : ticket.priority === "Medium"
+          ? "bg-yellow-500"
+          : "bg-blue-500";
 
   const formatDateString = (date: string) => {
     return date === "N/A"
@@ -104,7 +104,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   const handlePoUploadClick = () => poInputRef.current?.click();
 
   const handleJcrFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -142,7 +142,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   };
 
   const handlePoFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -230,11 +230,16 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         </div>
 
         <CardContent className="p-3 pb-0">
-        <Link className="hover:cursor-wait" href={`/dashboard/ticket/${ticket.id}`} key={ticket.id} legacyBehavior>
-        <Badge variant="outline">{ticket.ticketId}</Badge>
-        </Link>
-         
-          <div {...listeners} >
+          <Link
+            className="hover:cursor-wait"
+            href={`/dashboard/ticket/${ticket.id}`}
+            key={ticket.id}
+            legacyBehavior
+          >
+            <Badge variant="outline">{ticket.ticketId}</Badge>
+          </Link>
+
+          <div {...listeners}>
             <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
 
             <div className="flex items-center mt-2 text-sm text-muted-foreground">
@@ -253,7 +258,9 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                       <span className="flex gap-2">
                         Quote:{" "}
                         {ticket?.quotations && ticket?.quotations?.length > 0
-                          ? ticket?.quotations.map((i) => i.id).join(", ")
+                          ? ticket?.quotations
+                              .map((i) => i.quoteNo || i.name)
+                              .join(", ")
                           : "N/A"}
                       </span>
                     </TooltipTrigger>
@@ -270,7 +277,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                     <span>
                       {formatDateString(
                         ticket.workStage?.dateReceived ||
-                          new Date().toISOString()
+                          new Date().toISOString(),
                       )}
                     </span>
                   </div>
@@ -346,7 +353,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                   ?.reduce(
                     (total: any, exp: any) =>
                       total + (Number(exp.grandTotal) || 0),
-                    0
+                    0,
                   )
                   .toLocaleString()}
               </Badge>
@@ -356,7 +363,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 {ticket?.expenses
                   ?.reduce(
                     (total: any, exp: any) => total + (Number(exp.amount) || 0),
-                    0
+                    0,
                   )
                   .toLocaleString()}
               </Badge>
@@ -367,12 +374,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 ticket.expenses.length > 0 &&
                 ticket.expenses.reduce(
                   (sum, e) => sum + (Number(e.amount) || 0),
-                  0
+                  0,
                 ) !==
                   ticket?.quotations?.reduce(
                     (total: any, exp: any) =>
                       total + (Number(exp.grandTotal) || 0),
-                    0
+                    0,
                   ) && (
                   <Badge
                     variant="secondary"
@@ -380,12 +387,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                       ticket.expenses &&
                       ticket.expenses.reduce(
                         (sum, e) => sum + (Number(e.amount) || 0),
-                        0
+                        0,
                       ) <
                         ticket?.quotations?.reduce(
                           (total: any, exp: any) =>
                             total + (Number(exp.grandTotal) || 0),
-                          0
+                          0,
                         )
                         ? "bg-green-500 text-white"
                         : "bg-red-400 text-white"
@@ -394,12 +401,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                     {ticket.expenses &&
                     ticket.expenses.reduce(
                       (sum, e) => sum + (Number(e.amount) || 0),
-                      0
+                      0,
                     ) <
                       ticket?.quotations?.reduce(
                         (total: any, exp: any) =>
                           total + (Number(exp.grandTotal) || 0),
-                        0
+                        0,
                       )
                       ? "Profit"
                       : "Loss"}
@@ -433,8 +440,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               {isUploadingJcr
                 ? "Uploading JCR..."
                 : ticket.workStage?.jcrFilePath
-                ? "JCR Uploaded"
-                : "Upload JCR"}
+                  ? "JCR Uploaded"
+                  : "Upload JCR"}
             </Button>
             <Button
               variant="outline"
@@ -456,8 +463,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               {isUploadingPo
                 ? "Uploading PO..."
                 : ticket.workStage?.poFilePath
-                ? "PO Uploaded"
-                : "Upload PO"}
+                  ? "PO Uploaded"
+                  : "Upload PO"}
             </Button>
           </div>
         </CardFooter>

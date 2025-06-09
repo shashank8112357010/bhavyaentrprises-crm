@@ -29,6 +29,7 @@ enum Status {
 
 model User {
   id                   String           @id @default(uuid())
+  displayId            String?          @unique
   name                 String
   email                String           @unique
   password             String
@@ -51,6 +52,7 @@ model User {
   rating               Float            @default(0.0)
   completedTickets     Int              @default(0)
   authoredComments     Comment[]        @relation("UserAuthoredComments")
+  notifications        Notification[]   @relation("UserNotifications")
   resetPasswordToken   String?          @unique
   resetPasswordExpires DateTime?
 }
@@ -68,6 +70,7 @@ model RateCard {
 
 model Quotation {
   id              String    @id @default(uuid())
+  displayId       String?   @unique
   quoteNo         String    @unique
   name            String
   pdfUrl          String?
@@ -83,11 +86,13 @@ model Quotation {
   grandTotal      Float
   salesType       String
   validUntil      DateTime?
+  expectedExpense Float?    @default(0)
 }
 
 
 model Client {
   id              String      @id @default(uuid())
+  displayId       String?     @unique
   name            String
   type            String
   totalBranches   Int
@@ -105,6 +110,7 @@ model Client {
 
 model Expense {
   id          String          @id @default(uuid())
+  displayId   String?         @unique
   customId    String          @unique
   amount      Float
   description String
@@ -117,6 +123,8 @@ model Expense {
   ticket      Ticket?         @relation(fields: [ticketId], references: [id])
   createdAt   DateTime        @default(now())
   pdfUrl      String?
+  screenshotUrl String?       // For online payment screenshots
+  approvalName  String?       // For offline payment approvals
 }
 
 model Ticket {
@@ -143,6 +151,7 @@ model Ticket {
   expenses      Expense[]
   Quotation     Quotation[]
   comments      Comment[]
+  notifications Notification[]   @relation("TicketNotifications")
 }
 
 model Comment {
@@ -156,6 +165,24 @@ model Comment {
 
   @@index([ticketId])
   @@index([userId])
+}
+
+model Notification {
+  id          String             @id @default(uuid())
+  userId      String
+  user        User               @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  ticketId    String?
+  ticket      Ticket?            @relation("TicketNotifications", fields: [ticketId], references: [id], onDelete: Cascade)
+  isRead      Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  actionUrl   String?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 enum ExpenseCategory {
@@ -178,6 +205,14 @@ enum TicketStatus {
   completed
   billing_pending
   billing_completed
+}
+
+enum NotificationType {
+  TICKET_ASSIGNED
+  TICKET_STATUS_CHANGED
+  TICKET_COMMENTED
+  TICKET_DUE_DATE_APPROACHING
+  WORK_STAGE_UPDATED
 }
 
 model WorkStage {

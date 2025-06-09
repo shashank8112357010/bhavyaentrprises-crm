@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       { message: `${firstFieldKey}: ${firstErrorMessage}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   if (existingUserEmail) {
     return NextResponse.json(
       { message: "User with this email already exists" },
-      { status: 409 }
+      { status: 409 },
     );
   }
 
@@ -51,8 +51,31 @@ export async function POST(req: NextRequest) {
   if (existingUserMobile) {
     return NextResponse.json(
       { message: "User with this phone no  already exists" },
-      { status: 409 }
+      { status: 409 },
     );
+  }
+
+  // Generate custom agent display ID
+  let customDisplayId;
+  try {
+    const latestAgent = await prisma.user.findFirst({
+      where: { displayId: { not: null } },
+      orderBy: { createdAt: "desc" },
+      select: { displayId: true },
+    });
+
+    let agentNumber = 1;
+    if (latestAgent && latestAgent.displayId) {
+      // Extract number from existing agent displayId (format: AGENT-0001)
+      const idMatch = latestAgent.displayId.match(/AGENT-(\d+)$/);
+      if (idMatch) {
+        agentNumber = parseInt(idMatch[1]) + 1;
+      }
+    }
+
+    customDisplayId = `AGENT-${agentNumber.toString().padStart(4, "0")}`;
+  } catch (idError) {
+    console.error("Error generating agent display ID:", idError);
   }
 
   const rawPassword = "welcome@crm";
@@ -62,6 +85,7 @@ export async function POST(req: NextRequest) {
     data: {
       name,
       email,
+      displayId: customDisplayId,
       initials: name
         .split(" ")
         .map((n: any) => n[0])

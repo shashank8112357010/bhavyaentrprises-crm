@@ -18,9 +18,28 @@ import { NewExpenseDialog } from "@/components/finances/new-expense-dialog"; // 
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Interfaces
 interface ExpenseQuotationTicket {
@@ -43,6 +62,8 @@ interface ExpenseItem {
   paymentType: string;
   amount: number;
   pdfUrl: string | null;
+  screenshotUrl?: string | null;
+  approvalName?: string | null;
   quotation: ExpenseQuotation | null;
   // If ticket can be directly on expense and not just via quotation:
   // ticket?: ExpenseQuotationTicket | null;
@@ -50,12 +71,11 @@ interface ExpenseItem {
 
 interface PaginatedExpensesResponse {
   expenses: ExpenseItem[];
-  pagination :{
+  pagination: {
     total: number;
     page: number;
     limit: number;
-  }
-
+  };
 }
 
 export default function ExpensesPage() {
@@ -105,7 +125,10 @@ export default function ExpensesPage() {
     if (url) {
       window.open(url, "_blank");
     } else {
-      toast({ title: "Info", description: "No PDF available for this expense." });
+      toast({
+        title: "Info",
+        description: "No PDF available for this expense.",
+      });
     }
   };
 
@@ -180,10 +203,18 @@ export default function ExpensesPage() {
           </CardDescription> */}
         </CardHeader>
         <CardContent>
-          {loading && <div className="flex justify-center items-center py-10"><Spinner size="8" /></div>}
-          {!loading && error && <p className="text-red-500 text-center py-10">{error}</p>}
+          {loading && (
+            <div className="flex justify-center items-center py-10">
+              <Spinner size="8" />
+            </div>
+          )}
+          {!loading && error && (
+            <p className="text-red-500 text-center py-10">{error}</p>
+          )}
           {!loading && !error && expenses.length === 0 && (
-            <p className="text-muted-foreground text-center py-10">No expenses found.</p>
+            <p className="text-muted-foreground text-center py-10">
+              No expenses found.
+            </p>
           )}
           {!loading && !error && expenses.length > 0 && (
             <Table>
@@ -198,25 +229,49 @@ export default function ExpensesPage() {
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Quotation</TableHead>
                   <TableHead>Ticket</TableHead>
+                  <TableHead>Approval</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {expenses.map((exp) => (
                   <TableRow key={exp.id}>
-                    <TableCell>{new Date(exp.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(exp.createdAt).toLocaleDateString()}
+                    </TableCell>
                     <TableCell>{exp.customId || exp.id}</TableCell>
-                    <TableCell className="font-medium max-w-xs truncate">{exp.description}</TableCell>
+                    <TableCell className="font-medium max-w-xs truncate">
+                      {exp.description}
+                    </TableCell>
                     <TableCell>{exp.category}</TableCell>
                     <TableCell>{exp.requester}</TableCell>
                     <TableCell>{exp.paymentType}</TableCell>
-                    <TableCell className="text-right">₹{exp.amount?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell>
+                    <TableCell className="text-right">
+                      ₹
+                      {exp.amount?.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }) || "0.00"}
+                    </TableCell>
                     <TableCell>{exp.quotation?.name || "N/A"}</TableCell>
-                    <TableCell>{exp.quotation?.ticket?.title || "N/A"}</TableCell>
+                    <TableCell>
+                      {exp.quotation?.ticket?.title || "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {exp.paymentType === "ONLINE"
+                        ? exp.screenshotUrl
+                          ? "Screenshot"
+                          : "N/A"
+                        : exp.approvalName || "N/A"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -224,13 +279,55 @@ export default function ExpensesPage() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           {exp.pdfUrl && (
                             <>
-                              <DropdownMenuItem onClick={() => handleViewPdf(exp.pdfUrl)}>
-                                <Receipt className="mr-2 h-4 w-4" /> View File
+                              <DropdownMenuItem
+                                onClick={() => handleViewPdf(exp.pdfUrl)}
+                              >
+                                <Receipt className="mr-2 h-4 w-4" /> View
+                                Receipt
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDownloadPdf(exp.pdfUrl, exp.customId || exp.description || `expense-${exp.id}.pdf`)}>
-                                <Download className="mr-2 h-4 w-4" /> Download File
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleDownloadPdf(
+                                    exp.pdfUrl,
+                                    exp.customId ||
+                                      exp.description ||
+                                      `expense-${exp.id}.pdf`,
+                                  )
+                                }
+                              >
+                                <Download className="mr-2 h-4 w-4" /> Download
+                                Receipt
                               </DropdownMenuItem>
                             </>
+                          )}
+                          {(exp as any).screenshotUrl && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleViewPdf((exp as any).screenshotUrl)
+                                }
+                              >
+                                <Receipt className="mr-2 h-4 w-4" /> View
+                                Screenshot
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleDownloadPdf(
+                                    (exp as any).screenshotUrl,
+                                    `screenshot-${exp.customId || exp.id}.jpg`,
+                                  )
+                                }
+                              >
+                                <Download className="mr-2 h-4 w-4" /> Download
+                                Screenshot
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {!exp.pdfUrl && !(exp as any).screenshotUrl && (
+                            <DropdownMenuItem disabled>
+                              <Receipt className="mr-2 h-4 w-4" /> No files
+                              available
+                            </DropdownMenuItem>
                           )}
                           {/* Add other actions like Edit/Delete if needed */}
                         </DropdownMenuContent>
@@ -278,11 +375,21 @@ export default function ExpensesPage() {
               marginPagesDisplayed={1}
               pageRangeDisplayed={2}
               onPageChange={handlePageChange}
-              containerClassName={"flex items-center space-x-1 text-sm select-none"}
-              pageLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-              previousLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-              nextLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-              activeLinkClassName={"bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"}
+              containerClassName={
+                "flex items-center space-x-1 text-sm select-none"
+              }
+              pageLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              previousLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              nextLinkClassName={
+                "px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+              }
+              activeLinkClassName={
+                "bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+              }
               disabledLinkClassName={"opacity-50 cursor-not-allowed"}
               forcePage={page}
             />
