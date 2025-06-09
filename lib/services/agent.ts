@@ -1,5 +1,5 @@
 import axios from "@/lib/axios";
-import { Agent , CreateAgentPayload } from "@/components/agent/types";
+import { Agent, CreateAgentPayload } from "@/components/agent/types";
 
 interface GetAllAgentsParams {
   page?: number;
@@ -30,7 +30,7 @@ export async function createAgent(payload: CreateAgentPayload) {
 }
 
 export async function getAllAgents(
-  params: GetAllAgentsParams = {}
+  params: GetAllAgentsParams = {},
 ): Promise<PaginatedAgentsResponse> {
   try {
     const { page = 1, limit = 10, searchQuery = "" } = params;
@@ -45,8 +45,10 @@ export async function getAllAgents(
     });
     return response.data; // Should now be the paginated response
   } catch (error: any) {
-    const message = error.response?.data?.message || // Use message from API error if available
-                   (error.response?.data?.error || "Failed to fetch agents.");
+    const message =
+      error.response?.data?.message || // Use message from API error if available
+      error.response?.data?.error ||
+      "Failed to fetch agents.";
     throw new Error(message);
   }
 }
@@ -73,16 +75,20 @@ export async function getAgentById(id: string) {
         Expires: "0",
       },
     });
-    return response.data;
+    // Handle the API response wrapper
+    return response.data.agent || response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch agent.";
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Failed to fetch agent.";
     throw new Error(message);
   }
 }
 
-export async function updateAgent(id: string , updatedAgent : Agent ) {
+export async function updateAgent(id: string, updatedAgent: Agent) {
   try {
-    const response = await axios.patch(`/agent/${id}`, updatedAgent , {
+    const response = await axios.patch(`/agent/${id}`, updatedAgent, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -96,4 +102,3 @@ export async function updateAgent(id: string , updatedAgent : Agent ) {
     throw new Error(message);
   }
 }
-
