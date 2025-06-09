@@ -46,9 +46,9 @@ interface AgentState {
   addAgent: (agent: CreateAgentPayload) => Promise<void>;
   editAgent: (id: string, updatedAgent: Agent) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
-  setCurrentPage: (page: number) => void;
-  setSearchQuery: (query: string) => void;
-  setItemsPerPage: (newLimit: number) => void;
+  setCurrentPage: (page: number, userRole?: Role) => void;
+  setSearchQuery: (query: string, userRole?: Role) => void;
+  setItemsPerPage: (newLimit: number, userRole?: Role) => void;
   fetchTotalAgentCount: () => Promise<void>; // New action
 }
 
