@@ -17,6 +17,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Loader2 } from "lucide-react"; // Import a loading spinner icon
 import { useAuthStore } from "@/store/authStore";
 import axiosInstance from "@/lib/axios";
+import { useState, useEffect } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
