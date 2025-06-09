@@ -34,11 +34,14 @@ interface AgentState {
   totalAgentCount: number | null; // Total count of all agents with specific roles
   isLoadingTotalAgentCount: boolean; // Loading state specifically for totalAgentCount
 
-  fetchAgents: (params?: {
-    page?: number;
-    limit?: number;
-    query?: string;
-  }) => Promise<void>;
+  fetchAgents: (
+    params?: {
+      page?: number;
+      limit?: number;
+      query?: string;
+    },
+    userRole?: Role,
+  ) => Promise<void>;
   fetchAgentById: (id: string) => Promise<Agent | undefined>;
   addAgent: (agent: CreateAgentPayload) => Promise<void>;
   editAgent: (id: string, updatedAgent: Agent) => Promise<void>;
