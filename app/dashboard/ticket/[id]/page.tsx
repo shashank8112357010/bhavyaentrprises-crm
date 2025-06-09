@@ -21,6 +21,7 @@ import {
   Receipt,
   User,
   MessageSquare, // For comments/timeline
+  Edit, // For edit button
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 import { NewExpenseDialog } from "@/components/finances/new-expense-dialog";
