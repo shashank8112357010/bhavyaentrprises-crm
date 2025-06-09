@@ -4,21 +4,21 @@ import {
   getAgentById,
   createAgent as createAgentService, // Renamed for clarity
   updateAgent as updateAgentService, // Renamed for clarity
-  deleteAgent as deleteAgentService // Renamed to avoid conflict with action name
+  deleteAgent as deleteAgentService, // Renamed to avoid conflict with action name
   // Assume getTotalAgentCount will be added to services, similar to others.
   // For now, we define a placeholder directly in this file.
 } from "../lib/services/agent";
 
-import { Agent , CreateAgentPayload } from "@/components/agent/types";
+import { Agent, CreateAgentPayload } from "@/components/agent/types";
 
 // Placeholder for the actual service call.
 // In a real application, this would likely be in '../lib/services/agent.ts'
 // and imported.
 const getTotalAgentCountService = async (): Promise<{ count: number }> => {
-  const response = await fetch('/api/agent/count');
+  const response = await fetch("/api/agent/count");
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to fetch total agent count');
+    throw new Error(errorData.message || "Failed to fetch total agent count");
   }
   return response.json();
 };
@@ -35,7 +35,11 @@ interface AgentState {
   totalAgentCount: number | null; // Total count of all agents with specific roles
   isLoadingTotalAgentCount: boolean; // Loading state specifically for totalAgentCount
 
-  fetchAgents: (params?: { page?: number; limit?: number; query?: string }) => Promise<void>;
+  fetchAgents: (params?: {
+    page?: number;
+    limit?: number;
+    query?: string;
+  }) => Promise<void>;
   fetchAgentById: (id: string) => Promise<Agent | undefined>;
   addAgent: (agent: CreateAgentPayload) => Promise<void>;
   editAgent: (id: string, updatedAgent: Agent) => Promise<void>;
@@ -63,13 +67,14 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     const S = get();
     const pageToFetch = params.page ?? S.currentPage;
     const limitToFetch = params.limit ?? S.itemsPerPage;
-    const queryToFetch = params.query !== undefined ? params.query : S.searchQuery;
+    const queryToFetch =
+      params.query !== undefined ? params.query : S.searchQuery;
 
     try {
       const response = await getAllAgents({
         page: pageToFetch,
         limit: limitToFetch,
-        searchQuery: queryToFetch
+        searchQuery: queryToFetch,
       });
       set({
         agents: response.data,
@@ -77,7 +82,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         currentPage: response.page,
         itemsPerPage: response.limit, // Update itemsPerPage from API response
         searchQuery: queryToFetch,
-        loading: false
+        loading: false,
       });
     } catch (error: any) {
       set({ error: error.message, loading: false });
@@ -102,17 +107,19 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       // After adding, refresh to the first page with current search query
       get().fetchAgents({ page: 1, query: get().searchQuery });
     } catch (error: any) {
-      set({ error: error.message || 'Failed to create agent'});
+      set({ error: error.message || "Failed to create agent" });
       throw error; // Rethrow to allow form to handle it
     }
   },
   editAgent: async (id: string, updatedAgent: Agent) => {
     try {
-      await updateAgentService(id, updatedAgent); // Use renamed service
+      // Use originalId if available (for agents fetched from the list), otherwise use the provided id
+      const actualId = (updatedAgent as any).originalId || id;
+      await updateAgentService(actualId, updatedAgent); // Use renamed service
       // After editing, refresh the current page
       get().fetchAgents({ page: get().currentPage, query: get().searchQuery });
     } catch (error: any) {
-      set({ error: error.message || 'Failed to update agent', loading: false });
+      set({ error: error.message || "Failed to update agent", loading: false });
       throw error; // Rethrow to allow form to handle it
     }
   },
@@ -129,7 +136,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         get().fetchAgents({ page: currentPage, query: get().searchQuery });
       }
     } catch (error: any) {
-      set({ error: error.message || 'Failed to delete agent', loading: false });
+      set({ error: error.message || "Failed to delete agent", loading: false });
       throw error; // Rethrow to allow UI to handle it
     }
   },
@@ -155,7 +162,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to fetch total agent count',
+        error: error.message || "Failed to fetch total agent count",
         isLoadingTotalAgentCount: false,
         totalAgentCount: null, // Optionally reset or keep previous value on error
       });
