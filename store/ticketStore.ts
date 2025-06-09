@@ -333,6 +333,9 @@ export const useTicketStore = create<TicketState>((set) => ({
           loading: false,
         };
       });
+
+      // Refresh tickets to ensure data consistency after update
+      get().fetchTickets();
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
