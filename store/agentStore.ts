@@ -153,9 +153,9 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       throw error; // Rethrow to allow UI to handle it
     }
   },
-  setCurrentPage: (page: number) => {
+  setCurrentPage: (page: number, userRole?: Role) => {
     set({ currentPage: page, loading: true }); // Set loading true before fetch
-    get().fetchAgents({ page, query: get().searchQuery }); // Pass current query
+    get().fetchAgents({ page, query: get().searchQuery }, userRole); // Pass current query and user role
   },
   setSearchQuery: (query: string) => {
     set({ searchQuery: query, currentPage: 1, loading: true }); // Reset to page 1 and set loading
