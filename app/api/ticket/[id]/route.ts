@@ -126,9 +126,119 @@ export async function PATCH(
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
       data: validatedData.data as any,
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            initials: true,
+          },
+        },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            contactPerson: true,
+          },
+        },
+        workStage: {
+          select: {
+            quoteNo: true,
+            quoteTaxable: true,
+            quoteAmount: true,
+            dateReceived: true,
+            agentName: true,
+            stateName: true,
+            adminName: true,
+            clientName: true,
+            siteName: true,
+            approval: true,
+            poStatus: true,
+            poNumber: true,
+            jcrStatus: true,
+            poFilePath: true,
+            jcrFilePath: true,
+          },
+        },
+        expenses: {
+          select: {
+            id: true,
+            amount: true,
+            category: true,
+            createdAt: true,
+            pdfUrl: true,
+          },
+        },
+        _count: {
+          select: { comments: true },
+        },
+      },
     });
 
-    return NextResponse.json({ ticket });
+    // Format the ticket response to match the expected structure
+    const formattedTicket = {
+      id: ticket.id,
+      title: ticket.title || "N/A",
+      ticketId: ticket.ticketId || "NA",
+      client: {
+        id: ticket.client?.id || "",
+        name: ticket.client?.name || "N/A",
+        type: ticket.client?.type || "N/A",
+        contactPerson: ticket.client?.contactPerson || "N/A",
+      },
+      branch: ticket.branch || "N/A",
+      priority: ticket.priority || "N/A",
+      assignee: ticket.assignee
+        ? {
+            id: ticket.assignee.id,
+            name: ticket.assignee.name,
+            avatar: ticket.assignee.avatar,
+            initials: ticket.assignee.initials,
+          }
+        : { id: "N/A", name: "N/A", avatar: "N/A", initials: "N/A" },
+      workStage: ticket.workStage
+        ? {
+            quoteNo: ticket.workStage.quoteNo || "N/A",
+            quoteTaxable: ticket.workStage.quoteTaxable ?? "N/A",
+            quoteAmount: ticket.workStage.quoteAmount ?? "N/A",
+            dateReceived: ticket.workStage.dateReceived || "N/A",
+            agentName: ticket.workStage.agentName || "N/A",
+            stateName: ticket.workStage.stateName || "N/A",
+            adminName: ticket.workStage.adminName || "N/A",
+            clientName: ticket.workStage.clientName || "N/A",
+            siteName: ticket.workStage.siteName || "N/A",
+            approval: ticket.workStage.approval || "N/A",
+            poStatus: ticket.workStage.poStatus || false,
+            poNumber: ticket.workStage.poNumber || "N/A",
+            jcrStatus: ticket.workStage.jcrStatus || false,
+            poFilePath: ticket.workStage.poFilePath || "",
+            jcrFilePath: ticket.workStage.jcrFilePath || "",
+          }
+        : undefined,
+      dueDate: ticket.dueDate ?? "N/A",
+      scheduledDate: ticket.scheduledDate ?? "N/A",
+      completedDate: ticket.completedDate ?? "N/A",
+      createdAt: ticket.createdAt || "N/A",
+      description: ticket.description || "N/A",
+      comments: ticket._count?.comments || 0,
+      holdReason: ticket.holdReason || "N/A",
+      status: ticket.status || "new",
+      expenses: ticket.expenses?.length
+        ? ticket.expenses.map((expense: any) => ({
+            id: expense.id,
+            amount: expense.amount,
+            category: expense.category,
+            createdAt: expense.createdAt,
+            attachmentUrl: expense.attachmentUrl,
+          }))
+        : [],
+      due: ticket.due,
+      paid: ticket.paid,
+    };
+
+    return NextResponse.json({ ticket: formattedTicket });
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to update ticket", error: error.message },
