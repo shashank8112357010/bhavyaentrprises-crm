@@ -215,26 +215,13 @@ export default function NewQuotationPage() {
   const fetchTicketsForSelection = useCallback(async () => {
     setIsLoadingTickets(true);
     try {
-      const response = await fetch("/api/tickets/selection", {
-        credentials: "include",
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch tickets");
-      }
-
-      const data = await response.json();
-      setTicketsForSelection(data.tickets || []);
-    } catch (error) {
+      const tickets = await getTicketsForSelection();
+      setTicketsForSelection(tickets || []);
+    } catch (error: any) {
       console.error("Error fetching tickets:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch tickets for selection.",
+        description: error.message || "Failed to fetch tickets for selection.",
         variant: "destructive",
       });
     } finally {
