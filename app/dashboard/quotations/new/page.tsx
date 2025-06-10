@@ -1152,19 +1152,35 @@ export default function NewQuotationPage() {
                 />
               </div>
 
-              <FormField
-                control={rateCardForm.control}
-                name="bankName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bank Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="BE" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={rateCardForm.control}
+                  name="bankName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bank Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="BE" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="bankRcNo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bank RC No *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="RC001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="flex justify-end space-x-2">
                 <Button
