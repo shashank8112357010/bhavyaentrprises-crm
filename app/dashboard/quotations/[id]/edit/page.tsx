@@ -34,6 +34,7 @@ import { z } from "zod";
 
 // Service imports
 import {
+  getQuotationById,
   updateQuotation,
   UpdateQuotationParams,
 } from "@/lib/services/quotations";
@@ -627,7 +628,7 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
           });
           setError(null);
         })
-        .catch((err) => {
+        .catch((err:any) => {
           setError(err.message || "Failed to fetch quotation data.");
           toast({
             title: "Error",
@@ -660,8 +661,8 @@ const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
           (rc.description &&
             rc.description.toLowerCase().includes(searchLower)) ||
           (rc.productDescription &&
-            rc.productDescription.toLowerCase().includes(searchLower)) ||
-          (rc.bankRcNo && rc.bankRcNo.toLowerCase().includes(searchLower)),
+            rc.productDescription.toLowerCase().includes(searchLower))
+      
       );
       setRateCardSearchResults(results);
       setIsSearchingRateCards(false);

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
           OR: [
             { description: { contains: search, mode: "insensitive" } },
             { bankName: { contains: search, mode: "insensitive" } },
-            { bankRcNo: { contains: search, mode: "insensitive" } },
+          
           ],
         }
       : {};

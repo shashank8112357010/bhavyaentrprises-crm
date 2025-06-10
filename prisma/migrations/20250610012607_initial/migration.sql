@@ -16,9 +16,13 @@ CREATE TYPE "PaymentType" AS ENUM ('VCASH', 'ONLINE', 'REST');
 -- CreateEnum
 CREATE TYPE "TicketStatus" AS ENUM ('new', 'inProgress', 'onHold', 'completed', 'billing_pending', 'billing_completed');
 
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('TICKET_ASSIGNED', 'TICKET_STATUS_CHANGED', 'TICKET_COMMENTED', 'TICKET_DUE_DATE_APPROACHING', 'WORK_STAGE_UPDATED');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
+    "displayId" TEXT,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
@@ -39,6 +43,8 @@ CREATE TABLE "User" (
     "activeTickets" INTEGER NOT NULL DEFAULT 0,
     "rating" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "completedTickets" INTEGER NOT NULL DEFAULT 0,
+    "resetPasswordToken" TEXT,
+    "resetPasswordExpires" TIMESTAMP(3),
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -51,7 +57,6 @@ CREATE TABLE "RateCard" (
     "unit" TEXT NOT NULL,
     "rate" DOUBLE PRECISION NOT NULL,
     "bankName" TEXT NOT NULL,
-    "bankRcNo" TEXT NOT NULL,
     "uploadedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "RateCard_pkey" PRIMARY KEY ("id")
@@ -60,8 +65,10 @@ CREATE TABLE "RateCard" (
 -- CreateTable
 CREATE TABLE "Quotation" (
     "id" TEXT NOT NULL,
+    "displayId" TEXT,
+    "quoteNo" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "pdfUrl" TEXT NOT NULL,
+    "pdfUrl" TEXT,
     "clientId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "rateCardDetails" JSONB,
@@ -69,6 +76,9 @@ CREATE TABLE "Quotation" (
     "subtotal" DOUBLE PRECISION NOT NULL,
     "gst" DOUBLE PRECISION NOT NULL,
     "grandTotal" DOUBLE PRECISION NOT NULL,
+    "salesType" TEXT NOT NULL,
+    "validUntil" TIMESTAMP(3),
+    "expectedExpense" DOUBLE PRECISION DEFAULT 0,
 
     CONSTRAINT "Quotation_pkey" PRIMARY KEY ("id")
 );
@@ -76,6 +86,7 @@ CREATE TABLE "Quotation" (
 -- CreateTable
 CREATE TABLE "Client" (
     "id" TEXT NOT NULL,
+    "displayId" TEXT,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "totalBranches" INTEGER NOT NULL,
@@ -94,6 +105,7 @@ CREATE TABLE "Client" (
 -- CreateTable
 CREATE TABLE "Expense" (
     "id" TEXT NOT NULL,
+    "displayId" TEXT,
     "customId" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "description" TEXT NOT NULL,
@@ -104,6 +116,8 @@ CREATE TABLE "Expense" (
     "ticketId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "pdfUrl" TEXT,
+    "screenshotUrl" TEXT,
+    "approvalName" TEXT,
 
     CONSTRAINT "Expense_pkey" PRIMARY KEY ("id")
 );
@@ -111,7 +125,7 @@ CREATE TABLE "Expense" (
 -- CreateTable
 CREATE TABLE "Ticket" (
     "id" TEXT NOT NULL,
-    "ticketId" TEXT,
+    "ticketId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "branch" TEXT NOT NULL,
     "priority" TEXT NOT NULL,
@@ -120,7 +134,6 @@ CREATE TABLE "Ticket" (
     "completedDate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "description" TEXT NOT NULL,
-    "comments" INTEGER,
     "holdReason" TEXT,
     "due" INTEGER,
     "paid" BOOLEAN DEFAULT false,
@@ -130,6 +143,32 @@ CREATE TABLE "Ticket" (
     "clientId" TEXT NOT NULL,
 
     CONSTRAINT "Ticket_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Comment" (
+    "id" TEXT NOT NULL,
+    "text" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ticketId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "Comment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" "NotificationType" NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "ticketId" TEXT,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "actionUrl" TEXT,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -150,15 +189,35 @@ CREATE TABLE "WorkStage" (
     "jcrStatus" BOOLEAN NOT NULL DEFAULT false,
     "agentName" TEXT NOT NULL,
     "ticketId" TEXT,
+    "jcrFilePath" TEXT,
+    "poFilePath" TEXT,
 
     CONSTRAINT "WorkStage_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_displayId_key" ON "User"("displayId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_mobile_key" ON "User"("mobile");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_resetPasswordToken_key" ON "User"("resetPasswordToken");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Quotation_displayId_key" ON "Quotation"("displayId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Quotation_quoteNo_key" ON "Quotation"("quoteNo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Client_displayId_key" ON "Client"("displayId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Expense_displayId_key" ON "Expense"("displayId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Expense_customId_key" ON "Expense"("customId");
@@ -168,6 +227,21 @@ CREATE UNIQUE INDEX "Ticket_ticketId_key" ON "Ticket"("ticketId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Ticket_workStageId_key" ON "Ticket"("workStageId");
+
+-- CreateIndex
+CREATE INDEX "Comment_ticketId_idx" ON "Comment"("ticketId");
+
+-- CreateIndex
+CREATE INDEX "Comment_userId_idx" ON "Comment"("userId");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
+
+-- CreateIndex
+CREATE INDEX "Notification_isRead_idx" ON "Notification"("isRead");
+
+-- CreateIndex
+CREATE INDEX "Notification_createdAt_idx" ON "Notification"("createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WorkStage_ticketId_key" ON "WorkStage"("ticketId");
@@ -192,3 +266,15 @@ ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_workStageId_fkey" FOREIGN KEY ("work
 
 -- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Comment" ADD CONSTRAINT "Comment_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Comment" ADD CONSTRAINT "Comment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE CASCADE ON UPDATE CASCADE;
