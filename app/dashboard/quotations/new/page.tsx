@@ -519,6 +519,7 @@ export default function NewQuotationPage() {
         unit: "",
         rate: 0,
         bankName: "BE",
+        bankRcNo: "",
       });
 
       // Automatically add the new rate card to the quotation
