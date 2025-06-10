@@ -187,6 +187,8 @@ export async function generateQuotationPdf(
     return Buffer.from(pdfUint8Array);
   } catch (error) {
     console.error("Error in PDF generation:", error);
-    throw new Error(`PDF generation failed: ${error.message}`);
+    throw new Error(
+      `PDF generation failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
