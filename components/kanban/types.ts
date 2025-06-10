@@ -88,6 +88,7 @@ export interface Ticket {
   holdReason?: string;
   status: TicketStatus;
   quotations?: Quotation[];
+  Quotation: Quotation[]; // Required property for compatibility with ticket service
 }
 
 export interface TicketsState {
