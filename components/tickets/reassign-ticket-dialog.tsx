@@ -123,7 +123,7 @@ export default function ReassignTicketDialog({
       await updateTicket({
         id: ticketId,
         assigneeId: selectedAssigneeId,
-      });
+      } as any);
 
       toast({
         title: "Success",
