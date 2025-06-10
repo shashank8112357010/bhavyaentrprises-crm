@@ -223,44 +223,86 @@ export const useTicketStore = create<TicketState>((set, get) => ({
   },
 
   updateTicketStatus: async (id: string, status: Status) => {
-    set({ loading: true, error: null });
     try {
-      await updateTicketStatus(id, status);
-
+      // First update the local state immediately for better UX
       set((state) => {
-        const { tickets } = state;
-        const ticketIndex = Object.values(tickets)
-          .flat()
-          .findIndex((ticket) => ticket.id === id);
+        const { tickets, all_tickets } = state;
 
-        if (ticketIndex === -1) {
-          return state;
+        // Find the ticket in the current state
+        let foundTicket: Ticket | null = null;
+        let currentStatus: Status | null = null;
+
+        // Look through all status arrays to find the ticket
+        for (const statusKey of Object.keys(tickets) as Status[]) {
+          const ticket = tickets[statusKey].find((t) => t.id === id);
+          if (ticket) {
+            foundTicket = ticket;
+            currentStatus = statusKey;
+            break;
+          }
         }
 
-        const ticket = Object.values(tickets).flat()[ticketIndex];
-        const updatedTicket = { ...ticket, status };
+        if (!foundTicket || !currentStatus) {
+          // If not found in status arrays, try to find in all_tickets
+          const ticketFromAll = all_tickets.find((t) => t.id === id);
+          if (ticketFromAll) {
+            foundTicket = ticketFromAll;
+            currentStatus = ticketFromAll.status as Status;
+          } else {
+            return state; // Ticket not found anywhere
+          }
+        }
 
-        // Remove the ticket from its current status array
-        const currentStatus = ticket.status;
-        const currentStatusTickets = tickets[currentStatus].filter(
-          (t) => t.id !== id,
+        const updatedTicket = { ...foundTicket, status };
+
+        // Update all_tickets array
+        const updatedAllTickets = all_tickets.map((t) =>
+          t.id === id ? updatedTicket : t,
         );
 
-        // Add the ticket to the new status array
-        const newStatusTickets = [...tickets[status], updatedTicket];
+        if (currentStatus === status) {
+          // Same status, just update the ticket in place
+          const updatedStatusTickets = tickets[status].map((t) =>
+            t.id === id ? updatedTicket : t,
+          );
 
-        return {
-          ...state,
-          tickets: {
-            ...tickets,
-            [currentStatus]: currentStatusTickets,
-            [status]: newStatusTickets,
-          },
-          loading: false,
-        };
+          return {
+            ...state,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [status]: updatedStatusTickets,
+            },
+          };
+        } else {
+          // Different status, move the ticket
+          const currentStatusTickets = tickets[currentStatus].filter(
+            (t) => t.id !== id,
+          );
+
+          // Check if ticket already exists in new status (prevent duplicates)
+          const existsInNewStatus = tickets[status].some((t) => t.id === id);
+          const newStatusTickets = existsInNewStatus
+            ? tickets[status].map((t) => (t.id === id ? updatedTicket : t))
+            : [...tickets[status], updatedTicket];
+
+          return {
+            ...state,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [currentStatus]: currentStatusTickets,
+              [status]: newStatusTickets,
+            },
+          };
+        }
       });
+
+      // Then make the API call
+      await updateTicketStatus(id, status);
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.message });
+      throw error; // Re-throw to allow calling code to handle the error
     }
   },
   createTicket: async (ticketData: CreateTicketInput) => {
