@@ -5,6 +5,10 @@ const nextConfig = {
   },
   images: { unoptimized: true },
   reactStrictMode: true,
+  output: "standalone",
+  experimental: {
+    appDir: true,
+  },
 
   async headers() {
     return [
