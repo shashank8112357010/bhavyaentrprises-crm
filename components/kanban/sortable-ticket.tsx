@@ -63,7 +63,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       };
     }
     return undefined;
-  }, [ticket.assignee?.id, ticket.assignee?.name]);
+  }, [ticket.assignee]);
 
   const {
     attributes,
