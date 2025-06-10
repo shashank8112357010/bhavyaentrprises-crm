@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "build:prod": "npm run type-check && npm run lint && npm run build",
     "clean": "rm -rf package-lock.json .next node_modules prisma/migrations/*",
     "prisma:format": "prisma format",
     "prisma:reset": "prisma migrate reset",
