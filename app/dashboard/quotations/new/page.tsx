@@ -65,7 +65,7 @@ import { quotationFormSchema } from "@/lib/validations/quotationSchema";
 import { inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema";
 
 // Services
-import {  createClient } from "@/lib/services/client";
+import { createClient } from "@/lib/services/client";
 import { getAllRateCards } from "@/lib/services/rate-card";
 import { createQuotation } from "@/lib/services/quotations";
 import {
@@ -87,7 +87,6 @@ interface Client {
   contactEmail?: string;
   totalBranches: number;
   gstn?: string;
-
 }
 
 interface RateCard {
@@ -736,20 +735,6 @@ export default function NewQuotationPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="ticketSelect">Ticket</Label>
-                  {process.env.NODE_ENV === "development" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={fetchTicketsForSelection}
-                      disabled={isLoadingTickets}
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 mr-1 ${isLoadingTickets ? "animate-spin" : ""}`}
-                      />
-                      {isLoadingTickets ? "Loading..." : "Refresh"}
-                    </Button>
-                  )}
                 </div>
                 <Select
                   value={selectedTicketId}
