@@ -84,6 +84,23 @@ export default function AgentsPage() {
   const [isDeletingAgent, setIsDeletingAgent] = useState<boolean>(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Only fetch agents if user has permission
+    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+      fetchAgents({}, user.role);
+    }
+  }, [fetchAgents, user?.role]);
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
   // Role-based access control - after all hooks are called
   if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS") {
     return (
@@ -101,13 +118,6 @@ export default function AgentsPage() {
       </div>
     );
   }
-
-  useEffect(() => {
-    // Only fetch agents if user has permission
-    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
-      fetchAgents({}, user.role);
-    }
-  }, [fetchAgents, user?.role]);
 
   const handleViewDetails = (agent: Agent) => {
     setSelectedAgentForDetails(agent);
