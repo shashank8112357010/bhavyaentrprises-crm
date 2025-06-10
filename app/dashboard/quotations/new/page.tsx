@@ -126,26 +126,6 @@ export default function NewQuotationPage() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
 
-  // Form for Quotation Details - MUST be called before any conditional returns
-  const quotationForm = useForm<z.infer<typeof quotationFormSchema>>({
-    resolver: zodResolver(quotationFormSchema),
-    defaultValues: {
-      serialNumber: "",
-      date: new Date().toISOString().split("T")[0],
-      salesType: "Interstate",
-      quotationNumber: `Q-${Date.now()}`,
-      validUntil: (() => {
-        const oneWeekLater = new Date();
-        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
-        return oneWeekLater.toISOString().split("T")[0];
-      })(),
-      admin: "",
-      quoteBy: "",
-      discount: "0",
-      expectedExpense: "0",
-    },
-  });
-
   // State for rate cards
   const [rateCards, setRateCards] = useState<RateCard[]>([]);
   const [rateCardSearch, setRateCardSearch] = useState("");
@@ -180,6 +160,26 @@ export default function NewQuotationPage() {
   const [isSavingQuotation, setIsSavingQuotation] = useState<boolean>(false);
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
 
+  // Form for Quotation Details - ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL LOGIC
+  const quotationForm = useForm<z.infer<typeof quotationFormSchema>>({
+    resolver: zodResolver(quotationFormSchema),
+    defaultValues: {
+      serialNumber: "",
+      date: new Date().toISOString().split("T")[0],
+      salesType: "Interstate",
+      quotationNumber: `Q-${Date.now()}`,
+      validUntil: (() => {
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+        return oneWeekLater.toISOString().split("T")[0];
+      })(),
+      admin: "",
+      quoteBy: "",
+      discount: "0",
+      expectedExpense: "0",
+    },
+  });
+
   // Client form for creating new clients
   const clientForm = useForm<CreateClientFormData>({
     resolver: zodResolver(createClientSchema),
@@ -211,24 +211,6 @@ export default function NewQuotationPage() {
     },
   });
 
-  // Role-based access control - only ADMIN users can create quotations
-  if (user?.role !== "ADMIN") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              Only administrators can create quotations.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Fetch tickets for selection
   const fetchTicketsForSelection = useCallback(async () => {
     setIsLoadingTickets(true);
@@ -241,6 +223,11 @@ export default function NewQuotationPage() {
           Expires: "0",
         },
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch tickets");
+      }
+
       const data = await response.json();
       setTicketsForSelection(data.tickets || []);
     } catch (error) {
@@ -313,21 +300,26 @@ export default function NewQuotationPage() {
 
   // Initial data fetch
   useEffect(() => {
-    fetchTicketsForSelection();
-  }, [fetchTicketsForSelection]);
+    // Only fetch data if user is authorized
+    if (user?.role === "ADMIN") {
+      fetchTicketsForSelection();
+    }
+  }, [fetchTicketsForSelection, user?.role]);
 
   // Auto-select ticket from URL params
   useEffect(() => {
     const ticketId = searchParams.get("ticketId");
-    if (ticketId) {
+    if (ticketId && user?.role === "ADMIN") {
       handleTicketSelect(ticketId);
     }
-  }, [searchParams, handleTicketSelect]);
+  }, [searchParams, handleTicketSelect, user?.role]);
 
   // Debounced rate card search
   useEffect(() => {
-    searchRateCards(debouncedRateCardSearch);
-  }, [debouncedRateCardSearch, searchRateCards]);
+    if (user?.role === "ADMIN") {
+      searchRateCards(debouncedRateCardSearch);
+    }
+  }, [debouncedRateCardSearch, searchRateCards, user?.role]);
 
   // Handle rate card selection
   const handleRateCardSelect = (rateCard: RateCard) => {
@@ -462,6 +454,11 @@ export default function NewQuotationPage() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+
+        toast({
+          title: "Success",
+          description: "PDF downloaded successfully!",
+        });
       } else {
         throw new Error("Failed to generate PDF");
       }
@@ -478,6 +475,8 @@ export default function NewQuotationPage() {
 
   // Handle quantity change
   const handleQuantityChange = (index: number, newQuantity: number) => {
+    if (newQuantity < 0) return;
+
     const updatedItems = [...quotationItems];
     updatedItems[index] = {
       ...updatedItems[index],
@@ -489,6 +488,8 @@ export default function NewQuotationPage() {
 
   // Handle GST change
   const handleGstChange = (index: number, newGst: number) => {
+    if (newGst < 0 || newGst > 100) return;
+
     const updatedItems = [...quotationItems];
     updatedItems[index] = {
       ...updatedItems[index],
@@ -538,6 +539,38 @@ export default function NewQuotationPage() {
       setIsCreatingRateCard(false);
     }
   };
+
+  // Calculate totals
+  const subtotal = quotationItems.reduce(
+    (sum, item) => sum + item.totalValue,
+    0,
+  );
+  const discount = parseFloat(quotationForm.watch("discount") || "0");
+  const discountAmount = (subtotal * discount) / 100;
+  const afterDiscount = subtotal - discountAmount;
+  const gstAmount = quotationItems.reduce((sum, item) => {
+    const itemTotal = item.totalValue;
+    return sum + (itemTotal * item.gstPercentage) / 100;
+  }, 0);
+  const grandTotal = afterDiscount + gstAmount;
+
+  // Role-based access control - AFTER ALL HOOKS ARE CALLED
+  if (user?.role !== "ADMIN") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground">
+              Only administrators can create quotations.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -607,11 +640,22 @@ export default function NewQuotationPage() {
                     <SelectValue placeholder="Select a ticket" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ticketsForSelection.map((ticket) => (
-                      <SelectItem key={ticket.id} value={ticket.id}>
-                        {ticket.ticketId} - {ticket.title}
+                    {isLoadingTickets ? (
+                      <SelectItem value="loading" disabled>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading tickets...
                       </SelectItem>
-                    ))}
+                    ) : ticketsForSelection.length > 0 ? (
+                      ticketsForSelection.map((ticket) => (
+                        <SelectItem key={ticket.id} value={ticket.id}>
+                          {ticket.ticketId} - {ticket.title}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-tickets" disabled>
+                        No tickets available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
 
@@ -641,20 +685,25 @@ export default function NewQuotationPage() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="rateCardSearch">Search Rate Cards</Label>
-                  <Input
-                    id="rateCardSearch"
-                    placeholder="Search rate cards..."
-                    type="text"
-                    value={rateCardSearch}
-                    onChange={(e) => setRateCardSearch(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="rateCardSearch"
+                      placeholder="Search rate cards..."
+                      type="text"
+                      value={rateCardSearch}
+                      onChange={(e) => setRateCardSearch(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
 
                 {/* Rate Cards List */}
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {loadingRateCards ? (
                     <div className="flex items-center justify-center p-4">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Loading rate cards...
                     </div>
                   ) : rateCards.length > 0 ? (
                     <div className="space-y-2">
@@ -674,7 +723,7 @@ export default function NewQuotationPage() {
                                 {rateCard.description}
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {rateCard.unit} • ₹
+                                {rateCard.unit} • ���
                                 {rateCard.rate.toLocaleString()}
                               </div>
                             </div>
@@ -709,7 +758,9 @@ export default function NewQuotationPage() {
                   <div className="border-t pt-4 space-y-4">
                     <div>
                       <h4 className="font-medium">Selected Rate Card</h4>
-                      <p className="text-sm">{selectedRateCard.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedRateCard.description}
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor="quantity">Quantity</Label>
@@ -761,7 +812,7 @@ export default function NewQuotationPage() {
                         <TableHead>Description</TableHead>
                         <TableHead>Unit</TableHead>
                         <TableHead>Rate</TableHead>
-                        <TableHead>Quantity</TableHead>
+                        <TableHead>Qty</TableHead>
                         <TableHead>GST%</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead></TableHead>
@@ -769,8 +820,10 @@ export default function NewQuotationPage() {
                     </TableHeader>
                     <TableBody>
                       {quotationItems.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.rateCard.description}</TableCell>
+                        <TableRow key={`${item.id}-${index}`}>
+                          <TableCell className="font-medium">
+                            {item.rateCard.description}
+                          </TableCell>
                           <TableCell>{item.rateCard.unit}</TableCell>
                           <TableCell>
                             ₹{item.rateCard.rate.toFixed(2)}
@@ -785,7 +838,7 @@ export default function NewQuotationPage() {
                                   parseFloat(e.target.value) || 0,
                                 )
                               }
-                              className="w-full"
+                              className="w-20"
                               min="0"
                             />
                           </TableCell>
@@ -799,7 +852,7 @@ export default function NewQuotationPage() {
                                   parseFloat(e.target.value) || 0,
                                 )
                               }
-                              className="w-full"
+                              className="w-20"
                               min="0"
                               max="100"
                             />
@@ -947,6 +1000,7 @@ export default function NewQuotationPage() {
                             type="number"
                             min="0"
                             max="100"
+                            step="0.01"
                             placeholder="Enter discount percentage"
                             {...field}
                           />
@@ -966,6 +1020,7 @@ export default function NewQuotationPage() {
                           <Input
                             type="number"
                             min="0"
+                            step="0.01"
                             placeholder="Enter expected expense"
                             {...field}
                           />
@@ -985,28 +1040,36 @@ export default function NewQuotationPage() {
               <CardTitle>Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between">
                   <span>Items:</span>
                   <span>{quotationItems.length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>
-                    ₹
-                    {quotationItems
-                      .reduce((sum, item) => sum + item.totalValue, 0)
-                      .toFixed(2)}
-                  </span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between font-medium">
-                  <span>Total:</span>
-                  <span>
-                    ₹
-                    {quotationItems
-                      .reduce((sum, item) => sum + item.totalValue, 0)
-                      .toFixed(2)}
-                  </span>
+                {discount > 0 && (
+                  <>
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({discount}%):</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>After Discount:</span>
+                      <span>₹{afterDiscount.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between">
+                  <span>GST:</span>
+                  <span>₹{gstAmount.toFixed(2)}</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Grand Total:</span>
+                    <span>₹{grandTotal.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -1056,7 +1119,7 @@ export default function NewQuotationPage() {
                     <FormItem>
                       <FormLabel>Unit *</FormLabel>
                       <FormControl>
-                        <Input placeholder="gm" {...field} />
+                        <Input placeholder="e.g., pcs, kg, m" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1074,6 +1137,7 @@ export default function NewQuotationPage() {
                           type="number"
                           min="0"
                           step="0.01"
+                          placeholder="0.00"
                           {...field}
                           onChange={(e) =>
                             field.onChange(parseFloat(e.target.value) || 0)
@@ -1105,6 +1169,7 @@ export default function NewQuotationPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsCreateRateCardDialogOpen(false)}
+                  disabled={isCreatingRateCard}
                 >
                   Cancel
                 </Button>
