@@ -130,26 +130,6 @@ export default function LoginPage() {
                   "Sign in"
                 )}
               </Button>
-              {isMounted && process.env.NODE_ENV === "development" && (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full mt-2"
-                    onClick={testAPI}
-                  >
-                    Test API Connection
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full mt-1"
-                    onClick={testLoginAPI}
-                  >
-                    Test Login API
-                  </Button>
-                </>
-              )}
             </form>
           </CardContent>
         </Card>
