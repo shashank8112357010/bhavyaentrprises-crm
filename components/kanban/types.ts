@@ -76,7 +76,7 @@ export interface Ticket {
   branch: string;
   priority: string;
   assignee: Assignee;
-  workStage?: WorkStage;
+  workStage?: WorkStage | null;
   due?: number;
   paid?: boolean;
   client: Client;
