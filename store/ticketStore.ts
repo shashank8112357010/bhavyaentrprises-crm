@@ -18,9 +18,11 @@ export type Status =
 
 export interface Assignee {
   id: string;
-  name: string;
-  avatar: string;
-  initials: string;
+  name: string | null;
+  email: string | null;
+  avatar: string | null;
+  initials: string | null;
+  role?: string;
 }
 
 export interface WorkStage {
