@@ -122,5 +122,5 @@ export interface SortableTicketProps {
   index: number;
 }
 
-// Export types from ticket store for compatibility
-export type { TicketStatus as Status } from "./types";
+// Export alias for compatibility
+export type Status = TicketStatus;
