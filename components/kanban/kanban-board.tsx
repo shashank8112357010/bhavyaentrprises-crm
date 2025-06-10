@@ -54,9 +54,8 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
-
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -141,14 +140,14 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     } else {
       return allColumns.filter(
         (column) =>
-          column !== "billing_pending" && column !== "billing_completed"
+          column !== "billing_pending" && column !== "billing_completed",
       );
     }
   };
 
   useEffect(() => {
     getVisibleColumns();
-  }, [user?.role]);
+  }, [user?.role, getVisibleColumns]);
 
   return (
     <div className="w-[calc(100vw-15rem)]">
