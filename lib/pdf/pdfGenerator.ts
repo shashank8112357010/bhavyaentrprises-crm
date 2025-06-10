@@ -1,10 +1,10 @@
 // lib/pdfGenerator.ts
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from "pdf-lib";
 
 interface RateCardDetail {
   rateCardId: string;
   quantity: number;
-  gstType: number;
+  gstPercentage: number; // Changed from gstType to gstPercentage
 }
 
 interface QuotationData {
