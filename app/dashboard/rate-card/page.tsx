@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ReactPaginate from "react-paginate";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,13 +25,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Added Select imports
+} from "@/components/ui/select";
 import { useDebounce } from "@/hooks/useDebounce";
-
-import { Search, Download, Trash2 } from "lucide-react"; // Removed Filter as it's commented out
+import { Search, Download, Trash2 } from "lucide-react";
 import { UploadRateCardDialog } from "@/components/rate-card/UploadRateCardDialog";
 import { getAllRateCards, deleteRateCard } from "@/lib/services/rate-card";
-import { Spinner } from "@/components/ui/spinner"; // Added Spinner for loading state
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/hooks/use-toast";
 
 interface RateCard {
   srNo: number;
@@ -50,76 +49,116 @@ interface PaginatedResponse {
   limit: number;
 }
 
+interface GetRateCardsParams {
+  page: number;
+  limit: number;
+  searchQuery: string;
+}
+
 export default function RateCardPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [rateCards, setRateCards] = useState<RateCard[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const { toast } = useToast();
 
-  const [page, setPage] = useState(0); // zero-based for ReactPaginate
-  const [itemsPerPage, setItemsPerPage] = useState(5); // Replaced const limit
-  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState<number>(0); // zero-based for ReactPaginate
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
   // Function to fetch rate cards, can be called by useEffect or after delete
-  async function fetchRateCards() {
+  const fetchRateCards = useCallback(async (): Promise<void> => {
     setLoading(true);
-    try {
-      const response: PaginatedResponse = await getAllRateCards({
-        page: page + 1, // API is 1-based
-        limit: itemsPerPage, // Use state variable
-        searchQuery: debouncedSearchQuery,
-      });
+    setError(null);
 
-      setRateCards(response.data);
-      setTotalCount(response.total);
-      setError(null);
+    try {
+      const params: GetRateCardsParams = {
+        page: page + 1, // API is 1-based
+        limit: itemsPerPage,
+        searchQuery: debouncedSearchQuery,
+      };
+
+      const response: PaginatedResponse = await getAllRateCards(params);
+
+      setRateCards(response.data || []);
+      setTotalCount(response.total || 0);
     } catch (err: any) {
-      setError(err.message || "Failed to load rate cards");
+      const errorMessage = err.message || "Failed to load rate cards";
+      setError(errorMessage);
+      console.error("Error fetching rate cards:", err);
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, debouncedSearchQuery, itemsPerPage]);
 
   useEffect(() => {
     fetchRateCards();
-  }, [page, debouncedSearchQuery, itemsPerPage]); // Added itemsPerPage to dependency array
+  }, [fetchRateCards]);
 
-  const handlePageChange = (selectedItem: { selected: number }) => {
+  const handlePageChange = (selectedItem: { selected: number }): void => {
     setPage(selectedItem.selected);
   };
 
-  const handleDelete = async (rateCardId: string) => {
-    if (window.confirm("Are you sure you want to delete this rate card?")) {
-      try {
-        await deleteRateCard(rateCardId);
-        // alert("Rate card deleted successfully!"); // Replace with toast in real app
-        // Refresh the list
-        fetchRateCards();
-        // If the current page becomes empty after deletion, go to the previous page
-        if (rateCards.length === 1 && page > 0) {
-          setPage(page - 1);
-        }
-      } catch (error: any) {
-        console.error("Failed to delete rate card:", error);
-        alert(`Error: ${error.message || "Failed to delete rate card."}`); // Replace with toast
+  const handleDelete = async (rateCardId: string): Promise<void> => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this rate card?",
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteRateCard(rateCardId);
+
+      toast({
+        title: "Success",
+        description: "Rate card deleted successfully!",
+      });
+
+      // Refresh the list
+      await fetchRateCards();
+
+      // If the current page becomes empty after deletion, go to the previous page
+      if (rateCards.length === 1 && page > 0) {
+        setPage(page - 1);
       }
+    } catch (error: any) {
+      const errorMessage = error.message || "Failed to delete rate card.";
+      console.error("Failed to delete rate card:", error);
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
+  const handleUploadSuccess = async (): Promise<void> => {
+    setPage(0);
+    await fetchRateCards(); // Immediately refresh the data
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    setSearchQuery(e.target.value);
+    setPage(0); // Reset to first page when searching
+  };
+
+  const handleItemsPerPageChange = (value: string): void => {
+    setItemsPerPage(Number(value));
+    setPage(0); // Reset to first page when changing items per page
+  };
+
   const pageCount = itemsPerPage > 0 ? Math.ceil(totalCount / itemsPerPage) : 0;
+  const currentPageStart = totalCount > 0 ? page * itemsPerPage + 1 : 0;
+  const currentPageEnd = Math.min((page + 1) * itemsPerPage, totalCount);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Rate Cards</h1>
         <div className="flex items-center gap-2">
-          <UploadRateCardDialog
-            onUploadSuccess={async () => {
-              setPage(0);
-              await fetchRateCards(); // Immediately refresh the data
-            }}
-          />
+          <UploadRateCardDialog onUploadSuccess={handleUploadSuccess} />
           <a href="/sample_rate_card.csv" download>
             <Button variant="outline">
               <Download className="mr-2 h-4 w-4" />
@@ -142,10 +181,7 @@ export default function RateCardPage() {
             placeholder="Search by description, bank name..."
             className="w-full md:w-[300px] pl-8"
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setPage(0);
-            }}
+            onChange={handleSearchChange}
             disabled={loading}
           />
         </div>
@@ -162,8 +198,14 @@ export default function RateCardPage() {
               <Spinner size="8" />
             </div>
           )}
+
           {error && (
-            <p className="text-destructive text-center py-10">{error}</p>
+            <div className="text-center py-10">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={fetchRateCards} variant="outline">
+                Try Again
+              </Button>
+            </div>
           )}
 
           {!loading && !error && totalCount === 0 && (
@@ -175,54 +217,51 @@ export default function RateCardPage() {
           )}
 
           {!loading && !error && totalCount > 0 && (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sr No.</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>Bank Name</TableHead>
-                    <TableHead>Actions</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sr No.</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Bank Name</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rateCards.map((rc) => (
+                  <TableRow key={rc.id}>
+                    <TableCell>{rc.srNo}</TableCell>
+                    <TableCell>{rc.description}</TableCell>
+                    <TableCell>{rc.unit}</TableCell>
+                    <TableCell>₹{rc.rate.toLocaleString()}</TableCell>
+                    <TableCell>{rc.bankName}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(rc.id)}
+                        aria-label={`Delete rate card ${rc.description}`}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rateCards.map((rc) => (
-                    <TableRow key={rc.id}>
-                      <TableCell>{rc.srNo}</TableCell>
-                      <TableCell>{rc.description}</TableCell>
-                      <TableCell>{rc.unit}</TableCell>
-                      <TableCell>₹{rc.rate.toLocaleString()}</TableCell>
-                      <TableCell>{rc.bankName}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(rc.id)}
-                          aria-label="Delete rate card"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Standardized Pagination Controls Area */}
+      {/* Pagination Controls */}
       {!loading && !error && totalCount > 0 && (
         <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
           <div className="text-sm text-muted-foreground mb-2 md:mb-0">
             {totalCount > 0
-              ? `Showing ${page * itemsPerPage + 1} - ${Math.min((page + 1) * itemsPerPage, totalCount)} of ${totalCount} rate cards`
-              : // This part might be redundant if the table itself shows "No rate cards found"
-                // For consistency:
-                searchQuery
+              ? `Showing ${currentPageStart} - ${currentPageEnd} of ${totalCount} rate cards`
+              : searchQuery
                 ? "No rate cards found matching your search."
                 : "No rate cards found."}
           </div>
@@ -232,10 +271,7 @@ export default function RateCardPage() {
               <span className="text-sm text-muted-foreground">Rows:</span>
               <Select
                 value={String(itemsPerPage)}
-                onValueChange={(value) => {
-                  setItemsPerPage(Number(value));
-                  setPage(0);
-                }}
+                onValueChange={handleItemsPerPageChange}
               >
                 <SelectTrigger className="w-[75px] h-9">
                   <SelectValue placeholder={String(itemsPerPage)} />
@@ -259,16 +295,16 @@ export default function RateCardPage() {
                   "flex items-center space-x-1 text-sm select-none"
                 }
                 pageLinkClassName={
-                  "px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  "px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
                 }
                 activeLinkClassName={
                   "bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
                 }
                 previousLinkClassName={
-                  "px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  "px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
                 }
                 nextLinkClassName={
-                  "px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  "px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
                 }
                 disabledLinkClassName={"opacity-50 cursor-not-allowed"}
                 forcePage={page}
