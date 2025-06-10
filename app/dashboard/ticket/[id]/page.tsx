@@ -198,7 +198,7 @@ export default function TicketDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [ticketId]);
 
   // State for new comment
   const [newCommentText, setNewCommentText] = useState("");
@@ -577,14 +577,16 @@ export default function TicketDetailsPage() {
               <NewExpenseDialog
                 onSuccess={loadTicketData}
                 ticketId={ticket.id}
-                ticketQuotations={ticket.Quotation?.map((q:any) => ({
-                  id: q.id,
-                  name: q.name,
-                  client: {
-                    name : q?.client?.name || "N/A",
-                    id: q?.client?.id || "",
-                  } // Ensure that `client` is included in the mapping
-                })) || []}
+                ticketQuotations={
+                  ticket.Quotation?.map((q: any) => ({
+                    id: q.id,
+                    name: q.name,
+                    client: {
+                      name: q?.client?.name || "N/A",
+                      id: q?.client?.id || "",
+                    }, // Ensure that `client` is included in the mapping
+                  })) || []
+                }
               />
             </div>
           )}
