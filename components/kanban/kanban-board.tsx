@@ -132,7 +132,7 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     return titles[status] ?? status;
   };
 
-  const getVisibleColumns = () => {
+  const getVisibleColumns = useCallback(() => {
     const allColumns = Object.keys(tickets) as Array<keyof TicketsState>;
 
     if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
@@ -143,7 +143,7 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
           column !== "billing_pending" && column !== "billing_completed",
       );
     }
-  };
+  }, [tickets, user?.role]);
 
   useEffect(() => {
     getVisibleColumns();
