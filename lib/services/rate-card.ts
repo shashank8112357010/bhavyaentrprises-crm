@@ -87,7 +87,6 @@ export async function createSingleRateCard(rateCardData: CreateRateCardData) {
     });
     return response.data; // Assuming the API returns the created RateCard
   } catch (error: any) {
-    console.error("Error creating single rate card:", error);
     const message =
       error.response?.data?.error ||
       error.response?.data?.details ||
