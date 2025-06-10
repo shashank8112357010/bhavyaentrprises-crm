@@ -90,10 +90,12 @@ export default function Home() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Ticket
-          </Button> */}
+          {isAdminOrAccounts && (
+            <Button variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              New Ticket
+            </Button>
+          )}
         </div>
       </div>
 
