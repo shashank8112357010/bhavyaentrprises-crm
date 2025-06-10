@@ -59,7 +59,7 @@ export function NotificationSettings() {
     loadNotifications();
   }, [currentPage, filter, notificationsPerPage, loadNotifications]);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       const offset = (currentPage - 1) * notificationsPerPage;
       const filters: any = {
@@ -76,7 +76,6 @@ export function NotificationSettings() {
       await fetchNotifications(filters);
       setIsSystemAvailable(true);
     } catch (error: any) {
-      console.error("Failed to load notifications:", error);
       if (
         error.message.includes("doesn't exist") ||
         error.message.includes("relation") ||
