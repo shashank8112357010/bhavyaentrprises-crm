@@ -29,7 +29,7 @@ interface NotificationState {
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
-  addNotification: (data: CreateNotificationInput) => Promise<void>;
+  addNotification: (data: CreateNotificationInput) => Promise<Notification>;
 
   // UI State management
   setCurrentPage: (page: number) => void;
