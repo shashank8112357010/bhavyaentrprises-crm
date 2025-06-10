@@ -11,16 +11,20 @@ export async function createRateCard(file: File) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await axios.post("/rate-cards/create-rate-cards", formData, {
-      withCredentials: true,
-      headers: {
-        "Content-Type": "multipart/form-data",
+    const response = await axios.post(
+      "/rate-cards/create-rate-cards",
+      formData,
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       },
-    });
+    );
     return response.data;
   } catch (error: any) {
-    console.log(error);
-    const message = error.response?.data?.message || "Failed to upload rate card CSV.";
+    const message =
+      error.response?.data?.message || "Failed to upload rate card CSV.";
     throw new Error(message);
   }
 }
@@ -36,7 +40,8 @@ export async function deleteRateCard(id: string) {
     return response.data;
   } catch (error: any) {
     console.error("Error deleting rate card:", error);
-    const message = error.response?.data?.error || "Failed to delete rate card.";
+    const message =
+      error.response?.data?.error || "Failed to delete rate card.";
     throw new Error(message);
   }
 }
@@ -62,7 +67,8 @@ export async function getAllRateCards(params: GetAllRateCardsParams = {}) {
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch rate cards.";
+    const message =
+      error.response?.data?.error || "Failed to fetch rate cards.";
     throw new Error(message);
   }
 }
@@ -83,7 +89,11 @@ export async function createSingleRateCard(rateCardData: CreateRateCardData) {
     return response.data; // Assuming the API returns the created RateCard
   } catch (error: any) {
     console.error("Error creating single rate card:", error);
-    const message = error.response?.data?.error || error.response?.data?.details || error.message || "Failed to create rate card.";
+    const message =
+      error.response?.data?.error ||
+      error.response?.data?.details ||
+      error.message ||
+      "Failed to create rate card.";
     throw new Error(message);
   }
 }
