@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
           client: { name: client.name },
         },
       });
-    } catch (pdfError:any) {
+    } catch (pdfError: any) {
       console.error("PDF generation error:", pdfError);
       return NextResponse.json(
         { message: "Failed to generate PDF", error: pdfError.message },
@@ -270,13 +270,11 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error: any) {
-    console.error("Quotation creation error:", error);
     return NextResponse.json(
       {
         message: "Failed to create quotation",
         error: error.message,
         details: error.code || "Unknown error",
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       },
       { status: 500 },
     );
