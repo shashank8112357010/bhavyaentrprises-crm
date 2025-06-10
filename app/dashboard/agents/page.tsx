@@ -164,16 +164,6 @@ export default function AgentsPage() {
   const pageCount =
     itemsPerPage > 0 ? Math.ceil(totalAgents / itemsPerPage) : 0;
 
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error",
-        description: error,
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
-
   return (
     <div className="flex flex-col gap-6">
       <AgentDetailModal
