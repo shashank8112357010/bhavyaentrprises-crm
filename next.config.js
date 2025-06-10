@@ -7,6 +7,9 @@ const nextConfig = {
   reactStrictMode: true,
   trailingSlash: false,
   generateBuildId: () => "build",
+  experimental: {
+    forceSwcTransforms: true,
+  },
 
   async headers() {
     return [
