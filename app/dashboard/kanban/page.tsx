@@ -258,7 +258,10 @@ export default function KanbanPage() {
     if (!ticketToHold) return;
 
     try {
-      // Update the ticket with hold reason and status
+      // First update the ticket status in the store for immediate UI update
+      updateTicketStatus(ticketToHold.id, "onHold");
+
+      // Then update the ticket with hold reason on the backend
       await updateTicket({
         ...ticketToHold,
         holdReason: holdReasonText.trim(),
@@ -275,6 +278,10 @@ export default function KanbanPage() {
       setHoldReasonText("");
     } catch (err: any) {
       setLoadingHold(false);
+      // If there's an error, we should revert the status change
+      const originalStatus = ticketToHold.status;
+      updateTicketStatus(ticketToHold.id, originalStatus);
+
       toast({
         title: "Failed to Update Ticket",
         description: err.message || "Unknown error occurred.",
