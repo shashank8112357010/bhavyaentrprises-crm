@@ -85,7 +85,7 @@ export function NotificationSettings() {
         setIsSystemAvailable(false);
       }
     }
-  };
+  }, [currentPage, notificationsPerPage, filter, fetchNotifications]);
 
   const handleMarkAllAsRead = async () => {
     try {
