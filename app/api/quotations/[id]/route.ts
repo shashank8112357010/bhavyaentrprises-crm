@@ -140,8 +140,10 @@ export async function PUT(
     // Determine if PDF regeneration is needed and set the new pdfUrl
     // PDF is regenerated if rateCardDetails, name, or other financial details affecting PDF are changed.
     // For simplicity, we regenerate it on any meaningful update that might alter PDF content.
-    // The filename will be based on quoteNo.
-    const newPdfFilename = `${existingQuotationForUpdate.quoteNo}.pdf`;
+    // The filename will be based on quoteNo, but we need to sanitize it for file system safety.
+    const sanitizedQuoteNo =
+      existingQuotationForUpdate.quoteNo?.replace(/\//g, "-") || "quotation";
+    const newPdfFilename = `${sanitizedQuoteNo}.pdf`;
     dataToUpdate.pdfUrl = `/quotations/${newPdfFilename}`;
 
     const updatedQuotation = await prisma.quotation.update({
