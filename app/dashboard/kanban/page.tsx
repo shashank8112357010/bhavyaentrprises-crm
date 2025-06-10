@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTicketStore } from "@/store/ticketStore";
+import {
+  useTicketStore,
+  type Ticket,
+  type Status,
+  type Comment,
+} from "@/store/ticketStore";
 import { useAgentStore } from "@/store/agentStore";
 import { useClientStore } from "@/store/clientStore";
 import { Building, Search, User } from "lucide-react";
@@ -27,85 +32,29 @@ import { useToast } from "@/hooks/use-toast";
 import { exportTicketsToExcel } from "@/lib/services/ticket";
 import { Label } from "@radix-ui/react-label";
 import { Textarea } from "@/components/ui/textarea";
-import { Role } from "@/constants/roleAccessConfig";
 import { useAuthStore } from "@/store/authStore";
-type Comment = {
-  text: string;
-  ticketId: string;
-  userId: string; // Assuming GST types are 18 and 28
-};
-// Types
-type Ticket = {
-  id: string;
-  title: string;
-  ticketId: string;
-  branch: string;
-  priority: string;
-  assignee: {
-    id: string; // ADDED
-    name: string;
-    avatar: string;
-    initials: string;
-  };
-  workStage?: {
-    stateName: string;
-    adminName: string;
-    clientName: string;
-    siteName: string;
-    quoteNo: string;
-    dateReceived: string;
-    quoteTaxable: number;
-    quoteAmount: number;
-    workStatus: string;
-    approval: string;
-    poStatus: Boolean;
-    poNumber: string;
-    jcrStatus: Boolean;
-    agentName: string;
-    jcrFilePath: string;
-    poFilePath: string;
-  };
-  expenses: {
-    id: string;
-    amount: string;
-    category: string;
-    createdAt: string;
-    pdfUrl: string;
-  }[];
-  due?: number;
-  paid?: Boolean;
-  client: {
-    id: string;
-    name: string;
-    type: string;
-    contactPerson: string;
-  };
-  dueDate: string | undefined;
-  scheduledDate?: string;
-  completedDate?: string;
-  createdAt: string;
-  description: string;
-  comments: Comment[];
-  holdReason?: string;
-  status: Status;
-};
 
-type TicketsState = {
+// Types for filtered tickets
+interface TicketsState {
   new: Ticket[];
   inProgress: Ticket[];
   onHold: Ticket[];
   completed: Ticket[];
   billing_pending: Ticket[];
   billing_completed: Ticket[];
-};
+}
 
-type Status =
-  | "new"
-  | "inProgress"
-  | "onHold"
-  | "completed"
-  | "billing_pending"
-  | "billing_completed";
+interface DragEndResult {
+  source: string;
+  destination: string;
+  ticketId: string;
+}
+
+interface ExportFilters {
+  status?: Status;
+  startDate: string;
+  endDate: string;
+}
 
 export default function KanbanPage() {
   const {
@@ -119,133 +68,171 @@ export default function KanbanPage() {
   const { clients, fetchClients } = useClientStore();
   const { toast } = useToast();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [clientFilter, setClientFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [clientFilter, setClientFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
 
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
 
   const [startDateTicket, setStartDateTicket] = useState<string>(today);
   const [endDateTicket, setEndDateTicket] = useState<string>(today);
-  const [holdReasonModalOpen, setHoldReasonModalOpen] = useState(false);
-  const [holdReasonText, setHoldReasonText] = useState("");
+  const [holdReasonModalOpen, setHoldReasonModalOpen] =
+    useState<boolean>(false);
+  const [holdReasonText, setHoldReasonText] = useState<string>("");
   const [ticketToHold, setTicketToHold] = useState<Ticket | null>(null);
-  const [isLoadingHold, setLoadingHold] = useState(false);
+  const [isLoadingHold, setLoadingHold] = useState<boolean>(false);
   const { user } = useAuthStore();
 
   useEffect(() => {
-    fetchTickets({ startDate: startDateTicket, endDate: endDateTicket });
+    const loadData = async () => {
+      try {
+        await fetchTickets({
+          startDate: startDateTicket,
+          endDate: endDateTicket,
+        });
 
-    // Only fetch agents and clients if user has permission
-    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
-      fetchAgents({}, user.role);
-      fetchClients();
-    }
+        // Only fetch agents and clients if user has permission
+        if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+          await fetchAgents({}, user.role);
+          await fetchClients();
+        }
+      } catch (error) {
+        console.error("Error loading kanban data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load data. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    loadData();
   }, [
     fetchTickets,
     fetchAgents,
     fetchClients,
     startDateTicket,
-    startDate,
-    endDate,
     endDateTicket,
     user?.role,
+    toast,
   ]);
 
-  const handleDragEnd = async (result: any) => {
+  const handleDragEnd = async (result: DragEndResult) => {
     const { source, destination, ticketId } = result;
 
     if (!source || !destination || source === destination) return;
 
-    const ticket = await fetchTicketById(ticketId);
-    if (!ticket) return;
-
-    const { workStage } = ticket;
-
-    switch (destination) {
-      case "inProgress":
-        if (!workStage || workStage.quoteNo === "N/A") {
-          toast({
-            title: "Missing Quotation",
-            description: "Please attach a quotation before proceeding.",
-            variant: "destructive",
-          });
-          return;
-        }
-        break;
-
-      case "onHold":
-        setTicketToHold(ticket as any);
-        setHoldReasonText(ticket.holdReason || "");
-        setHoldReasonModalOpen(true);
+    try {
+      const ticket = await fetchTicketById(ticketId);
+      if (!ticket) {
+        toast({
+          title: "Error",
+          description: "Ticket not found.",
+          variant: "destructive",
+        });
         return;
+      }
 
-      case "completed":
-        if (!workStage || workStage.quoteNo === "N/A") {
-          toast({
-            title: "Order Violation",
-            description:
-              "Please attach a quotation and move to In Progress first.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (!workStage.poStatus || !workStage.jcrStatus) {
-          toast({
-            title: "Pending Work",
-            description:
-              "PO and JCR must be completed before marking as completed.",
-            variant: "destructive",
-          });
-          return;
-        }
-        break;
+      const { workStage } = ticket;
 
-      case "billing_pending":
-        if (ticket.status !== "completed") {
-          toast({
-            title: "Invalid Stage Transition",
-            description: "You can only bill after completion.",
-            variant: "destructive",
-          });
-          return;
-        }
-        break;
+      switch (destination) {
+        case "inProgress":
+          if (!workStage || workStage.quoteNo === "N/A") {
+            toast({
+              title: "Missing Quotation",
+              description: "Please attach a quotation before proceeding.",
+              variant: "destructive",
+            });
+            return;
+          }
+          break;
 
-      case "billing_completed":
-        if (ticket.status !== "billing_pending") {
-          toast({
-            title: "Invalid Billing Status",
-            description: "Move to billing_pending before completing billing.",
-            variant: "destructive",
-          });
+        case "onHold":
+          setTicketToHold(ticket);
+          setHoldReasonText(ticket.holdReason || "");
+          setHoldReasonModalOpen(true);
           return;
-        }
-        const dueAmount = ticket?.due ?? 0;
-        const isPaid = ticket?.paid ?? false;
-        if (!isPaid && dueAmount > 0) {
-          toast({
-            title: "Incomplete Payment",
-            description: `Payment is pending. Due amount: ₹${dueAmount}. Please clear the full amount before completing billing.`,
-            variant: "destructive",
-          });
-          return;
-        }
-        break;
 
-      default:
-        break;
+        case "completed":
+          if (!workStage || workStage.quoteNo === "N/A") {
+            toast({
+              title: "Order Violation",
+              description:
+                "Please attach a quotation and move to In Progress first.",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (!workStage.poStatus || !workStage.jcrStatus) {
+            toast({
+              title: "Pending Work",
+              description:
+                "PO and JCR must be completed before marking as completed.",
+              variant: "destructive",
+            });
+            return;
+          }
+          break;
+
+        case "billing_pending":
+          if (ticket.status !== "completed") {
+            toast({
+              title: "Invalid Stage Transition",
+              description: "You can only bill after completion.",
+              variant: "destructive",
+            });
+            return;
+          }
+          break;
+
+        case "billing_completed":
+          if (ticket.status !== "billing_pending") {
+            toast({
+              title: "Invalid Billing Status",
+              description: "Move to billing_pending before completing billing.",
+              variant: "destructive",
+            });
+            return;
+          }
+          const dueAmount = ticket?.due ?? 0;
+          const isPaid = ticket?.paid ?? false;
+          if (!isPaid && dueAmount > 0) {
+            toast({
+              title: "Incomplete Payment",
+              description: `Payment is pending. Due amount: ₹${dueAmount}. Please clear the full amount before completing billing.`,
+              variant: "destructive",
+            });
+            return;
+          }
+          break;
+
+        default:
+          break;
+      }
+
+      await updateTicketStatus(ticketId, destination as Status);
+
+      toast({
+        title: "Status Updated",
+        description: "Ticket status updated successfully.",
+      });
+    } catch (error: any) {
+      console.error("Error updating ticket status:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update ticket status.",
+        variant: "destructive",
+      });
     }
-
-    updateTicketStatus(ticketId, destination as Status);
   };
 
   const handleConfirmHold = async () => {
     setLoadingHold(true);
+
     if (!holdReasonText.trim()) {
       setLoadingHold(false);
       toast({
@@ -255,11 +242,17 @@ export default function KanbanPage() {
       });
       return;
     }
-    if (!ticketToHold) return;
+
+    if (!ticketToHold) {
+      setLoadingHold(false);
+      return;
+    }
+
+    const originalStatus = ticketToHold.status;
 
     try {
       // First update the ticket status in the store for immediate UI update
-      updateTicketStatus(ticketToHold.id, "onHold");
+      await updateTicketStatus(ticketToHold.id, "onHold");
 
       // Then update the ticket with hold reason on the backend
       await updateTicket({
@@ -272,21 +265,27 @@ export default function KanbanPage() {
         title: "Ticket Put On Hold",
         description: "Ticket status updated successfully.",
       });
-      setLoadingHold(false);
+
       setHoldReasonModalOpen(false);
       setTicketToHold(null);
       setHoldReasonText("");
     } catch (err: any) {
-      setLoadingHold(false);
-      // If there's an error, we should revert the status change
-      const originalStatus = ticketToHold.status;
-      updateTicketStatus(ticketToHold.id, originalStatus);
+      console.error("Error updating hold status:", err);
+
+      // If there's an error, revert the status change
+      try {
+        await updateTicketStatus(ticketToHold.id, originalStatus);
+      } catch (revertError) {
+        console.error("Error reverting status:", revertError);
+      }
 
       toast({
         title: "Failed to Update Ticket",
         description: err.message || "Unknown error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingHold(false);
     }
   };
 
@@ -305,11 +304,11 @@ export default function KanbanPage() {
 
       if (allowedStatuses.includes(status as Status)) {
         acc[status as Status] = statusTickets
-          .map((ticket: any) => ({
+          .map((ticket: Ticket) => ({
             ...ticket,
             dueDate: ticket.dueDate || new Date().toISOString(),
           }))
-          .filter((ticket) => {
+          .filter((ticket: Ticket) => {
             const matchesSearch =
               ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
               ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -347,6 +346,44 @@ export default function KanbanPage() {
       ? (["billing_pending", "billing_completed"] as const)
       : []),
   ];
+
+  const handleExportTickets = async (status: Status) => {
+    if (!startDateTicket || !endDateTicket) {
+      toast({
+        title: "Select Date Range",
+        description: "Please select start and end dates.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await exportTicketsToExcel({
+        status,
+        startDate: startDateTicket,
+        endDate: endDateTicket,
+      });
+      setExportModalOpen(false);
+      toast({
+        title: "Export Successful",
+        description: `${status.replaceAll("_", " ")} tickets exported successfully.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Export Failed",
+        description: err.message || "Failed to export tickets.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const clearFilters = () => {
+    setStartDateTicket(today);
+    setEndDateTicket(today);
+    setSearchQuery("");
+    setClientFilter("all");
+    setAssigneeFilter("all");
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -432,16 +469,7 @@ export default function KanbanPage() {
             onChange={(e) => setEndDateTicket(e.target.value)}
           />
 
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setStartDateTicket(today);
-              setEndDateTicket(today);
-              setSearchQuery("");
-              setClientFilter("all");
-              setAssigneeFilter("all");
-            }}
-          >
+          <Button variant="secondary" onClick={clearFilters}>
             Clear Filters
           </Button>
           <Button variant="secondary" onClick={() => setExportModalOpen(true)}>
@@ -462,30 +490,7 @@ export default function KanbanPage() {
               <Button
                 key={status}
                 variant="outline"
-                onClick={async () => {
-                  if (!startDateTicket || !endDateTicket) {
-                    toast({
-                      title: "Select Date Range",
-                      description: "Please select start and end dates.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  try {
-                    await exportTicketsToExcel({
-                      status,
-                      startDate: startDateTicket,
-                      endDate: endDateTicket,
-                    });
-                    setExportModalOpen(false);
-                  } catch (err) {
-                    toast({
-                      title: "Export Failed",
-                      description: (err as Error).message,
-                      variant: "destructive",
-                    });
-                  }
-                }}
+                onClick={() => handleExportTickets(status)}
               >
                 Export {status.replaceAll("_", " ")}
               </Button>
@@ -515,7 +520,7 @@ export default function KanbanPage() {
             <Button variant="outline" onClick={handleCancelHold}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmHold}>
+            <Button onClick={handleConfirmHold} disabled={isLoadingHold}>
               {isLoadingHold ? "Holding..." : "Confirm Hold"}
             </Button>
           </DialogFooter>
