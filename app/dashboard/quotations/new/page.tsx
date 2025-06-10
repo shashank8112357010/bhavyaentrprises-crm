@@ -473,10 +473,22 @@ export default function NewQuotationPage() {
 
     setIsExportingPdf(true);
     try {
+      const formValues = quotationForm.getValues();
+
       const quotationData = {
-        ...quotationForm.getValues(),
+        name:
+          formValues.quotationNumber || `Quotation for ${selectedClient.name}`, // Add required name field
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
+        salesType: formValues.salesType,
+        date: formValues.date,
+        quotationNumber: formValues.quotationNumber,
+        validUntil: formValues.validUntil,
+        expectedExpense: formValues.expectedExpense
+          ? parseFloat(formValues.expectedExpense)
+          : 0, // Convert string to number
+        discount: formValues.discount,
+        serialNumber: formValues.serialNumber,
         rateCardDetails: quotationItems.map((item) => ({
           rateCardId: item.id,
           quantity: item.quantity,
@@ -511,6 +523,7 @@ export default function NewQuotationPage() {
         throw new Error("Failed to generate PDF");
       }
     } catch (error: any) {
+      console.error("PDF export error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to export PDF.",
