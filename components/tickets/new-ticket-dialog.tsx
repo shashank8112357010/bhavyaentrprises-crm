@@ -112,7 +112,6 @@ export default function NewTicketDialog() {
       });
       toast({ title: "Success", description: "Ticket created successfully!" });
     } catch (error: any) {
-      console.error("Failed to create ticket:", error);
       toast({
         title: "Error",
         description:

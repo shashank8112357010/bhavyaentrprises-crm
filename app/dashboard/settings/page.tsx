@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotificationSettings } from "@/components/notifications/notification-settings";
-import { NotificationDebug } from "@/components/notifications/notification-debug";
 import {
   Card,
   CardContent,
@@ -70,7 +69,6 @@ function SettingsContent() {
 
         <TabsContent value="notifications" className="space-y-6">
           <NotificationSettings />
-          {process.env.NODE_ENV === "development" && <NotificationDebug />}
         </TabsContent>
 
         <TabsContent value="profile" className="space-y-6">

@@ -137,8 +137,6 @@ export async function generateQuotationPdf(
   params: QuotationPdfParams,
 ): Promise<Buffer> {
   try {
-    console.log("Generating PDF with params:", JSON.stringify(params, null, 2));
-
     const templatePath = path.join(
       process.cwd(),
       "lib",
@@ -167,8 +165,6 @@ export async function generateQuotationPdf(
       upiQrPath,
     };
 
-    console.log("Template data prepared for PDF generation");
-
     const html = await ejs.renderFile(templatePath, templateData);
 
     const browser = await puppeteer.launch({
@@ -187,6 +183,8 @@ export async function generateQuotationPdf(
     return Buffer.from(pdfUint8Array);
   } catch (error) {
     console.error("Error in PDF generation:", error);
-    throw new Error(`PDF generation failed: ${error.message}`);
+    throw new Error(
+      `PDF generation failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

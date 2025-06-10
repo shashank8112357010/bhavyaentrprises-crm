@@ -43,7 +43,8 @@ interface EditTicketInput {
 
 type EditTicketDialogProps = {
   ticket: Ticket;
-  onUpdate: () => void;
+  onUpdate?: () => void;
+  onEditSuccess?: () => void | Promise<void>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -58,6 +59,7 @@ const formatDate = (date: Date | string) => {
 export default function EditTicketDialog({
   ticket,
   onUpdate,
+  onEditSuccess,
   open,
   onOpenChange,
 }: EditTicketDialogProps) {
@@ -144,10 +146,13 @@ export default function EditTicketDialog({
 
       await updateTicket(ticketData);
       onOpenChange(false);
-      onUpdate();
+      if (onEditSuccess) {
+        await onEditSuccess();
+      } else if (onUpdate) {
+        onUpdate();
+      }
       toast({ title: "Success", description: "Ticket updated successfully!" });
     } catch (error: any) {
-      console.error("Failed to update ticket:", error);
       toast({
         title: "Error",
         description:

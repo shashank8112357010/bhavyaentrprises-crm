@@ -1,6 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -14,30 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import { Loader2 } from "lucide-react"; // Import a loading spinner icon
+import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import axiosInstance from "@/lib/axios";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // const [isLoading, setIsLoading] = useState(false); // Will use isLoading from authStore
   const [showPassword, setShowPassword] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-  // const { setUser } = useUserStore(); // Replaced by authStore actions
-
-  // Changed to individual selectors for potentially better performance and to avoid warnings
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
-  const error = useAuthStore((state) => state.error);
-  // Note: if 'error' from the store is used to trigger toasts directly
-  // without being reset, it might show stale errors.
-  // The current implementation in handleLogin uses result.error from the login action promise.
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,111 +38,27 @@ export default function LoginPage() {
     }
 
     try {
-      // isLoading is set to true within the authStore.login action
       const result = await login(email, password);
-
-      console.log("Login result:", result);
 
       if (result.success) {
         toast({ title: "Success", description: "Logged in successfully!" });
 
-        // Small delay to ensure state is updated
         setTimeout(() => {
-          // Check if redirection is already handled by the service (e.g. for 302 status)
-          // If not, or if we need to ensure it for 200 status returns with user data:
           if (!window.location.pathname.startsWith("/dashboard")) {
-            // Using router.push for client-side navigation is generally preferred in Next.js
-            // but window.location.href is fine if full page reload is intended or if service layer used it.
             window.location.href = "/dashboard";
-            // Alternatively, to ensure full page reload: window.location.href = "/dashboard";
           }
         }, 100);
       } else {
-        console.error("Login failed:", result.error);
         toast({
           title: "Authentication failed",
-          description: result.error || "Invalid email or password", // Use error from store result
+          description: result.error || "Invalid email or password",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Login exception:", error);
       toast({
         title: "Login Error",
         description: "An unexpected error occurred during login",
-        variant: "destructive",
-      });
-    }
-    // isLoading is set to false within the authStore.login action
-  };
-
-  const testAPI = async () => {
-    try {
-      console.log("Testing API connection...");
-      const response = await axiosInstance.get("/test-login");
-      console.log("API test successful:", response.data);
-      toast({
-        title: "API Test Successful",
-        description: `Found ${response.data.totalUsers} users in database`,
-      });
-    } catch (error: any) {
-      console.error("API test failed:", error);
-      toast({
-        title: "API Test Failed",
-        description: error.response?.data?.message || error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const testLoginAPI = async () => {
-    if (!email || !password) {
-      toast({
-        title: "Error",
-        description: "Please enter email and password first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      console.log("Testing login API with direct fetch...");
-
-      // Test with direct fetch first
-      const fetchResponse = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-
-      const fetchData = await fetchResponse.json();
-      console.log("Direct fetch response:", {
-        status: fetchResponse.status,
-        data: fetchData,
-      });
-
-      // Test with axios
-      const axiosResponse = await axiosInstance.post("/login", {
-        email,
-        password,
-      });
-      console.log("Axios response:", {
-        status: axiosResponse.status,
-        data: axiosResponse.data,
-      });
-
-      toast({
-        title: "Login API Test",
-        description: `Direct fetch: ${fetchResponse.status}, Axios: ${axiosResponse.status}`,
-      });
-    } catch (error: any) {
-      console.error("Login API test failed:", error);
-      toast({
-        title: "Login API Test Failed",
-        description: error.message,
         variant: "destructive",
       });
     }
@@ -228,26 +130,6 @@ export default function LoginPage() {
                   "Sign in"
                 )}
               </Button>
-              {isMounted && process.env.NODE_ENV === "development" && (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full mt-2"
-                    onClick={testAPI}
-                  >
-                    Test API Connection
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full mt-1"
-                    onClick={testLoginAPI}
-                  >
-                    Test Login API
-                  </Button>
-                </>
-              )}
             </form>
           </CardContent>
         </Card>

@@ -76,9 +76,7 @@ export function NewExpenseDialog({
         // This limit might need to be adjusted if users have many quotations
         const data = await getAllQuotations({ limit: 100, searchQuery: "" });
         setQuotationsToDisplay(data.quotations || []);
-        console.log(data, "quotationsToDisplay");
       } catch (error) {
-        console.error("Failed to fetch quotations", error);
         toast({
           title: "Error",
           description: "Failed to load all quotations",
@@ -207,8 +205,9 @@ export function NewExpenseDialog({
         quotationId: selectedQuotation,
         requester,
         paymentType,
-        file,
-        screenshotFile: paymentType === "ONLINE" ? screenshotFile : undefined,
+        file: file || undefined,
+        screenshotFile:
+          paymentType === "ONLINE" ? screenshotFile || undefined : undefined,
         approvalName:
           paymentType === "VCASH" || paymentType === "REST"
             ? approvalName

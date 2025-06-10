@@ -9,9 +9,11 @@ export type TicketStatus =
 
 export interface Assignee {
   id: string;
-  name: string;
-  avatar: string;
-  initials: string;
+  name: string | null;
+  email: string | null;
+  avatar: string | null;
+  initials: string | null;
+  role?: string;
 }
 
 export interface WorkStage {
@@ -74,7 +76,7 @@ export interface Ticket {
   branch: string;
   priority: string;
   assignee: Assignee;
-  workStage?: WorkStage;
+  workStage?: WorkStage | null;
   due?: number;
   paid?: boolean;
   client: Client;
@@ -88,6 +90,7 @@ export interface Ticket {
   holdReason?: string;
   status: TicketStatus;
   quotations?: Quotation[];
+  Quotation: Quotation[]; // Required property for compatibility with ticket service
 }
 
 export interface TicketsState {

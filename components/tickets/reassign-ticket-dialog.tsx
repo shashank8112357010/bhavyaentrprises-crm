@@ -76,8 +76,7 @@ export default function ReassignTicketDialog({
       );
 
       if (matchingAgent) {
-        const correctId =
-          matchingAgent.originalId || matchingAgent.userId || matchingAgent.id;
+        const correctId = matchingAgent.userId || matchingAgent.id;
         setSelectedAssigneeId(correctId);
       } else {
         setSelectedAssigneeId("");
@@ -115,16 +114,10 @@ export default function ReassignTicketDialog({
 
     setIsLoading(true);
     try {
-      console.log("Reassigning ticket:", {
-        ticketId,
-        selectedAssigneeId,
-        currentAssigneeId: currentAssignee?.id,
-      });
-
       await updateTicket({
         id: ticketId,
         assigneeId: selectedAssigneeId,
-      });
+      } as any);
 
       toast({
         title: "Success",
@@ -138,7 +131,6 @@ export default function ReassignTicketDialog({
         onReassignSuccess();
       }
     } catch (error: any) {
-      console.error("Failed to reassign ticket:", error);
       toast({
         title: "Error",
         description:

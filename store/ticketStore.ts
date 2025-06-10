@@ -18,9 +18,11 @@ export type Status =
 
 export interface Assignee {
   id: string;
-  name: string;
-  avatar: string;
-  initials: string;
+  name: string | null;
+  email: string | null;
+  avatar: string | null;
+  initials: string | null;
+  role?: string;
 }
 
 export interface WorkStage {
@@ -83,6 +85,20 @@ export interface Ticket {
   comments: Comment[];
   holdReason?: string;
   status: Status;
+  Quotation: QuotationTicketStore[]; // Add required property for compatibility
+}
+
+export interface QuotationTicketStore {
+  id: string;
+  name: string;
+  quoteNo: string;
+  pdfUrl: string;
+  clientId: string;
+  ticketId: string;
+  createdAt: string;
+  subtotal: number;
+  gst: number;
+  grandTotal: number;
 }
 
 export interface TicketsState {

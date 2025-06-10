@@ -92,10 +92,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
-      console.log(
-        "Starting login request to:",
-        axiosInstance.defaults.baseURL + "/login",
-      );
       const response = await axiosInstance.post(
         "/login",
         { email, password },
@@ -104,31 +100,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         },
       );
 
-      // Log the response for debugging
-      console.log("Login response status:", response.status);
-      console.log("Login response data:", response.data);
-      console.log("Response data type:", typeof response.data);
-      console.log("Response data keys:", Object.keys(response.data || {}));
-      console.log("Raw response:", JSON.stringify(response.data, null, 2));
-
       const { user, token, success } = response.data;
 
       // Check if login was successful
       if (success === false) {
         const errorMsg = response.data.message || "Login was not successful";
-        console.error("Login failed:", errorMsg);
         set({ isLoading: false, error: errorMsg });
         return { success: false, error: errorMsg };
       }
 
       // Validate user and token
       if (!user || !token) {
-        console.error("Missing user or token in response:", {
-          hasUser: !!user,
-          hasToken: !!token,
-          userKeys: user ? Object.keys(user) : [],
-          responseKeys: Object.keys(response.data),
-        });
         const errorMsg =
           "Login successful, but user data or token was not provided in the expected format.";
         set({ isLoading: false, error: errorMsg });
@@ -137,12 +119,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Validate required user fields
       if (!user.userId || !user.email || !user.role) {
-        console.error("Missing required user fields:", {
-          userId: user.userId,
-          email: user.email,
-          role: user.role,
-          fullUser: user,
-        });
         const errorMsg = `User data is missing required fields. Missing: ${[
           !user.userId && "userId",
           !user.email && "email",
@@ -163,7 +139,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       return { success: true, user };
     } catch (error: any) {
-      console.error("Login error:", error);
       let errorMessage = "An unexpected error occurred during login.";
 
       if (error.response) {
