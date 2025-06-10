@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotificationSettings } from "@/components/notifications/notification-settings";
-import { NotificationDebug } from "@/components/notifications/notification-debug";
 import {
   Card,
   CardContent,
