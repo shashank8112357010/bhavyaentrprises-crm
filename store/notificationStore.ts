@@ -1,4 +1,3 @@
-// store/notificationStore.ts
 import { create } from "zustand";
 import {
   getUserNotifications,
@@ -41,6 +40,9 @@ interface NotificationState {
   incrementUnreadCount: () => void;
   decrementUnreadCount: () => void;
   addNotificationToList: (notification: Notification) => void;
+
+  // System health
+  checkSystemHealth: () => Promise<boolean>;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -48,6 +50,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCount: 0,
   loading: false,
   error: null,
+  isSystemAvailable: true,
   currentPage: 1,
   totalNotifications: 0,
   notificationsPerPage: 10,
@@ -56,11 +59,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const { currentPage, notificationsPerPage } = get();
-      const offset = (currentPage - 1) * notificationsPerPage;
+      const offset =
+        filters?.offset ?? (currentPage - 1) * notificationsPerPage;
 
       const response = await getUserNotifications({
         ...filters,
-        limit: notificationsPerPage,
+        limit: filters?.limit ?? notificationsPerPage,
         offset,
       });
 
@@ -69,6 +73,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         unreadCount: response.unreadCount,
         totalNotifications: response.total,
         loading: false,
+        isSystemAvailable: true,
       });
     } catch (error: any) {
       console.warn("Notification fetch error:", error);
@@ -86,13 +91,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           unreadCount: 0,
           totalNotifications: 0,
           loading: false,
-          error: null, // Don't show error for missing table
+          error: null,
+          isSystemAvailable: false,
         });
       } else {
         // Show actual errors (like network issues)
         set({
           error: error.message || "Failed to fetch notifications",
           loading: false,
+          isSystemAvailable: true,
         });
       }
     }
@@ -101,7 +108,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   fetchUnreadCount: async () => {
     try {
       const count = await getUnreadNotificationCount();
-      set({ unreadCount: count });
+      set({ unreadCount: count, isSystemAvailable: true });
     } catch (error: any) {
       console.warn("Failed to fetch unread count:", error);
       // For missing table, set count to 0 instead of showing error
@@ -111,7 +118,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         error.message.includes("P2021") ||
         error.message.includes("table")
       ) {
-        set({ unreadCount: 0 });
+        set({ unreadCount: 0, isSystemAvailable: false });
       }
       // Don't set error state for count fetching to avoid UI disruption
     }
@@ -131,6 +138,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }));
     } catch (error: any) {
       set({ error: error.message || "Failed to mark notification as read" });
+      throw error;
     }
   },
 
@@ -149,6 +157,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       set({
         error: error.message || "Failed to mark all notifications as read",
       });
+      throw error;
     }
   },
 
@@ -174,6 +183,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       });
     } catch (error: any) {
       set({ error: error.message || "Failed to delete notification" });
+      throw error;
     }
   },
 
@@ -188,9 +198,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         ),
         unreadCount: state.unreadCount + 1,
         totalNotifications: state.totalNotifications + 1,
+        isSystemAvailable: true,
       }));
+
+      return newNotification;
     } catch (error: any) {
       set({ error: error.message || "Failed to create notification" });
+      throw error;
     }
   },
 
@@ -225,5 +239,22 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         : state.unreadCount + 1,
       totalNotifications: state.totalNotifications + 1,
     }));
+  },
+
+  checkSystemHealth: async () => {
+    try {
+      await getUnreadNotificationCount();
+      set({ isSystemAvailable: true });
+      return true;
+    } catch (error: any) {
+      const isTableMissing =
+        error.message.includes("doesn't exist") ||
+        error.message.includes("relation") ||
+        error.message.includes("P2021") ||
+        error.message.includes("table");
+
+      set({ isSystemAvailable: !isTableMissing });
+      return !isTableMissing;
+    }
   },
 }));

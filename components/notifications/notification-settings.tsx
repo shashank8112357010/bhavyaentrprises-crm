@@ -1,21 +1,9 @@
-// components/notifications/notification-settings.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import {
-  Bell,
-  BellOff,
-  Search,
-  Filter,
-  CheckCircle,
-  Trash2,
-  Settings as SettingsIcon,
-  Mail,
-  Smartphone,
-  Monitor,
-  RefreshCw,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   Card,
   CardContent,
@@ -23,13 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -37,453 +18,400 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Spinner } from "@/components/ui/spinner";
-import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useNotificationStore } from "@/store/notificationStore";
 import { NotificationItem } from "./notification-item";
-import { NotificationDebug } from "./notification-debug";
-import type { NotificationType } from "@/lib/services/notification";
-
-interface NotificationPreferences {
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  inAppNotifications: boolean;
-  notificationTypes: {
-    TICKET_ASSIGNED: boolean;
-    TICKET_STATUS_CHANGED: boolean;
-    TICKET_COMMENTED: boolean;
-    TICKET_DUE_DATE_APPROACHING: boolean;
-    WORK_STAGE_UPDATED: boolean;
-  };
-}
+import { formatDistanceToNow } from "date-fns";
+import {
+  Bell,
+  Trash2,
+  CheckCheck,
+  Search,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function NotificationSettings() {
-  const { toast } = useToast();
   const {
     notifications,
+    unreadCount,
     loading,
     error,
-    unreadCount,
-    totalNotifications,
     currentPage,
+    totalNotifications,
     notificationsPerPage,
     fetchNotifications,
     markAllAsRead,
-    fetchUnreadCount,
+    deleteNotification,
     setCurrentPage,
     setNotificationsPerPage,
+    clearError,
   } = useNotificationStore();
 
+  const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<
-    "all" | "unread" | NotificationType
-  >("all");
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
-    emailNotifications: true,
-    pushNotifications: false,
-    inAppNotifications: true,
-    notificationTypes: {
-      TICKET_ASSIGNED: true,
-      TICKET_STATUS_CHANGED: true,
-      TICKET_COMMENTED: true,
-      TICKET_DUE_DATE_APPROACHING: true,
-      WORK_STAGE_UPDATED: true,
-    },
-  });
+  const [isSystemAvailable, setIsSystemAvailable] = useState(true);
 
   useEffect(() => {
-    // Temporarily disable automatic fetching until database is set up
-    // TODO: Re-enable after running: npx prisma migrate dev
-    // const filters: any = {
-    //   limit: notificationsPerPage,
-    //   offset: (currentPage - 1) * notificationsPerPage,
-    // };
-    // if (filterType === "unread") {
-    //   filters.isRead = false;
-    // } else if (filterType !== "all") {
-    //   filters.type = filterType;
-    // }
-    // fetchNotifications(filters);
-  }, [currentPage, notificationsPerPage, filterType, fetchNotifications]);
+    loadNotifications();
+  }, [currentPage, filter, notificationsPerPage]);
 
-  useEffect(() => {
-    // Temporarily disable automatic fetching until database is set up
-    // TODO: Re-enable after running: npx prisma migrate dev
-    // fetchUnreadCount();
-  }, [fetchUnreadCount]);
+  const loadNotifications = async () => {
+    try {
+      const offset = (currentPage - 1) * notificationsPerPage;
+      const filters: any = {
+        limit: notificationsPerPage,
+        offset,
+      };
 
-  const handlePreferenceChange = (
-    key: keyof NotificationPreferences,
-    value: boolean,
-  ) => {
-    setPreferences((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+      if (filter === "unread") {
+        filters.isRead = false;
+      } else if (filter === "read") {
+        filters.isRead = true;
+      }
 
-    // Here you would typically save to backend
-    toast({
-      title: "Preferences Updated",
-      description: "Your notification preferences have been saved.",
-    });
-  };
-
-  const handleNotificationTypeChange = (
-    type: keyof NotificationPreferences["notificationTypes"],
-    value: boolean,
-  ) => {
-    setPreferences((prev) => ({
-      ...prev,
-      notificationTypes: {
-        ...prev.notificationTypes,
-        [type]: value,
-      },
-    }));
-
-    toast({
-      title: "Notification Type Updated",
-      description: `${type.replace(/_/g, " ")} notifications have been ${value ? "enabled" : "disabled"}.`,
-    });
+      await fetchNotifications(filters);
+      setIsSystemAvailable(true);
+    } catch (error: any) {
+      console.error("Failed to load notifications:", error);
+      if (
+        error.message.includes("doesn't exist") ||
+        error.message.includes("relation") ||
+        error.message.includes("P2021") ||
+        error.message.includes("table")
+      ) {
+        setIsSystemAvailable(false);
+      }
+    }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead();
-      toast({
-        title: "Success",
-        description: "All notifications marked as read.",
-      });
+      await loadNotifications(); // Refresh after marking all as read
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to mark all notifications as read.",
-        variant: "destructive",
-      });
+      console.error("Failed to mark all as read:", error);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to delete all notifications? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      // Delete all notifications one by one
+      for (const notification of notifications) {
+        await deleteNotification(notification.id);
+      }
+      await loadNotifications(); // Refresh after deletion
+    } catch (error) {
+      console.error("Failed to delete all notifications:", error);
     }
   };
 
   const handleRefresh = () => {
-    const filters: any = {
-      limit: notificationsPerPage,
-      offset: (currentPage - 1) * notificationsPerPage,
-    };
-
-    if (filterType === "unread") {
-      filters.isRead = false;
-    } else if (filterType !== "all") {
-      filters.type = filterType;
-    }
-
-    fetchNotifications(filters);
-    fetchUnreadCount();
+    clearError();
+    loadNotifications();
   };
+
+  const filteredNotifications = notifications.filter((notification) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      notification.title.toLowerCase().includes(query) ||
+      notification.message.toLowerCase().includes(query) ||
+      notification.ticket?.ticketId.toLowerCase().includes(query)
+    );
+  });
 
   const totalPages = Math.ceil(totalNotifications / notificationsPerPage);
 
-  const notificationTypeLabels: Record<
-    keyof NotificationPreferences["notificationTypes"],
-    string
-  > = {
-    TICKET_ASSIGNED: "Ticket Assignments",
-    TICKET_STATUS_CHANGED: "Status Changes",
-    TICKET_COMMENTED: "New Comments",
-    TICKET_DUE_DATE_APPROACHING: "Due Date Reminders",
-    WORK_STAGE_UPDATED: "Work Stage Updates",
-  };
+  if (!isSystemAvailable) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notification Settings
+          </CardTitle>
+          <CardDescription>
+            Manage your notification preferences and view notification history
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Notification system is being set up. Run the database migration to
+              enable notifications:
+              <br />
+              <code className="bg-muted px-2 py-1 rounded mt-2 inline-block">
+                npx prisma migrate dev
+              </code>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Notifications</h2>
-          <p className="text-muted-foreground">
-            Manage your notification preferences and view your notification
-            history
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          {unreadCount > 0 && (
-            <Button onClick={handleMarkAllAsRead}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Mark All Read ({unreadCount})
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <Tabs defaultValue="notifications" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger
-            value="notifications"
-            className="flex items-center gap-2"
-          >
-            <Bell className="h-4 w-4" />
-            Notifications
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-1">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notification Settings
+          </CardTitle>
+          <CardDescription>
+            Manage your notification preferences and view notification history
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold">{totalNotifications}</div>
+              <div className="text-sm text-muted-foreground">Total</div>
+            </div>
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-destructive">
                 {unreadCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="preferences" className="flex items-center gap-2">
-            <SettingsIcon className="h-4 w-4" />
-            Preferences
-          </TabsTrigger>
-        </TabsList>
+              </div>
+              <div className="text-sm text-muted-foreground">Unread</div>
+            </div>
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {totalNotifications - unreadCount}
+              </div>
+              <div className="text-sm text-muted-foreground">Read</div>
+            </div>
+          </div>
 
-        <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Notification History</CardTitle>
-              <CardDescription>
-                View and manage your notifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Filters */}
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search notifications..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Label htmlFor="search" className="text-sm font-medium">
+                Search notifications
+              </Label>
+              <div className="relative mt-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Search by title, message, or ticket ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div>
+                <Label htmlFor="filter" className="text-sm font-medium">
+                  Filter
+                </Label>
                 <Select
-                  value={filterType}
-                  onValueChange={(
-                    value: "all" | "unread" | NotificationType,
-                  ) => {
-                    setFilterType(value);
-                    setCurrentPage(1);
-                  }}
+                  value={filter}
+                  onValueChange={(value: any) => setFilter(value)}
                 >
-                  <SelectTrigger className="w-full md:w-48">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Filter by type" />
+                  <SelectTrigger className="w-32 mt-1">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Notifications</SelectItem>
-                    <SelectItem value="unread">Unread Only</SelectItem>
-                    <Separator className="my-1" />
-                    <SelectItem value="TICKET_ASSIGNED">
-                      Ticket Assignments
-                    </SelectItem>
-                    <SelectItem value="TICKET_STATUS_CHANGED">
-                      Status Changes
-                    </SelectItem>
-                    <SelectItem value="TICKET_COMMENTED">
-                      New Comments
-                    </SelectItem>
-                    <SelectItem value="TICKET_DUE_DATE_APPROACHING">
-                      Due Date Reminders
-                    </SelectItem>
-                    <SelectItem value="WORK_STAGE_UPDATED">
-                      Work Stage Updates
-                    </SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="unread">Unread</SelectItem>
+                    <SelectItem value="read">Read</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Notifications List */}
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Spinner size="6" />
-                </div>
-              ) : error ? (
-                <div className="text-center py-8">
-                  <p className="text-destructive mb-4">{error}</p>
-                  <Button onClick={handleRefresh} variant="outline">
-                    Try Again
-                  </Button>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="text-center py-8">
-                  <BellOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    {filterType === "unread"
-                      ? "No unread notifications"
-                      : "No notifications found"}
-                  </p>
-                </div>
-              ) : (
-                <ScrollArea className="h-96">
-                  <div className="space-y-2">
-                    {notifications.map((notification) => (
-                      <NotificationItem
-                        key={notification.id}
-                        notification={notification}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-6">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {(currentPage - 1) * notificationsPerPage + 1} to{" "}
-                    {Math.min(
-                      currentPage * notificationsPerPage,
-                      totalNotifications,
-                    )}{" "}
-                    of {totalNotifications} notifications
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="preferences" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Delivery Methods */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Monitor className="h-5 w-5" />
-                  Delivery Methods
-                </CardTitle>
-                <CardDescription>
-                  Choose how you want to receive notifications
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Bell className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="in-app">In-App Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Show notifications in the application
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="in-app"
-                    checked={preferences.inAppNotifications}
-                    onCheckedChange={(checked) =>
-                      handlePreferenceChange("inAppNotifications", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="email">Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Send notifications to your email
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="email"
-                    checked={preferences.emailNotifications}
-                    onCheckedChange={(checked) =>
-                      handlePreferenceChange("emailNotifications", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Smartphone className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label htmlFor="push">Push Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Browser push notifications
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="push"
-                    checked={preferences.pushNotifications}
-                    onCheckedChange={(checked) =>
-                      handlePreferenceChange("pushNotifications", checked)
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notification Types */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Notification Types</CardTitle>
-                <CardDescription>
-                  Choose which types of notifications you want to receive
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {Object.entries(preferences.notificationTypes).map(
-                  ([type, enabled]) => (
-                    <div
-                      key={type}
-                      className="flex items-center justify-between"
-                    >
-                      <div>
-                        <Label htmlFor={type}>
-                          {
-                            notificationTypeLabels[
-                              type as keyof typeof notificationTypeLabels
-                            ]
-                          }
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Get notified when{" "}
-                          {type.toLowerCase().replace(/_/g, " ")}
-                        </p>
-                      </div>
-                      <Switch
-                        id={type}
-                        checked={enabled}
-                        onCheckedChange={(checked) =>
-                          handleNotificationTypeChange(
-                            type as keyof NotificationPreferences["notificationTypes"],
-                            checked,
-                          )
-                        }
-                      />
-                    </div>
-                  ),
-                )}
-              </CardContent>
-            </Card>
+              <div>
+                <Label htmlFor="perPage" className="text-sm font-medium">
+                  Per page
+                </Label>
+                <Select
+                  value={notificationsPerPage.toString()}
+                  onValueChange={(value) => {
+                    setNotificationsPerPage(Number(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-20 mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
-          {/* Debug component - remove in production */}
-          <NotificationDebug />
-        </TabsContent>
-      </Tabs>
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+            {unreadCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                disabled={loading}
+              >
+                <CheckCheck className="h-4 w-4 mr-2" />
+                Mark all as read
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteAll}
+                disabled={loading}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear all
+              </Button>
+            )}
+          </div>
+
+          {error && (
+            <Alert className="mb-6" variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  className="ml-2"
+                >
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Notifications List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Notifications</span>
+            {filteredNotifications.length > 0 && (
+              <Badge variant="secondary">
+                {filteredNotifications.length} of {totalNotifications}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <span className="text-muted-foreground">
+                  Loading notifications...
+                </span>
+              </div>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="text-center py-12">
+              <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-2">
+                {searchQuery
+                  ? "No notifications match your search."
+                  : filter === "unread"
+                    ? "No unread notifications."
+                    : filter === "read"
+                      ? "No read notifications."
+                      : "No notifications yet."}
+              </p>
+              {searchQuery && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Clear search
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredNotifications.map((notification, index) => (
+                <div key={notification.id}>
+                  <NotificationItem
+                    notification={notification}
+                    showDelete={true}
+                    onClick={() => {
+                      // Handle notification click if needed
+                    }}
+                  />
+                  {index < filteredNotifications.length - 1 && (
+                    <Separator className="my-2" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <div className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * notificationsPerPage + 1} to{" "}
+                {Math.min(
+                  currentPage * notificationsPerPage,
+                  totalNotifications,
+                )}{" "}
+                of {totalNotifications} notifications
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages || loading}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

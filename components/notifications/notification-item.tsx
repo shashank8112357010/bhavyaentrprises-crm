@@ -1,4 +1,3 @@
-// components/notifications/notification-item.tsx
 "use client";
 
 import { useState } from "react";
@@ -9,17 +8,11 @@ import {
   ArrowUpDown,
   Clock,
   Settings as SettingsIcon,
-  MoreHorizontal,
-  Trash2,
+  X,
   CheckCircle,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useNotificationStore } from "@/store/notificationStore";
 import type {
@@ -30,6 +23,7 @@ import type {
 interface NotificationItemProps {
   notification: Notification;
   onClick?: () => void;
+  showDelete?: boolean;
 }
 
 const notificationIcons: Record<
@@ -54,10 +48,12 @@ const notificationColors: Record<NotificationType, string> = {
 export function NotificationItem({
   notification,
   onClick,
+  showDelete = false,
 }: NotificationItemProps) {
   const { markAsRead, deleteNotification: deleteNotificationFromStore } =
     useNotificationStore();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
 
   const IconComponent = notificationIcons[notification.type] || MessageSquare;
   const iconColor = notificationColors[notification.type] || "text-gray-500";
@@ -65,9 +61,12 @@ export function NotificationItem({
   const handleClick = async () => {
     if (!notification.isRead) {
       try {
+        setIsMarkingRead(true);
         await markAsRead(notification.id);
       } catch (error) {
         console.error("Failed to mark notification as read:", error);
+      } finally {
+        setIsMarkingRead(false);
       }
     }
     onClick?.();
@@ -76,9 +75,12 @@ export function NotificationItem({
   const handleMarkAsRead = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      setIsMarkingRead(true);
       await markAsRead(notification.id);
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
+    } finally {
+      setIsMarkingRead(false);
     }
   };
 
@@ -100,9 +102,10 @@ export function NotificationItem({
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50",
+        "group relative flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/50",
         !notification.isRead &&
           "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800",
+        isDeleting && "opacity-50 pointer-events-none",
       )}
       onClick={handleClick}
     >
@@ -131,47 +134,51 @@ export function NotificationItem({
                 Ticket: {notification.ticket.ticketId}
               </p>
             )}
+            {/* Timestamp */}
+            <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
           </div>
 
-          {/* Unread indicator and actions */}
+          {/* Actions */}
           <div className="flex items-center gap-1">
+            {/* Unread indicator */}
             {!notification.isRead && (
               <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
             )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {/* Action buttons */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {!notification.isRead && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => e.stopPropagation()}
+                  className="h-6 w-6 p-0"
+                  onClick={handleMarkAsRead}
+                  disabled={isMarkingRead}
+                  title="Mark as read"
                 >
-                  <MoreHorizontal className="h-3 w-3" />
+                  <CheckCircle className="h-3 w-3" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {!notification.isRead && (
-                  <DropdownMenuItem onClick={handleMarkAsRead}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as read
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
+              )}
+
+              {showDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={handleDelete}
-                  className="text-destructive focus:text-destructive"
                   disabled={isDeleting}
+                  title="Delete notification"
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  {isDeleting ? (
+                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Timestamp */}
-        <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
       </div>
     </div>
   );

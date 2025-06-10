@@ -1,8 +1,17 @@
-// components/notifications/notification-debug.tsx
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -10,101 +19,223 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { useNotificationStore } from "@/store/notificationStore";
-import axios from "@/lib/axios";
+import { useToast } from "@/hooks/use-toast";
+import { Bell, Send } from "lucide-react";
+import type {
+  NotificationType,
+  CreateNotificationInput,
+} from "@/lib/services/notification";
 
 export function NotificationDebug() {
-  const [loading, setLoading] = useState(false);
+  const { addNotification } = useNotificationStore();
   const { toast } = useToast();
-  const { fetchNotifications, fetchUnreadCount } = useNotificationStore();
+  const [isCreating, setIsCreating] = useState(false);
 
-  const testNotificationSystem = async () => {
-    setLoading(true);
-    try {
-      // First check if system is accessible
-      const checkResponse = await axios.get("/notifications/test");
-      console.log("System check:", checkResponse.data);
+  const [formData, setFormData] = useState({
+    type: "TICKET_ASSIGNED" as NotificationType,
+    title: "",
+    message: "",
+    ticketId: "",
+    actionUrl: "",
+  });
 
-      // Create a test notification
-      const createResponse = await axios.post("/notifications/test");
-      console.log("Test notification:", createResponse.data);
+  const notificationTypes: { value: NotificationType; label: string }[] = [
+    { value: "TICKET_ASSIGNED", label: "Ticket Assigned" },
+    { value: "TICKET_STATUS_CHANGED", label: "Status Changed" },
+    { value: "TICKET_COMMENTED", label: "New Comment" },
+    { value: "TICKET_DUE_DATE_APPROACHING", label: "Due Date Approaching" },
+    { value: "WORK_STAGE_UPDATED", label: "Work Stage Updated" },
+  ];
 
-      // Refresh notifications
-      await fetchNotifications();
-      await fetchUnreadCount();
-
-      toast({
-        title: "Success",
-        description: "Test notification created successfully",
-      });
-    } catch (error: any) {
-      console.error("Notification test failed:", error);
-      toast({
-        title: "Error",
-        description:
-          error.response?.data?.message || "Failed to test notification system",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const presets = {
+    TICKET_ASSIGNED: {
+      title: "New Ticket Assigned",
+      message:
+        "You have been assigned to ticket 'Fix Air Conditioning Unit' (TICK-001)",
+      ticketId: "sample-ticket-id",
+      actionUrl: "/dashboard/ticket/sample-ticket-id",
+    },
+    TICKET_STATUS_CHANGED: {
+      title: "Ticket Status Updated",
+      message:
+        "Ticket 'Fix Air Conditioning Unit' (TICK-001) status changed from 'New' to 'In Progress'",
+      ticketId: "sample-ticket-id",
+      actionUrl: "/dashboard/ticket/sample-ticket-id",
+    },
+    TICKET_COMMENTED: {
+      title: "New Comment on Ticket",
+      message:
+        "John Doe commented on ticket 'Fix Air Conditioning Unit' (TICK-001)",
+      ticketId: "sample-ticket-id",
+      actionUrl: "/dashboard/ticket/sample-ticket-id",
+    },
+    TICKET_DUE_DATE_APPROACHING: {
+      title: "Ticket Due Date Approaching",
+      message:
+        "Ticket 'Fix Air Conditioning Unit' (TICK-001) is due in 2 hours",
+      ticketId: "sample-ticket-id",
+      actionUrl: "/dashboard/ticket/sample-ticket-id",
+    },
+    WORK_STAGE_UPDATED: {
+      title: "Work Stage Updated",
+      message:
+        "Work stage updated for ticket 'Fix Air Conditioning Unit' (TICK-001)",
+      ticketId: "sample-ticket-id",
+      actionUrl: "/dashboard/ticket/sample-ticket-id",
+    },
   };
 
-  const refreshNotifications = async () => {
-    setLoading(true);
-    try {
-      await fetchNotifications();
-      await fetchUnreadCount();
+  const handleTypeChange = (type: NotificationType) => {
+    setFormData({
+      type,
+      ...presets[type],
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.title.trim() || !formData.message.trim()) {
       toast({
-        title: "Success",
-        description: "Notifications refreshed",
+        title: "Validation Error",
+        description: "Title and message are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const notificationData: CreateNotificationInput = {
+        userId: "current-user", // This would normally come from auth context
+        type: formData.type,
+        title: formData.title,
+        message: formData.message,
+        ticketId: formData.ticketId || undefined,
+        actionUrl: formData.actionUrl || undefined,
+      };
+
+      await addNotification(notificationData);
+
+      toast({
+        title: "Notification Created",
+        description: "Test notification has been created successfully.",
+      });
+
+      // Reset form
+      setFormData({
+        type: "TICKET_ASSIGNED",
+        title: "",
+        message: "",
+        ticketId: "",
+        actionUrl: "",
       });
     } catch (error: any) {
-      console.error("Failed to refresh notifications:", error);
       toast({
         title: "Error",
-        description: "Failed to refresh notifications",
+        description: error.message || "Failed to create notification.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsCreating(false);
     }
   };
 
   return (
-    <Card className="mt-6">
+    <Card>
       <CardHeader>
-        <CardTitle>Notification System Debug</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="h-5 w-5" />
+          Notification Debug Tool
+        </CardTitle>
         <CardDescription>
-          Test and debug the notification system
+          Create test notifications to debug the notification system
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-2">
-          <Button
-            onClick={testNotificationSystem}
-            disabled={loading}
-            variant="outline"
-          >
-            {loading ? "Testing..." : "Create Test Notification"}
-          </Button>
-          <Button
-            onClick={refreshNotifications}
-            disabled={loading}
-            variant="outline"
-          >
-            {loading ? "Refreshing..." : "Refresh Notifications"}
-          </Button>
-        </div>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="type">Notification Type</Label>
+            <Select value={formData.type} onValueChange={handleTypeChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {notificationTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="text-sm text-muted-foreground">
-          <p>
-            • Use "Create Test Notification" to verify the system is working
-          </p>
-          <p>• Use "Refresh Notifications" to update the notification list</p>
-          <p>• Check browser console for detailed logs</p>
-        </div>
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              placeholder="Notification title"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="message">Message</Label>
+            <Textarea
+              id="message"
+              value={formData.message}
+              onChange={(e) =>
+                setFormData({ ...formData, message: e.target.value })
+              }
+              placeholder="Notification message"
+              rows={3}
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="ticketId">Ticket ID (Optional)</Label>
+            <Input
+              id="ticketId"
+              value={formData.ticketId}
+              onChange={(e) =>
+                setFormData({ ...formData, ticketId: e.target.value })
+              }
+              placeholder="Related ticket ID"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="actionUrl">Action URL (Optional)</Label>
+            <Input
+              id="actionUrl"
+              value={formData.actionUrl}
+              onChange={(e) =>
+                setFormData({ ...formData, actionUrl: e.target.value })
+              }
+              placeholder="/dashboard/ticket/123"
+            />
+          </div>
+
+          <Button type="submit" disabled={isCreating} className="w-full">
+            {isCreating ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Creating...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Create Test Notification
+              </div>
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

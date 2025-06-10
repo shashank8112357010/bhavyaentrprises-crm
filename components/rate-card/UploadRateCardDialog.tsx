@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import {
   Dialog,
   DialogContent,
@@ -15,32 +14,33 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { UploadCloud } from "lucide-react";
-
 import { createRateCard } from "@/lib/services/rate-card";
 import { useToast } from "@/hooks/use-toast";
 
-/**
- * UploadRateCardDialog – handles CSV file selection, client‑side validation (.csv),
- * calls the backend API, and surfaces basic success / error feedback.
- */
+interface UploadResponse {
+  message: string;
+  successCount: number;
+  duplicateCount?: number;
+  created?: any[];
+}
 
 interface UploadRateCardProps {
   onUploadSuccess: () => void | Promise<void>;
 }
 
 export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const reset = () => {
+  const reset = (): void => {
     setFile(null);
     setError(null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const selected = e.target.files?.[0];
     if (!selected) return;
 
@@ -53,16 +53,18 @@ export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
     setFile(selected);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!file) {
       setError("No file selected");
       return;
     }
+
     try {
       setIsUploading(true);
-      const response = await createRateCard(file);
+      setError(null);
 
-      // Example response: { message: "Upload completed", successCount, duplicateCount, created }
+      const response: UploadResponse = await createRateCard(file);
+
       const { successCount, duplicateCount } = response;
 
       let toastDescription = `Uploaded ${successCount} entries successfully.`;
@@ -76,31 +78,33 @@ export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
       });
 
       // Call the success callback and wait for it to complete
-      await onUploadSuccess();
+      await Promise.resolve(onUploadSuccess());
 
       setOpen(false);
       reset();
       console.log("Upload successful", response);
     } catch (err: any) {
+      const errorMessage = err.message || "Failed to upload file";
       toast({
         title: "Error",
-        description: err.message || "Failed to upload file",
+        description: errorMessage,
         variant: "destructive",
       });
-      setError(err.message || "Failed to upload file");
+      setError(errorMessage);
     } finally {
       setIsUploading(false);
     }
   };
 
+  const handleOpenChange = (newOpen: boolean): void => {
+    if (!newOpen) {
+      reset();
+    }
+    setOpen(newOpen);
+  };
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) reset();
-        setOpen(o);
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <UploadCloud className="mr-2 h-4 w-4" />
@@ -122,12 +126,21 @@ export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
               type="file"
               accept=".csv"
               onChange={handleFileChange}
+              disabled={isUploading}
             />
-            {error && <p className="text-sm text-destructive mt-1">{error}</p>}
+            {error && (
+              <p className="text-sm text-destructive mt-1" role="alert">
+                {error}
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={isUploading}>
+          <Button
+            onClick={handleSubmit}
+            disabled={isUploading || !file}
+            type="button"
+          >
             {isUploading ? "Uploading..." : "Upload"}
           </Button>
         </DialogFooter>

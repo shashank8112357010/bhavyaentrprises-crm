@@ -1,78 +1,14 @@
-// store/ticketStore.ts
 import { create } from "zustand";
 import {
   getAllTickets,
-  updateTicketStatus,
+  updateTicketStatus as updateTicketStatusService,
   createTicket,
-  updateTicket,
+  updateTicket as updateTicketService,
+  getTicketById,
 } from "../lib/services/ticket";
 
-type Ticket = {
-  id: string;
-  ticketId: string;
-  title: string;
-
-  branch: string;
-  priority: string;
-
-  assignee: {
-    name: string;
-    avatar: string;
-    initials: string;
-  };
-  workStage?: {
-    stateName: string;
-    adminName: string;
-    clientName: string;
-    siteName: string;
-    quoteNo: string;
-    dateReceived: string;
-    quoteTaxable: number;
-    quoteAmount: number;
-    workStatus: string;
-    approval: string;
-    poStatus: Boolean;
-    poNumber: string;
-    jcrStatus: Boolean;
-    agentName: string;
-  };
-  expenses: [
-    {
-      id: string;
-      amount: string;
-      category: string;
-      createdAt: string;
-      pdfUrl: string;
-    },
-  ];
-  due?: number;
-  paid?: Boolean;
-  client: {
-    id: string;
-    name: string;
-    type: string;
-
-    contactPerson: string;
-  };
-  dueDate: string | undefined;
-  scheduledDate?: string;
-  completedDate?: string;
-  createdAt: string;
-  description: string;
-  comments: number;
-  holdReason?: string;
-  status: Status;
-};
-type TicketsState = {
-  new: Ticket[];
-  inProgress: Ticket[];
-  onHold: Ticket[];
-  completed: Ticket[];
-  billing_pending: Ticket[];
-  billing_completed: Ticket[];
-};
-
-type Status =
+// Core types
+export type Status =
   | "new"
   | "inProgress"
   | "onHold"
@@ -80,7 +16,85 @@ type Status =
   | "billing_pending"
   | "billing_completed";
 
-interface CreateTicketInput {
+export interface Assignee {
+  id: string;
+  name: string;
+  avatar: string;
+  initials: string;
+}
+
+export interface WorkStage {
+  stateName: string;
+  adminName: string;
+  clientName: string;
+  siteName: string;
+  quoteNo: string;
+  dateReceived: string;
+  quoteTaxable: number;
+  quoteAmount: number;
+  workStatus: string;
+  approval: string;
+  poStatus: boolean;
+  poNumber: string;
+  jcrStatus: boolean;
+  agentName: string;
+  jcrFilePath?: string;
+  poFilePath?: string;
+}
+
+export interface Expense {
+  id: string;
+  amount: string;
+  category: string;
+  createdAt: string;
+  pdfUrl: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  type: string;
+  contactPerson: string;
+}
+
+export interface Comment {
+  text: string;
+  ticketId: string;
+  userId: string;
+}
+
+export interface Ticket {
+  id: string;
+  ticketId: string;
+  title: string;
+  branch: string;
+  priority: string;
+  assignee: Assignee;
+  workStage?: WorkStage;
+  expenses: Expense[];
+  due?: number;
+  paid?: boolean;
+  client: Client;
+  dueDate: string | undefined;
+  scheduledDate?: string;
+  completedDate?: string;
+  createdAt: string;
+  description: string;
+  comments: Comment[];
+  holdReason?: string;
+  status: Status;
+}
+
+export interface TicketsState {
+  new: Ticket[];
+  inProgress: Ticket[];
+  onHold: Ticket[];
+  completed: Ticket[];
+  billing_pending: Ticket[];
+  billing_completed: Ticket[];
+}
+
+export interface CreateTicketInput {
   title: string;
   clientId: string;
   branch: string;
@@ -91,8 +105,6 @@ interface CreateTicketInput {
   scheduledDate?: string;
   completedDate?: string;
   description: string;
-
-  // comments: string;
   holdReason?: string;
   workStage?: {
     create: {
@@ -106,46 +118,31 @@ interface CreateTicketInput {
       quoteAmount: number;
       workStatus: string;
       approval: string;
-      poStatus: Boolean;
+      poStatus: boolean;
       poNumber: string;
-      jcrStatus: Boolean;
+      jcrStatus: boolean;
       agentName: string;
     };
   };
 }
 
-interface TicketState {
-  tickets: TicketsState;
-  all_tickets: Ticket[];
-  loading: boolean;
-  error: string | null;
-  fetchTickets: (filters?: {
-    status?: Status;
-    startDate?: string;
-    endDate?: string;
-  }) => Promise<void>;
-  updateTicketStatus: (id: string, status: Status) => Promise<void>;
-  createTicket: (ticketData: CreateTicketInput) => Promise<void>;
-  fetchTicketById: (id: string) => Ticket | undefined;
-  updateTicket: (updatedTicket: any) => Promise<void>; // <-- Add this here
-
-  // New state and actions for dashboard counts
-  openTicketsCount: number | null;
-  scheduledTodayCount: number | null;
-  clientUpdatesNeededCount: number | null;
-  completedThisWeekCount: number | null;
-  isLoadingDashboardCounts: boolean;
-  fetchDashboardCounts: () => Promise<void>;
+export interface FetchTicketsFilters {
+  status?: Status;
+  startDate?: string;
+  endDate?: string;
+  role?: string;
+  userId?: string;
 }
 
-// Placeholder for the actual service call.
-// In a real application, this would likely be in '../lib/services/ticket.ts'
-const getDashboardTicketCountsService = async (): Promise<{
+export interface DashboardCounts {
   openTicketsCount: number;
   scheduledTodayCount: number;
   clientUpdatesNeededCount: number;
   completedThisWeekCount: number;
-}> => {
+}
+
+// Placeholder for the actual service call
+const getDashboardTicketCountsService = async (): Promise<DashboardCounts> => {
   const response = await fetch("/api/ticket/counts");
   if (!response.ok) {
     const errorData = await response.json();
@@ -156,7 +153,35 @@ const getDashboardTicketCountsService = async (): Promise<{
   return response.json();
 };
 
-export const useTicketStore = create<TicketState>((set) => ({
+export interface TicketState {
+  tickets: TicketsState;
+  all_tickets: Ticket[];
+  loading: boolean;
+  error: string | null;
+
+  // Dashboard counts
+  openTicketsCount: number | null;
+  scheduledTodayCount: number | null;
+  clientUpdatesNeededCount: number | null;
+  completedThisWeekCount: number | null;
+  isLoadingDashboardCounts: boolean;
+
+  // Actions
+  fetchTickets: (filters?: FetchTicketsFilters) => Promise<void>;
+  updateTicketStatus: (id: string, status: Status) => Promise<void>;
+  createTicket: (ticketData: CreateTicketInput) => Promise<void>;
+  fetchTicketById: (id: string) => Promise<Ticket | undefined>;
+  updateTicket: (
+    updatedTicket: Partial<Ticket> & { id: string },
+  ) => Promise<void>;
+  fetchDashboardCounts: () => Promise<void>;
+
+  // Helper functions
+  getTicketFromState: (id: string) => Ticket | undefined;
+  clearError: () => void;
+}
+
+export const useTicketStore = create<TicketState>((set, get) => ({
   tickets: {
     new: [],
     inProgress: [],
@@ -169,40 +194,36 @@ export const useTicketStore = create<TicketState>((set) => ({
   loading: false,
   error: null,
 
-  // Initialize new dashboard count states
+  // Initialize dashboard count states
   openTicketsCount: null,
   scheduledTodayCount: null,
   clientUpdatesNeededCount: null,
   completedThisWeekCount: null,
   isLoadingDashboardCounts: false,
 
-  fetchTickets: async (filters?: {
-    status?: Status;
-    startDate?: string;
-    endDate?: string;
-  }) => {
+  fetchTickets: async (filters?: FetchTicketsFilters) => {
     set({ loading: true, error: null });
     try {
       // Get user role and ID from auth store for RBA
       const { useAuthStore } = await import("./authStore");
       const { user } = useAuthStore.getState();
 
-      const enhancedFilters = {
+      const enhancedFilters: FetchTicketsFilters = {
         ...filters,
         role: user?.role,
         userId: user?.userId,
       };
 
-      const response = await getAllTickets(enhancedFilters); // pass enhanced filters with RBA
+      const response = await getAllTickets(enhancedFilters);
       const { tickets } = response;
 
-      const statusGroups = {
-        new: [] as Ticket[],
-        inProgress: [] as Ticket[],
-        onHold: [] as Ticket[],
-        completed: [] as Ticket[],
-        billing_pending: [] as Ticket[],
-        billing_completed: [] as Ticket[],
+      const statusGroups: TicketsState = {
+        new: [],
+        inProgress: [],
+        onHold: [],
+        completed: [],
+        billing_pending: [],
+        billing_completed: [],
       };
 
       for (const ticket of tickets) {
@@ -216,53 +237,115 @@ export const useTicketStore = create<TicketState>((set) => ({
         all_tickets: tickets,
         tickets: statusGroups,
         loading: false,
+        error: null,
       });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({
+        error: error.message || "Failed to fetch tickets",
+        loading: false,
+      });
     }
   },
 
   updateTicketStatus: async (id: string, status: Status) => {
-    set({ loading: true, error: null });
+    const state = get();
+    let previousState: TicketsState | null = null;
+
     try {
-      await updateTicketStatus(id, status);
+      // Store previous state for rollback
+      previousState = JSON.parse(JSON.stringify(state.tickets));
 
-      set((state) => {
-        const { tickets } = state;
-        const ticketIndex = Object.values(tickets)
-          .flat()
-          .findIndex((ticket) => ticket.id === id);
+      // First update the local state immediately for better UX (optimistic update)
+      set((currentState) => {
+        const { tickets, all_tickets } = currentState;
 
-        if (ticketIndex === -1) {
-          return state;
+        // Find the ticket in the current state
+        let foundTicket: Ticket | null = null;
+        let currentStatus: Status | null = null;
+
+        // Look through all status arrays to find the ticket
+        for (const statusKey of Object.keys(tickets) as Status[]) {
+          const ticket = tickets[statusKey].find((t) => t.id === id);
+          if (ticket) {
+            foundTicket = ticket;
+            currentStatus = statusKey;
+            break;
+          }
         }
 
-        const ticket = Object.values(tickets).flat()[ticketIndex];
-        const updatedTicket = { ...ticket, status };
+        if (!foundTicket || !currentStatus) {
+          // If not found in status arrays, try to find in all_tickets
+          const ticketFromAll = all_tickets.find((t) => t.id === id);
+          if (ticketFromAll) {
+            foundTicket = ticketFromAll;
+            currentStatus = ticketFromAll.status as Status;
+          } else {
+            return currentState; // Ticket not found anywhere
+          }
+        }
 
-        // Remove the ticket from its current status array
-        const currentStatus = ticket.status;
-        const currentStatusTickets = tickets[currentStatus].filter(
-          (t) => t.id !== id,
+        const updatedTicket: Ticket = { ...foundTicket, status };
+
+        // Update all_tickets array
+        const updatedAllTickets = all_tickets.map((t) =>
+          t.id === id ? updatedTicket : t,
         );
 
-        // Add the ticket to the new status array
-        const newStatusTickets = [...tickets[status], updatedTicket];
+        if (currentStatus === status) {
+          // Same status, just update the ticket in place
+          const updatedStatusTickets = tickets[status].map((t) =>
+            t.id === id ? updatedTicket : t,
+          );
 
-        return {
-          ...state,
-          tickets: {
-            ...tickets,
-            [currentStatus]: currentStatusTickets,
-            [status]: newStatusTickets,
-          },
-          loading: false,
-        };
+          return {
+            ...currentState,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [status]: updatedStatusTickets,
+            },
+          };
+        } else {
+          // Different status, move the ticket
+          const currentStatusTickets = tickets[currentStatus].filter(
+            (t) => t.id !== id,
+          );
+
+          // Check if ticket already exists in new status (prevent duplicates)
+          const existsInNewStatus = tickets[status].some((t) => t.id === id);
+          const newStatusTickets = existsInNewStatus
+            ? tickets[status].map((t) => (t.id === id ? updatedTicket : t))
+            : [...tickets[status], updatedTicket];
+
+          return {
+            ...currentState,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [currentStatus]: currentStatusTickets,
+              [status]: newStatusTickets,
+            },
+          };
+        }
       });
+
+      // Then make the API call
+      await updateTicketStatusService(id, status);
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      // Rollback to previous state on error
+      if (previousState) {
+        set((currentState) => ({
+          ...currentState,
+          tickets: previousState!,
+          error: error.message || "Failed to update ticket status",
+        }));
+      } else {
+        set({ error: error.message || "Failed to update ticket status" });
+      }
+      throw error;
     }
   },
+
   createTicket: async (ticketData: CreateTicketInput) => {
     set({ loading: true, error: null });
     try {
@@ -271,40 +354,88 @@ export const useTicketStore = create<TicketState>((set) => ({
 
       // Add the complete ticket to the store
       set((state) => ({
+        ...state,
         tickets: {
           ...state.tickets,
           new: [ticket, ...state.tickets.new],
         },
+        all_tickets: [ticket, ...state.all_tickets],
         loading: false,
       }));
 
       // Refresh tickets to ensure data consistency
-      get().fetchTickets();
+      await get().fetchTickets();
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({
+        error: error.message || "Failed to create ticket",
+        loading: false,
+      });
+      throw error;
     }
   },
-  fetchTicketById: (id: string): Ticket | undefined => {
-    const ticket = useTicketStore.getState().tickets;
-    const allTickets = Object.values(ticket).flat();
-    const foundTicket = allTickets.find((t) => t.id === id);
-    return foundTicket;
-  },
-  updateTicket: async (updatedTicket: any) => {
-    set({ loading: true, error: null });
+
+  fetchTicketById: async (id: string): Promise<Ticket | undefined> => {
     try {
-      const response = await updateTicket(updatedTicket);
+      // First try to get from local state
+      const localTicket = get().getTicketFromState(id);
+      if (localTicket) {
+        return localTicket;
+      }
+
+      // If not found locally, fetch from API
+      const response = await getTicketById(id);
+      const ticket = response.ticket || response;
+
+      // Update local state with fetched ticket
+      set((state) => {
+        const updatedAllTickets = state.all_tickets.some((t) => t.id === id)
+          ? state.all_tickets.map((t) => (t.id === id ? ticket : t))
+          : [...state.all_tickets, ticket];
+
+        const ticketStatus = ticket.status as Status;
+        const updatedStatusTickets = state.tickets[ticketStatus].some(
+          (t) => t.id === id,
+        )
+          ? state.tickets[ticketStatus].map((t) => (t.id === id ? ticket : t))
+          : [...state.tickets[ticketStatus], ticket];
+
+        return {
+          ...state,
+          all_tickets: updatedAllTickets,
+          tickets: {
+            ...state.tickets,
+            [ticketStatus]: updatedStatusTickets,
+          },
+        };
+      });
+
+      return ticket;
+    } catch (error: any) {
+      set({ error: error.message || "Failed to fetch ticket" });
+      throw error;
+    }
+  },
+
+  updateTicket: async (updatedTicket: Partial<Ticket> & { id: string }) => {
+    const state = get();
+    let previousState: TicketsState | null = null;
+
+    try {
+      // Store previous state for potential rollback
+      previousState = JSON.parse(JSON.stringify(state.tickets));
+
+      const response = await updateTicketService(updatedTicket);
       const ticketFromServer = response.ticket || response;
 
-      set((state) => {
-        const { tickets, all_tickets } = state;
+      set((currentState) => {
+        const { tickets, all_tickets } = currentState;
 
         // Update all_tickets list
         const updatedAllTickets = all_tickets.map((t) =>
           t.id === ticketFromServer.id ? ticketFromServer : t,
         );
 
-        // Find current ticket status group to update in that array
+        // Find current ticket in any status group
         let foundStatus: Status | null = null;
         for (const statusKey of Object.keys(tickets) as Status[]) {
           if (tickets[statusKey].some((t) => t.id === ticketFromServer.id)) {
@@ -313,12 +444,34 @@ export const useTicketStore = create<TicketState>((set) => ({
           }
         }
 
+        // If ticket not found in any group, find it in all_tickets and use its current status
         if (!foundStatus) {
-          // Ticket not found in any group, just return state without changes
-          return { ...state, loading: false };
+          const existingTicket = all_tickets.find(
+            (t) => t.id === ticketFromServer.id,
+          );
+          if (existingTicket) {
+            foundStatus = existingTicket.status as Status;
+          }
         }
 
-        // If the ticket status has changed, move it to the correct status array
+        if (!foundStatus) {
+          // If still not found, just add to the new status array
+          const ticketNewStatus = ticketFromServer.status as Status;
+          return {
+            ...currentState,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [ticketNewStatus]: [
+                ...tickets[ticketNewStatus],
+                ticketFromServer,
+              ],
+            },
+            loading: false,
+          };
+        }
+
+        // Handle status change
         const ticketNewStatus = ticketFromServer.status as Status;
 
         if (foundStatus !== ticketNewStatus) {
@@ -327,14 +480,19 @@ export const useTicketStore = create<TicketState>((set) => ({
             (t) => t.id !== ticketFromServer.id,
           );
 
-          // Add to new status array
-          const updatedNewStatusTickets = [
-            ...tickets[ticketNewStatus],
-            ticketFromServer,
-          ];
+          // Check if ticket already exists in new status array (avoid duplicates)
+          const existsInNewStatus = tickets[ticketNewStatus].some(
+            (t) => t.id === ticketFromServer.id,
+          );
+
+          const updatedNewStatusTickets = existsInNewStatus
+            ? tickets[ticketNewStatus].map((t) =>
+                t.id === ticketFromServer.id ? ticketFromServer : t,
+              )
+            : [...tickets[ticketNewStatus], ticketFromServer];
 
           return {
-            ...state,
+            ...currentState,
             all_tickets: updatedAllTickets,
             tickets: {
               ...tickets,
@@ -350,7 +508,7 @@ export const useTicketStore = create<TicketState>((set) => ({
           );
 
           return {
-            ...state,
+            ...currentState,
             all_tickets: updatedAllTickets,
             tickets: {
               ...tickets,
@@ -361,9 +519,24 @@ export const useTicketStore = create<TicketState>((set) => ({
         }
       });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      // Rollback to previous state on error
+      if (previousState) {
+        set((currentState) => ({
+          ...currentState,
+          tickets: previousState!,
+          error: error.message || "Failed to update ticket",
+          loading: false,
+        }));
+      } else {
+        set({
+          error: error.message || "Failed to update ticket",
+          loading: false,
+        });
+      }
+      throw error;
     }
   },
+
   fetchDashboardCounts: async () => {
     set({ isLoadingDashboardCounts: true, error: null });
     try {
@@ -385,5 +558,15 @@ export const useTicketStore = create<TicketState>((set) => ({
         completedThisWeekCount: null,
       });
     }
+  },
+
+  // Helper functions
+  getTicketFromState: (id: string): Ticket | undefined => {
+    const state = get();
+    return state.all_tickets.find((ticket) => ticket.id === id);
+  },
+
+  clearError: () => {
+    set({ error: null });
   },
 }));

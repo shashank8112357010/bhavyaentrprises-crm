@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
-import { NotificationBell } from "@/components/notifications/notification-bell-standalone";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Bell, Menu, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
