@@ -38,42 +38,30 @@ export default function LoginPage() {
     }
 
     try {
-      // isLoading is set to true within the authStore.login action
       const result = await login(email, password);
-
-      console.log("Login result:", result);
 
       if (result.success) {
         toast({ title: "Success", description: "Logged in successfully!" });
 
-        // Small delay to ensure state is updated
         setTimeout(() => {
-          // Check if redirection is already handled by the service (e.g. for 302 status)
-          // If not, or if we need to ensure it for 200 status returns with user data:
           if (!window.location.pathname.startsWith("/dashboard")) {
-            // Using router.push for client-side navigation is generally preferred in Next.js
-            // but window.location.href is fine if full page reload is intended or if service layer used it.
             window.location.href = "/dashboard";
-            // Alternatively, to ensure full page reload: window.location.href = "/dashboard";
           }
         }, 100);
       } else {
-        console.error("Login failed:", result.error);
         toast({
           title: "Authentication failed",
-          description: result.error || "Invalid email or password", // Use error from store result
+          description: result.error || "Invalid email or password",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Login exception:", error);
       toast({
         title: "Login Error",
         description: "An unexpected error occurred during login",
         variant: "destructive",
       });
     }
-    // isLoading is set to false within the authStore.login action
   };
 
   const testAPI = async () => {
