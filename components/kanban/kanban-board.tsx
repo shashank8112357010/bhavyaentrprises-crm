@@ -24,7 +24,7 @@ import {
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
 import { Ticket } from "@/components/kanban/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Role } from "@/constants/roleAccessConfig";
 import { useAuthStore } from "@/store/authStore";
 
