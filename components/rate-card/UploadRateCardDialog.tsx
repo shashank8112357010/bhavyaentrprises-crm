@@ -61,9 +61,6 @@ export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
     try {
       setIsUploading(true);
       const response = await createRateCard(file);
-      setOpen(false);
-      reset();
-      onUploadSuccess();
 
       // Example response: { message: "Upload completed", successCount, duplicateCount, created }
       const { successCount, duplicateCount } = response;
@@ -78,6 +75,11 @@ export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
         description: toastDescription,
       });
 
+      // Call the success callback and wait for it to complete
+      await onUploadSuccess();
+
+      setOpen(false);
+      reset();
       console.log("Upload successful", response);
     } catch (err: any) {
       toast({
