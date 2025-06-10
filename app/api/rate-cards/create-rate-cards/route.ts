@@ -35,21 +35,29 @@ export async function POST(req: NextRequest) {
   let duplicateCount = 0;
   const createdEntries = [];
 
-  // Group records by bankName to manage serial numbers properly
-  const recordsByBank: { [bankName: string]: any[] } = {};
+  // Group records by bankName and bankRcNo combination to manage serial numbers properly
+  const recordsByBankAndRc: { [key: string]: any[] } = {};
   for (const record of records) {
     const bankName = record.bankName || record.bank_name || "BE"; // fallback to BE
-    if (!recordsByBank[bankName]) {
-      recordsByBank[bankName] = [];
+    const bankRcNo =
+      record.bankRcNo || record.bank_rc_no || record.bankRCNo || "RC001"; // fallback to RC001
+    const groupKey = `${bankName}-${bankRcNo}`;
+    if (!recordsByBankAndRc[groupKey]) {
+      recordsByBankAndRc[groupKey] = [];
     }
-    recordsByBank[bankName].push(record);
+    recordsByBankAndRc[groupKey].push({ ...record, bankName, bankRcNo });
   }
 
-  // Process each bank's records
-  for (const [bankName, bankRecords] of Object.entries(recordsByBank)) {
-    // Get the latest serial number for this bank
+  // Process each bank and RC combination's records
+  for (const [groupKey, bankRecords] of Object.entries(recordsByBankAndRc)) {
+    const [bankName, bankRcNo] = groupKey.split("-");
+
+    // Get the latest serial number for this bank and RC combination
     const latestRateCard = await prisma.rateCard.findFirst({
-      where: { bankName },
+      where: {
+        bankName,
+        bankRcNo,
+      },
       orderBy: { srNo: "desc" },
       select: { srNo: true },
     });
@@ -62,7 +70,8 @@ export async function POST(req: NextRequest) {
           description: record.description,
           unit: record.unit,
           rate: Number(record.rate),
-          bankName: bankName,
+          bankName: record.bankName,
+          bankRcNo: record.bankRcNo,
         });
 
         if (!parsed.success) {
