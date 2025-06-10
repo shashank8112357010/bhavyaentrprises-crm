@@ -76,8 +76,7 @@ export default function ReassignTicketDialog({
       );
 
       if (matchingAgent) {
-        const correctId =
-          matchingAgent.originalId || matchingAgent.userId || matchingAgent.id;
+        const correctId = matchingAgent.userId || matchingAgent.id;
         setSelectedAssigneeId(correctId);
       } else {
         setSelectedAssigneeId("");
