@@ -11,9 +11,9 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
-  output: "export",
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  experimental: {
+    runtime: "nodejs",
+  },
 
   async headers() {
     return [
