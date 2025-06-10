@@ -208,7 +208,8 @@ export function NewExpenseDialog({
         requester,
         paymentType,
         file: file || undefined,
-        screenshotFile: paymentType === "ONLINE" ? screenshotFile : undefined,
+        screenshotFile:
+          paymentType === "ONLINE" ? screenshotFile || undefined : undefined,
         approvalName:
           paymentType === "VCASH" || paymentType === "REST"
             ? approvalName
