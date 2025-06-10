@@ -258,12 +258,12 @@ export default function KanbanPage() {
     if (!ticketToHold) return;
 
     try {
+      // Update the ticket with hold reason and status
       await updateTicket({
         ...ticketToHold,
         holdReason: holdReasonText.trim(),
         status: "onHold",
       });
-      updateTicketStatus(ticketToHold.id, "onHold");
 
       toast({
         title: "Ticket Put On Hold",
