@@ -1,11 +1,30 @@
 "use client";
 
-// Page for Editing Existing Quotation
-import React, { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useRouter, useParams } from "next/navigation";
+import {
+  Loader2,
+  Save,
+  Download,
+  Search,
+  Plus,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,1158 +32,1370 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Printer, Trash2, UserPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-
-// Service and schema for client creation
-import { createClient } from "@/lib/services/client";
-import { createClientSchema } from "@/lib/validations/clientSchema";
-import { z } from "zod";
-
-// Service imports
 import {
-  getQuotationById,
-  updateQuotation,
-  UpdateQuotationParams,
-} from "@/lib/services/quotations";
-import { getAllRateCards } from "@/lib/services/rate-card";
-import {
-  getTicketsForSelection,
-  TicketForSelection,
-} from "@/lib/services/ticket";
-import { useQuotationStore } from "@/store/quotationStore";
-
-import apiRequest from "@/lib/axios";
-import { useAuthStore } from "@/store/authStore";
-
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
+
+// Validation schemas
+import { createClientSchema } from "@/lib/validations/clientSchema";
+import { quotationFormSchema } from "@/lib/validations/quotationSchema";
+import { inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema";
+
+// Services
+import { searchClients, createClient } from "@/lib/services/client";
+import { getAllRateCards } from "@/lib/services/rate-card";
+import { getQuotationById, updateQuotation } from "@/lib/services/quotations";
+import {
+  getTicketsForSelection,
+  TicketForSelection,
+} from "@/lib/services/ticket";
+import { useAuthStore } from "@/store/authStore";
+
+// Types
+type CreateClientFormData = z.infer<typeof createClientSchema>;
 
 interface Client {
   id: string;
+  displayId?: string;
   name: string;
-  email?: string;
+  type: string;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail?: string;
+  totalBranches: number;
+  gstn?: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
 }
 
-interface QuotationRateCardItem {
-  rateCardId: string;
+interface RateCard {
+  id: string;
+  srNo: number;
   description: string;
   unit: string;
   rate: number;
+  bankName: string;
+}
+
+interface QuotationItem extends RateCard {
   quantity: number;
   gstPercentage: number;
-  lineTotal: number;
+  totalValue: number;
+  rateCard: RateCard;
 }
 
-interface QuotationFormData {
-  id: string;
-  name: string;
-  quoteNo?: string;
-  clientId: string;
-  client?: Client;
-  date: string;
-  expiryDate?: string;
-  rateCardDetails: QuotationRateCardItem[];
-  status: string;
-  notes?: string;
-  currency?: string;
-  subtotal: number;
-  gst: number;
-  grandTotal: number;
-  pdfUrl?: string;
-  ticketId?: string | null;
-}
-
-type CreateClientFormData = z.infer<typeof createClientSchema>;
-
-interface RateCardItemsTableProps {
-  items: QuotationRateCardItem[];
-  onItemChange: (
-    index: number,
-    field: keyof QuotationRateCardItem,
-    value: any,
-  ) => void;
-  onRemoveItem: (index: number) => void;
-}
-
-const RateCardItemsTable: React.FC<RateCardItemsTableProps> = ({
-  items,
-  onItemChange,
-  onRemoveItem,
-}) => {
-  return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Description</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead>Rate</TableHead>
-            <TableHead className="w-[100px]">Quantity</TableHead>
-            <TableHead className="w-[100px]">GST %</TableHead>
-            <TableHead>Line Total</TableHead>
-            <TableHead className="w-[80px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item, index) => (
-            <TableRow key={item.rateCardId}>
-              <TableCell>{item.description}</TableCell>
-              <TableCell>{item.unit}</TableCell>
-              <TableCell>{item.rate.toFixed(2)}</TableCell>
-              <TableCell>
-                <Input
-                  type="number"
-                  value={item.quantity}
-                  onChange={(e) =>
-                    onItemChange(
-                      index,
-                      "quantity",
-                      parseFloat(e.target.value) || 0,
-                    )
-                  }
-                  className="w-full"
-                  min="0"
-                />
-              </TableCell>
-              <TableCell>
-                <Input
-                  type="number"
-                  value={item.gstPercentage}
-                  onChange={(e) =>
-                    onItemChange(
-                      index,
-                      "gstPercentage",
-                      parseFloat(e.target.value) || 0,
-                    )
-                  }
-                  className="w-full"
-                  min="0"
-                />
-              </TableCell>
-              <TableCell>{item.lineTotal.toFixed(2)}</TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onRemoveItem(index)}
-                  aria-label="Remove item"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          {items.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center">
-                No rate card items added.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
-};
-
-const ClientSearch = ({
-  selectedClient,
-  onSelectClient,
-  onCreateNewClient,
-}: {
-  selectedClient: Client | null;
-  onSelectClient: (client: Client) => void;
-  onCreateNewClient: () => void;
-}) => (
-  <div className="flex flex-col space-y-2">
-    <div className="flex space-x-2 items-center">
-      <Input placeholder="Search Client..." disabled className="flex-grow" />
-      {/* <Button onClick={() => onSelectClient({ id: "dummy-client-1", name: "Dummy Client Inc." })}>Select Dummy</Button> */}
-      <Button variant="outline" onClick={onCreateNewClient}>
-        <UserPlus className="mr-2 h-4 w-4" /> Create New
-      </Button>
-    </div>
-    {selectedClient && (
-      <div className="p-2 border rounded-md bg-muted mt-2">
-        <p className="font-medium">Selected Client:</p>
-        <p>
-          <strong>Name:</strong> {selectedClient.name}
-        </p>
-        {selectedClient.email && (
-          <p>
-            <strong>Email:</strong> {selectedClient.email}
-          </p>
-        )}
-      </div>
-    )}
-  </div>
-);
-
-const Calculations = ({
-  subtotal,
-  gst,
-  grandTotal,
-  currency,
-}: {
-  subtotal: number;
-  gst: number;
-  grandTotal: number;
-  currency?: string;
-}) => (
-  <div className="mt-4 space-y-2">
-    <div className="flex justify-between">
-      <span>Subtotal:</span>{" "}
-      <span>
-        {currency} {subtotal.toFixed(2)}
-      </span>
-    </div>
-    <div className="flex justify-between">
-      <span>GST:</span>{" "}
-      <span>
-        {currency} {gst.toFixed(2)}
-      </span>
-    </div>
-    <div className="flex justify-between font-bold">
-      <span>Grand Total:</span>{" "}
-      <span>
-        {currency} {grandTotal.toFixed(2)}
-      </span>
-    </div>
-  </div>
-);
-
-interface CreateClientDialogProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  onClientCreated: (client: Client) => void;
-}
-
-const CreateClientDialog: React.FC<CreateClientDialogProps> = ({
-  isOpen,
-  onOpenChange,
-  onClientCreated,
-}) => {
-  const { toast } = useToast();
-  const [isSubmittingDialog, setIsSubmittingDialog] = useState(false);
-  const [dialogFormData, setDialogFormData] = useState<
-    Partial<CreateClientFormData>
-  >({
-    type: "Bank",
-    contractStatus: "Active",
-    lastServiceDate: new Date().toISOString().split("T")[0],
+// Rate card service function for creating single rate card
+const createSingleRateCard = async (data: any) => {
+  const response = await fetch("/api/rate-cards/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
   });
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof CreateClientFormData, string>>
-  >({});
 
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value, type } = e.target;
-    setDialogFormData((prev) => ({
-      ...prev,
-      [name]: type === "number" ? parseInt(value, 10) : value,
-    }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to create rate card");
+  }
 
-  const handleSelectChange = (
-    name: keyof CreateClientFormData,
-    value: string,
-  ) => {
-    setDialogFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleDialogSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    setIsSubmittingDialog(true);
-
-    try {
-      const validatedData = createClientSchema.parse(dialogFormData);
-      const newClient = await createClient(validatedData);
-      toast({
-        title: "Success",
-        description: "New client created successfully.",
-      });
-      onClientCreated(newClient as Client);
-      onOpenChange(false);
-      setDialogFormData({
-        type: "Bank",
-        contractStatus: "Active",
-        lastServiceDate: new Date().toISOString().split("T")[0],
-      });
-      setErrors({});
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldErrors: Partial<Record<keyof CreateClientFormData, string>> =
-          {};
-        error.errors.forEach((err) => {
-          if (err.path[0])
-            fieldErrors[err.path[0] as keyof CreateClientFormData] =
-              err.message;
-        });
-        setErrors(fieldErrors);
-        toast({
-          title: "Validation Error",
-          description: "Please check the form fields.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: `Failed to create client: ${(error as Error).message}`,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsSubmittingDialog(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create New Client</DialogTitle>
-          <DialogDescription>
-            Fill in the details below to add a new client.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleDialogSubmit} className="space-y-4 py-4">
-          <div>
-            <Label htmlFor="name_edit_dialog">Client Name</Label>
-            <Input
-              id="name_edit_dialog"
-              name="name"
-              value={dialogFormData.name || ""}
-              onChange={handleInputChange}
-            />
-            {errors.name && (
-              <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="type_edit_dialog">Client Type</Label>
-            <Select
-              name="type"
-              value={dialogFormData.type || "Bank"}
-              onValueChange={(value) => handleSelectChange("type", value)}
-            >
-              <SelectTrigger id="type_edit_dialog">
-                <SelectValue placeholder="Select client type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Bank">Bank</SelectItem>
-                <SelectItem value="NBFC">NBFC</SelectItem>
-                <SelectItem value="Insurance">Insurance</SelectItem>
-                <SelectItem value="Corporate">Corporate</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.type && (
-              <p className="text-red-500 text-xs mt-1">{errors.type}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="totalBranches_edit_dialog">Total Branches</Label>
-            <Input
-              id="totalBranches_edit_dialog"
-              name="totalBranches"
-              type="number"
-              value={dialogFormData.totalBranches || ""}
-              onChange={handleInputChange}
-            />
-            {errors.totalBranches && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.totalBranches}
-              </p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="contactPerson_edit_dialog">Contact Person</Label>
-            <Input
-              id="contactPerson_edit_dialog"
-              name="contactPerson"
-              value={dialogFormData.contactPerson || ""}
-              onChange={handleInputChange}
-            />
-            {errors.contactPerson && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.contactPerson}
-              </p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="contactPhone_edit_dialog">Contact Phone</Label>
-            <Input
-              id="contactPhone_edit_dialog"
-              name="contactPhone"
-              value={dialogFormData.contactPhone || ""}
-              onChange={handleInputChange}
-            />
-            {errors.contactPhone && (
-              <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="contactEmail_edit_dialog">
-              Contact Email (Optional)
-            </Label>
-            <Input
-              id="contactEmail_edit_dialog"
-              name="contactEmail"
-              type="email"
-              value={dialogFormData.contactEmail || ""}
-              onChange={handleInputChange}
-            />
-            {errors.contactEmail && (
-              <p className="text-red-500 text-xs mt-1">{errors.contactEmail}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="contractStatus_edit_dialog">Contract Status</Label>
-            <Select
-              name="contractStatus"
-              value={dialogFormData.contractStatus || "Active"}
-              onValueChange={(value) =>
-                handleSelectChange("contractStatus", value)
-              }
-            >
-              <SelectTrigger id="contractStatus_edit_dialog">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.contractStatus && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.contractStatus}
-              </p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="lastServiceDate_edit_dialog">
-              Last Service Date
-            </Label>
-            <Input
-              id="lastServiceDate_edit_dialog"
-              name="lastServiceDate"
-              type="date"
-              value={dialogFormData.lastServiceDate || ""}
-              onChange={handleInputChange}
-            />
-            {errors.lastServiceDate && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.lastServiceDate}
-              </p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="gstn_edit_dialog">GSTN (Optional)</Label>
-            <Input
-              id="gstn_edit_dialog"
-              name="gstn"
-              value={dialogFormData.gstn || ""}
-              onChange={handleInputChange}
-            />
-          </div>
-          <div>
-            <Label htmlFor="avatar_edit_dialog">Avatar URL (Optional)</Label>
-            <Input
-              id="avatar_edit_dialog"
-              name="avatar"
-              value={dialogFormData.avatar || ""}
-              onChange={handleInputChange}
-            />
-          </div>
-          <div>
-            <Label htmlFor="initials_edit_dialog">Initials (Optional)</Label>
-            <Input
-              id="initials_edit_dialog"
-              name="initials"
-              value={dialogFormData.initials || ""}
-              onChange={handleInputChange}
-            />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={isSubmittingDialog}>
-              {isSubmittingDialog && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}{" "}
-              Create Client
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+  return response.json();
 };
 
-interface EditQuotationPageProps {
-  params: {
-    id: string;
-  };
-}
-
-const EditQuotationPage: React.FC<EditQuotationPageProps> = ({ params }) => {
-  const { id: quotationId } = params;
+export default function EditQuotationPage() {
   const router = useRouter();
+  const params = useParams();
+  const quotationId = params.id as string;
   const { toast } = useToast();
+  const { user } = useAuthStore();
 
-  const [formData, setFormData] = useState<Partial<QuotationFormData>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
+  // State for rate cards
+  const [rateCards, setRateCards] = useState<RateCard[]>([]);
+  const [rateCardSearch, setRateCardSearch] = useState("");
+  const [loadingRateCards, setLoadingRateCards] = useState(false);
+  const debouncedRateCardSearch = useDebounce(rateCardSearch, 300);
 
-  const [allRateCards, setAllRateCards] = useState<any[]>([]);
+  // State for selected rate card and quantity
+  const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(
+    null,
+  );
+  const [quantity, setQuantity] = useState<number>(1);
+
+  // State for quotation items
+  const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
+
+  // State for Rate Card Creation
+  const [isCreateRateCardDialogOpen, setIsCreateRateCardDialogOpen] =
+    useState<boolean>(false);
+  const [isCreatingRateCard, setIsCreatingRateCard] = useState<boolean>(false);
+
+  // State for ticket and client (auto-detected from ticket)
   const [ticketsForSelection, setTicketsForSelection] = useState<
     TicketForSelection[]
   >([]);
-  const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(true);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(false);
 
-  // State for Rate Card Search
-  const [rateCardSearchQuery, setRateCardSearchQuery] = useState<string>("");
-  const [rateCardSearchResults, setRateCardSearchResults] = useState<any[]>([]);
-  const [isSearchingRateCards, setIsSearchingRateCards] =
-    useState<boolean>(false);
-  const rateCardSearchDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
+  // State for save/export operations
+  const [isSavingQuotation, setIsSavingQuotation] = useState<boolean>(false);
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  const [isLoadingQuotation, setIsLoadingQuotation] = useState<boolean>(true);
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      setIsLoadingTickets(true);
-      try {
-        const rateCardsPromise = getAllRateCards({ limit: 1000 });
-        const ticketsPromise = getTicketsForSelection();
+  // Form for Quotation Details - ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL LOGIC
+  const quotationForm = useForm<z.infer<typeof quotationFormSchema>>({
+    resolver: zodResolver(quotationFormSchema),
+    defaultValues: {
+      serialNumber: "",
+      date: new Date().toISOString().split("T")[0],
+      salesType: "Interstate",
+      quotationNumber: `Q-${Date.now()}`,
+      validUntil: (() => {
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+        return oneWeekLater.toISOString().split("T")[0];
+      })(),
+      discount: "0",
+      expectedExpense: "0",
+    },
+  });
 
-        const [rateCardsResponse, ticketsData] = await Promise.all([
-          rateCardsPromise,
-          ticketsPromise,
-        ]);
+  // Client form for creating new clients
+  const clientForm = useForm<CreateClientFormData>({
+    resolver: zodResolver(createClientSchema),
+    defaultValues: {
+      name: "",
+      type: "",
+      contactPerson: "",
+      contactPhone: "",
+      contactEmail: "",
+      totalBranches: 1,
+      gstn: "",
+      address: "",
+      city: "",
+      state: "",
+      pincode: "",
+      initials: "",
+    },
+  });
 
-        setAllRateCards(rateCardsResponse.data || []);
-        setTicketsForSelection(ticketsData || []);
-      } catch (err) {
-        console.error("Failed to fetch initial data:", err);
-        toast({
-          title: "Error",
-          description: "Could not load required data (rate cards or tickets).",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingTickets(false);
-      }
-    };
-    fetchInitialData();
-  }, [toast]);
+  // Rate card form for creating new rate cards
+  type CreateRateCardFormData = z.infer<typeof inlineRateCardFormSchema>;
+  const rateCardForm = useForm<CreateRateCardFormData>({
+    resolver: zodResolver(inlineRateCardFormSchema),
+    defaultValues: {
+      description: "",
+      unit: "",
+      rate: 0,
+      bankName: "BE", // Default bank name as BE
+    },
+  });
 
-  useEffect(() => {
-    if (quotationId) {
-      setIsLoading(true);
-      getQuotationById(quotationId)
-        .then((data: any) => {
-          const transformedRateCardDetails: QuotationRateCardItem[] = (
-            allRateCards.length > 0 && data.rateCardDetails
-              ? data.rateCardDetails
-              : []
-          ).map((item: any) => {
-            const baseRateCard = allRateCards.find(
-              (rc) => rc.id === item.rateCardId,
-            );
-            const quantity = Number(item.quantity) || 0;
-            const gstPercentage = Number(item.gstPercentage) || 0;
-            const rate = baseRateCard ? Number(baseRateCard.rate) : 0;
-            return {
-              ...item,
-              description: baseRateCard?.description || "N/A",
-              unit: baseRateCard?.unit || "N/A",
-              rate: rate,
-              quantity: quantity,
-              gstPercentage: gstPercentage,
-              lineTotal: quantity * rate * (1 + gstPercentage / 100),
-            };
-          });
+  // Fetch existing quotation data
+  const fetchQuotationData = useCallback(async () => {
+    if (!quotationId) return;
 
-          setFormData({
-            ...data,
-            date: data.createdAt
-              ? new Date(data.createdAt).toISOString().split("T")[0]
-              : new Date().toISOString().split("T")[0],
-            expiryDate: data.expiryDate
-              ? new Date(data.expiryDate).toISOString().split("T")[0]
-              : undefined,
-            rateCardDetails: transformedRateCardDetails,
-            client: data.client || undefined,
-            ticketId: data.ticketId || null,
-            quoteNo: data.quoteNo || "", // Ensure quoteNo is populated
-          });
-          setError(null);
-        })
-        .catch((err:any) => {
-          setError(err.message || "Failed to fetch quotation data.");
-          toast({
-            title: "Error",
-            description: err.message,
-            variant: "destructive",
-          });
-        })
-        .finally(() => setIsLoading(false));
-    } else if (!quotationId) {
-      setError("No Quotation ID provided.");
-      setIsLoading(false);
-    }
-  }, [quotationId, toast, allRateCards]);
-
-  // Debounced Rate Card Search
-  useEffect(() => {
-    if (rateCardSearchDebounceRef.current) {
-      clearTimeout(rateCardSearchDebounceRef.current);
-    }
-    if (rateCardSearchQuery.trim() === "") {
-      setRateCardSearchResults([]);
-      setIsSearchingRateCards(false);
-      return;
-    }
-    setIsSearchingRateCards(true);
-    rateCardSearchDebounceRef.current = setTimeout(() => {
-      const searchLower = rateCardSearchQuery.toLowerCase();
-      const results = allRateCards.filter(
-        (rc) =>
-          (rc.description &&
-            rc.description.toLowerCase().includes(searchLower)) ||
-          (rc.productDescription &&
-            rc.productDescription.toLowerCase().includes(searchLower))
-      
-      );
-      setRateCardSearchResults(results);
-      setIsSearchingRateCards(false);
-    }, 500);
-
-    return () => {
-      if (rateCardSearchDebounceRef.current) {
-        clearTimeout(rateCardSearchDebounceRef.current);
-      }
-    };
-  }, [rateCardSearchQuery, allRateCards]);
-
-  const handleAddRateCardItemToQuotation = (rateCard: any) => {
-    const newItem: QuotationRateCardItem = {
-      rateCardId: rateCard.id,
-      description: rateCard.description || rateCard.productDescription || "N/A",
-      unit: rateCard.unit || "N/A",
-      rate: parseFloat(rateCard.rate || rateCard.unitPrice || "0"),
-      quantity: 1, // Default quantity
-      gstPercentage: 18, // Default GST
-      lineTotal:
-        parseFloat(rateCard.rate || rateCard.unitPrice || "0") *
-        1 *
-        (1 + 18 / 100),
-    };
-
-    setFormData((prev) => {
-      if (!prev) return prev;
-      const updatedItems = [...(prev.rateCardDetails || []), newItem];
-
-      let newSubtotal = 0;
-      let newGst = 0;
-      updatedItems.forEach((item) => {
-        const itemSub = item.rate * item.quantity;
-        newSubtotal += itemSub;
-        newGst += itemSub * (item.gstPercentage / 100);
-      });
-
-      return {
-        ...prev,
-        rateCardDetails: updatedItems,
-        subtotal: newSubtotal,
-        gst: newGst,
-        grandTotal: newSubtotal + newGst,
-      };
-    });
-    setRateCardSearchQuery(""); // Clear search query
-    setRateCardSearchResults([]); // Clear search results
-    toast({
-      title: "Item Added",
-      description: `${newItem.description} added to quotation.`,
-    });
-  };
-
-  const handleRateCardItemChange = (
-    index: number,
-    field: keyof QuotationRateCardItem,
-    value: any,
-  ) => {
-    setFormData((prev) => {
-      if (!prev || !prev.rateCardDetails) return prev;
-      const updatedItems = [...prev.rateCardDetails];
-      const itemToUpdate = { ...updatedItems[index] };
-
-      if (field === "quantity" || field === "gstPercentage") {
-        itemToUpdate[field] = Number(value);
-      }
-
-      const quantity =
-        field === "quantity" ? Number(value) : itemToUpdate.quantity;
-      const gstPercentage =
-        field === "gstPercentage" ? Number(value) : itemToUpdate.gstPercentage;
-      itemToUpdate.lineTotal =
-        itemToUpdate.rate * quantity * (1 + gstPercentage / 100);
-
-      updatedItems[index] = itemToUpdate;
-
-      let newSubtotal = 0;
-      let newGst = 0;
-      updatedItems.forEach((item) => {
-        const itemSub = item.rate * item.quantity;
-        newSubtotal += itemSub;
-        newGst += itemSub * (item.gstPercentage / 100);
-      });
-
-      return {
-        ...prev,
-        rateCardDetails: updatedItems,
-        subtotal: newSubtotal,
-        gst: newGst,
-        grandTotal: newSubtotal + newGst,
-      };
-    });
-  };
-
-  const handleRemoveRateCardItem = (indexToRemove: number) => {
-    setFormData((prev) => {
-      if (!prev || !prev.rateCardDetails) return prev;
-      const updatedItems = prev.rateCardDetails.filter(
-        (_, index) => index !== indexToRemove,
-      );
-
-      let newSubtotal = 0;
-      let newGst = 0;
-      updatedItems.forEach((item) => {
-        const itemSub = item.rate * item.quantity;
-        newSubtotal += itemSub;
-        newGst += itemSub * (item.gstPercentage / 100);
-      });
-
-      return {
-        ...prev,
-        rateCardDetails: updatedItems,
-        subtotal: newSubtotal,
-        gst: newGst,
-        grandTotal: newSubtotal + newGst,
-      };
-    });
-    toast({
-      title: "Item Removed",
-      description: "Rate card item removed from quotation.",
-    });
-  };
-
-  const handleClientSelect = (client: Client) => {
-    setFormData((prev) => ({ ...prev, clientId: client.id, client: client }));
-  };
-
-  const handleClientCreated = (newClient: Client) => {
-    handleClientSelect(newClient);
-    setIsClientDialogOpen(false);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData || !formData.id) {
-      toast({
-        title: "Error",
-        description: "Quotation data is not loaded.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!formData.clientId) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a client.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSaving(true);
+    setIsLoadingQuotation(true);
     try {
-      const { client, ...payload } = formData;
+      const quotationData = await getQuotationById(quotationId);
+      console.log("Fetched quotation data:", quotationData);
 
-      const rateCardDetailsForApi = formData.rateCardDetails?.map((item) => ({
-        rateCardId: item.rateCardId,
-        quantity: Number(item.quantity),
-        gstPercentage: Number(item.gstPercentage),
-      }));
+      // Set client data
+      if (quotationData.client) {
+        setSelectedClient(quotationData.client);
+      }
 
-      const updatePayload: UpdateQuotationParams = {
-        name: formData.name, // This is now Quotation Title
-        clientId: formData.clientId,
-        rateCardDetails: rateCardDetailsForApi,
-        ticketId: formData.ticketId || "",
-        // quoteNo is not part of UpdateQuotationParams as it's system-generated and shouldn't be updated by user
-      };
+      // Set ticket data
+      if (quotationData.ticketId) {
+        setSelectedTicketId(quotationData.ticketId);
+      }
 
-      const updatedData = await updateQuotation(formData.id, updatePayload);
-
-      const transformedDetailsAfterUpdate: QuotationRateCardItem[] = (
-        updatedData.rateCardDetails || []
-      ).map((item: any) => {
-        const baseRateCard = allRateCards.find(
-          (rc) => rc.id === item.rateCardId,
-        );
-        const quantity = Number(item.quantity) || 0;
-        const gstPercentage = Number(item.gstPercentage) || 0;
-        const rate = baseRateCard ? Number(baseRateCard.rate) : 0;
-        return {
-          ...item,
-          description: baseRateCard?.description || "N/A",
-          unit: baseRateCard?.unit || "N/A",
-          rate: rate,
-          quantity: quantity,
-          gstPercentage: gstPercentage,
-          lineTotal: quantity * rate * (1 + gstPercentage / 100),
-        };
+      // Set form data
+      quotationForm.reset({
+        serialNumber: quotationData.serialNumber || "",
+        date: quotationData.createdAt
+          ? new Date(quotationData.createdAt).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+        salesType: quotationData.salesType || "Interstate",
+        quotationNumber:
+          quotationData.quoteNo || quotationData.quotationNumber || "",
+        validUntil: quotationData.validUntil
+          ? new Date(quotationData.validUntil).toISOString().split("T")[0]
+          : "",
+        discount: quotationData.discount?.toString() || "0",
+        expectedExpense: quotationData.expectedExpense?.toString() || "0",
       });
 
-      setFormData((prev) => ({
-        ...prev,
-        ...updatedData,
-        rateCardDetails: transformedDetailsAfterUpdate,
-        client: prev?.client,
-        ticketId: updatedData.ticketId,
-        quoteNo: updatedData.quoteNo, // Ensure quoteNo is updated from response
-      }));
+      // Convert rate card details to quotation items
+      if (
+        quotationData.rateCardDetails &&
+        Array.isArray(quotationData.rateCardDetails)
+      ) {
+        const items: QuotationItem[] = [];
 
-      toast({
-        title: "Success",
-        description: `Quotation ${updatedData.quoteNo} updated.`,
-      });
-    } catch (err: any) {
+        for (const detail of quotationData.rateCardDetails) {
+          // Fetch rate card info
+          try {
+            const rateCardResponse = await getAllRateCards({
+              searchQuery: "",
+              limit: 1000,
+            });
+            const rateCard = rateCardResponse.data.find(
+              (rc: RateCard) => rc.id === detail.rateCardId,
+            );
+
+            if (rateCard) {
+              items.push({
+                ...rateCard,
+                quantity: detail.quantity || 1,
+                gstPercentage: detail.gstPercentage || detail.gstType || 18,
+                totalValue: (detail.quantity || 1) * rateCard.rate,
+                rateCard: rateCard,
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching rate card:", error);
+          }
+        }
+
+        setQuotationItems(items);
+      }
+    } catch (error: any) {
+      console.error("Error fetching quotation:", error);
       toast({
         title: "Error",
-        description: err.message || "Failed to update quotation.",
+        description: error.message || "Failed to fetch quotation data.",
         variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
+      setIsLoadingQuotation(false);
     }
-  };
+  }, [quotationId, toast, quotationForm]);
 
-  const handleDelete = async () => {
-    if (!formData.id) {
+  // Fetch tickets for selection
+  const fetchTicketsForSelection = useCallback(async () => {
+    console.log("Fetching tickets for selection...");
+    setIsLoadingTickets(true);
+    try {
+      let tickets;
+      try {
+        tickets = await getTicketsForSelection();
+        console.log("Tickets fetched via service:", tickets);
+      } catch (serviceError) {
+        console.warn(
+          "Service method failed, trying direct fetch:",
+          serviceError,
+        );
+
+        // Fallback to direct fetch
+        const response = await fetch("/api/tickets/selection", {
+          credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `HTTP ${response.status}: ${response.statusText} - ${errorText}`,
+          );
+        }
+
+        const data = await response.json();
+        tickets = data.tickets || data;
+        console.log("Tickets fetched via direct fetch:", tickets);
+      }
+
+      setTicketsForSelection(tickets || []);
+
+      if (!tickets || tickets.length === 0) {
+        toast({
+          title: "No Tickets",
+          description: "No tickets available for quotation creation.",
+        });
+      } else {
+        console.log(`Successfully loaded ${tickets.length} tickets`);
+      }
+    } catch (error: any) {
+      console.error("Error fetching tickets:", error);
       toast({
         title: "Error",
-        description: "No quotation ID found to delete.",
+        description: error.message || "Failed to fetch tickets for selection.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  }, [toast]);
+
+  // Fetch rate cards
+  const searchRateCards = useCallback(
+    async (searchQuery: string) => {
+      setLoadingRateCards(true);
+      try {
+        const response = await getAllRateCards({
+          limit: 100,
+          searchQuery,
+        });
+        setRateCards(response.data || []);
+      } catch (error) {
+        console.error("Error fetching rate cards:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch rate cards.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingRateCards(false);
+      }
+    },
+    [toast],
+  );
+
+  // Auto-fetch client info when ticket is selected
+  const handleTicketSelect = useCallback(
+    async (ticketId: string) => {
+      setSelectedTicketId(ticketId);
+      try {
+        // Fetch ticket details to get client info
+        const response = await fetch(`/api/ticket/${ticketId}`, {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const ticketData = await response.json();
+          if (ticketData.client) {
+            setSelectedClient(ticketData.client);
+            toast({
+              title: "Success",
+              description: `Client "${ticketData.client.name}" auto-selected from ticket.`,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching ticket details:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch ticket details.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast],
+  );
+
+  // Initial data fetch
+  useEffect(() => {
+    // Only fetch data if user is authorized
+    if (user?.role === "ADMIN") {
+      fetchTicketsForSelection();
+      fetchQuotationData();
+    }
+  }, [fetchTicketsForSelection, fetchQuotationData, user?.role]);
+
+  // Debounced rate card search
+  useEffect(() => {
+    if (user?.role === "ADMIN") {
+      searchRateCards(debouncedRateCardSearch);
+    }
+  }, [debouncedRateCardSearch, searchRateCards, user?.role]);
+
+  // Handle rate card selection
+  const handleRateCardSelect = (rateCard: RateCard) => {
+    setSelectedRateCard(rateCard);
+  };
+
+  // Handle adding rate card to quotation
+  const handleAddToQuotation = () => {
+    if (!selectedRateCard || quantity <= 0) {
+      toast({
+        title: "Error",
+        description: "Please select a rate card and enter a valid quantity.",
         variant: "destructive",
       });
       return;
     }
-    if (window.confirm("Are you sure you want to delete this quotation?")) {
-      try {
-        await apiRequest(`/api/quotations/${formData.id}`, {
-          method: "DELETE",
-        });
-        toast({ title: "Success", description: "Quotation deleted." });
-        router.push("/dashboard/quotations");
-      } catch (error: any) {
-        toast({
-          title: "Error deleting quotation",
-          description: error.message,
-          variant: "destructive",
-        });
+
+    // Check if the rate card already exists in quotation
+    const existingItemIndex = quotationItems.findIndex(
+      (item) => item.id === selectedRateCard.id,
+    );
+
+    if (existingItemIndex !== -1) {
+      // Update existing item quantity
+      const updatedItems = [...quotationItems];
+      updatedItems[existingItemIndex] = {
+        ...updatedItems[existingItemIndex],
+        quantity: updatedItems[existingItemIndex].quantity + quantity,
+        totalValue:
+          (updatedItems[existingItemIndex].quantity + quantity) *
+          selectedRateCard.rate,
+      };
+      setQuotationItems(updatedItems);
+    } else {
+      // Add new item
+      const newItem: QuotationItem = {
+        ...selectedRateCard,
+        quantity,
+        gstPercentage: 18,
+        totalValue: quantity * selectedRateCard.rate,
+        rateCard: selectedRateCard,
+      };
+      setQuotationItems([...quotationItems, newItem]);
+    }
+
+    setSelectedRateCard(null);
+    setQuantity(1);
+    setRateCardSearch("");
+  };
+
+  // Handle save quotation
+  const handleSaveQuotation = async () => {
+    if (!selectedClient || quotationItems.length === 0 || !selectedTicketId) {
+      toast({
+        title: "Error",
+        description: "Please select a ticket and add items to quotation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate form before proceeding
+    const isFormValid = await quotationForm.trigger();
+    if (!isFormValid) {
+      toast({
+        title: "Form Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingQuotation(true);
+    try {
+      const formValues = quotationForm.getValues();
+
+      // Validate that we have a quotation number
+      if (
+        !formValues.quotationNumber ||
+        formValues.quotationNumber.trim() === ""
+      ) {
+        throw new Error("Quotation number is required");
       }
+
+      // Calculate totals
+      const subtotal = quotationItems.reduce(
+        (sum, item) => sum + item.totalValue,
+        0,
+      );
+      const discount = parseFloat(formValues.discount || "0");
+      const discountAmount = (subtotal * discount) / 100;
+      const afterDiscount = subtotal - discountAmount;
+      const gstAmount = quotationItems.reduce((sum, item) => {
+        const itemTotal = item.totalValue;
+        return sum + (itemTotal * item.gstPercentage) / 100;
+      }, 0);
+      const grandTotal = afterDiscount + gstAmount;
+
+      const quotationData = {
+        name: formValues.quotationNumber.trim(), // Use quotation number as name
+        clientId: selectedClient.id,
+        ticketId: selectedTicketId,
+        expectedExpense: formValues.expectedExpense
+          ? parseFloat(formValues.expectedExpense) || 0
+          : 0,
+        rateCardDetails: quotationItems.map((item) => ({
+          rateCardId: item.id,
+          quantity: item.quantity,
+          gstPercentage: item.gstPercentage,
+        })),
+        // Add required totals for the API
+        subtotal: subtotal,
+        gst: gstAmount,
+        grandTotal: grandTotal,
+      };
+
+      console.log(
+        "Sending quotation update data:",
+        JSON.stringify(quotationData, null, 2),
+      );
+
+      await updateQuotation(quotationId, quotationData);
+      toast({
+        title: "Success",
+        description: "Quotation updated successfully!",
+      });
+      router.push("/dashboard/quotations");
+    } catch (error: any) {
+      console.error("Quotation update error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update quotation.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingQuotation(false);
     }
   };
 
-  if (isLoading && !formData.id)
+  // Handle export PDF
+  const handleExportPdf = async () => {
+    if (!selectedClient || quotationItems.length === 0 || !selectedTicketId) {
+      toast({
+        title: "Error",
+        description: "Please select a ticket and add items to quotation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate form before proceeding
+    const isFormValid = await quotationForm.trigger();
+    if (!isFormValid) {
+      toast({
+        title: "Form Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExportingPdf(true);
+    try {
+      const formValues = quotationForm.getValues();
+
+      // Validate that we have a quotation number
+      if (
+        !formValues.quotationNumber ||
+        formValues.quotationNumber.trim() === ""
+      ) {
+        throw new Error("Quotation number is required");
+      }
+
+      const quotationData = {
+        name: formValues.quotationNumber.trim(), // Use quotation number as name
+        clientId: selectedClient.id,
+        ticketId: selectedTicketId,
+        salesType: formValues.salesType,
+        date: formValues.date,
+        quotationNumber: formValues.quotationNumber.trim(),
+        validUntil: formValues.validUntil,
+        expectedExpense: formValues.expectedExpense
+          ? parseFloat(formValues.expectedExpense) || 0
+          : 0,
+        discount: formValues.discount,
+        serialNumber: formValues.serialNumber,
+        rateCardDetails: quotationItems.map((item) => ({
+          rateCardId: item.id,
+          quantity: item.quantity,
+          gstPercentage: item.gstPercentage,
+          totalValue: item.totalValue,
+        })),
+      };
+
+      console.log(
+        "Sending PDF export data:",
+        JSON.stringify(quotationData, null, 2),
+      );
+
+      const response = await fetch("/api/quotations/preview-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(quotationData),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `quotation-${quotationData.quotationNumber}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Success",
+          description: "PDF downloaded successfully!",
+        });
+      } else {
+        const errorText = await response.text();
+        console.error("PDF generation error response:", errorText);
+        throw new Error(
+          `Failed to generate PDF: ${response.status} ${response.statusText}`,
+        );
+      }
+    } catch (error: any) {
+      console.error("PDF export error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to export PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  // Handle quantity change
+  const handleQuantityChange = (index: number, newQuantity: number) => {
+    if (newQuantity < 0) return;
+
+    const updatedItems = [...quotationItems];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      quantity: newQuantity,
+      totalValue: newQuantity * updatedItems[index].rate,
+    };
+    setQuotationItems(updatedItems);
+  };
+
+  // Handle GST change
+  const handleGstChange = (index: number, newGst: number) => {
+    if (newGst < 0 || newGst > 100) return;
+
+    const updatedItems = [...quotationItems];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      gstPercentage: newGst,
+    };
+    setQuotationItems(updatedItems);
+  };
+
+  // Handle remove item
+  const handleRemoveItem = (index: number) => {
+    setQuotationItems(quotationItems.filter((_, i) => i !== index));
+  };
+
+  // Rate card form submit
+  const onRateCardFormSubmit = async (values: CreateRateCardFormData) => {
+    setIsCreatingRateCard(true);
+    try {
+      const newRateCard = await createSingleRateCard(values);
+      toast({
+        title: "Success",
+        description: "Rate card created successfully!",
+      });
+      setIsCreateRateCardDialogOpen(false);
+      rateCardForm.reset({
+        description: "",
+        unit: "",
+        rate: 0,
+        bankName: "BE",
+      });
+
+      // Automatically add the new rate card to the quotation
+      if (newRateCard) {
+        handleRateCardSelect(newRateCard);
+      }
+
+      // Refresh rate card search to include new card
+      if (rateCardSearch) {
+        searchRateCards(rateCardSearch);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create rate card.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingRateCard(false);
+    }
+  };
+
+  // Calculate totals
+  const subtotal = quotationItems.reduce(
+    (sum, item) => sum + item.totalValue,
+    0,
+  );
+  const discount = parseFloat(quotationForm.watch("discount") || "0");
+  const discountAmount = (subtotal * discount) / 100;
+  const afterDiscount = subtotal - discountAmount;
+  const gstAmount = quotationItems.reduce((sum, item) => {
+    const itemTotal = item.totalValue;
+    return sum + (itemTotal * item.gstPercentage) / 100;
+  }, 0);
+  const grandTotal = afterDiscount + gstAmount;
+
+  // Role-based access control - AFTER ALL HOOKS ARE CALLED
+  if (user?.role !== "ADMIN") {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" /> Loading...
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground">
+              Only administrators can edit quotations.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
-  if (error) return <div className="text-destructive p-4">Error: {error}</div>;
-  if (!formData.id && !isLoading)
-    return <div className="p-4">Quotation not found.</div>;
+  }
+
+  // Loading state
+  if (isLoadingQuotation) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center p-6">
+            <Loader2 className="h-8 w-8 animate-spin mr-2" />
+            Loading quotation data...
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">
-          Edit Quotation {formData.quoteNo || `(ID: ${formData.id})`}
-        </h1>
-        <div className="flex gap-2">
+    <div className="flex-1 space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Edit Quotation</h2>
+          <p className="text-muted-foreground">
+            Modify quotation details and rate card items.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={() => router.push("/dashboard/quotations")}
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSaving || isLoading}>
-            {isSaving ? (
+          <Button
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={
+              isExportingPdf || !selectedClient || quotationItems.length === 0
+            }
+          >
+            {isExportingPdf ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Export PDF
+          </Button>
+          <Button
+            onClick={handleSaveQuotation}
+            disabled={
+              isSavingQuotation ||
+              !selectedClient ||
+              quotationItems.length === 0
+            }
+          >
+            {isSavingQuotation ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Save className="mr-2 h-4 w-4" />
-            )}{" "}
-            Update
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={isSaving || isLoading}
-          >
-            <Trash2 className="mr-2 h-4 w-4" /> Delete
+            )}
+            Update Quotation
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Rate Card Selection */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Ticket Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Client Details</CardTitle>
+              <CardTitle>Select Ticket</CardTitle>
+              <CardDescription>
+                Choose a ticket for which you want to edit a quotation. Client
+                will be auto-selected.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <ClientSearch
-                selectedClient={formData.client || null}
-                onSelectClient={handleClientSelect}
-                onCreateNewClient={() => setIsClientDialogOpen(true)}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quotation Info</CardTitle>
-            </CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="quotationNumberDisplay">Quotation Number</Label>
-                <Input
-                  id="quotationNumberDisplay"
-                  value={formData.quoteNo || ""}
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label htmlFor="quotationName">Quotation Title</Label>
-                <Input
-                  id="quotationName"
-                  value={formData.name || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="E.g., Supply of Office Stationery"
-                />
-              </div>
-              <div>
-                <Label htmlFor="quotationDate">Date</Label>
-                <Input
-                  id="quotationDate"
-                  type="date"
-                  value={formData.date || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, date: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="expiryDate">Expiry Date (Optional)</Label>
-                <Input
-                  id="expiryDate"
-                  type="date"
-                  value={formData.expiryDate || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      expiryDate: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              {/* Status field removed */}
-              <div>
-                <Label htmlFor="linkedTicket">Linked Ticket (Optional)</Label>
-                <Select
-                  value={formData.ticketId || ""}
-                  onValueChange={(value) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      ticketId: value === "" ? null : value,
-                    }));
-                  }}
-                  disabled={isLoadingTickets || isLoading}
-                >
-                  <SelectTrigger id="linkedTicket">
-                    <SelectValue
-                      placeholder={
-                        isLoadingTickets
-                          ? "Loading tickets..."
-                          : "Select a ticket"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">
-                      None - No ticket linked
-                    </SelectItem>
-                    {ticketsForSelection.map((ticket) => (
-                      <SelectItem key={ticket.id} value={ticket.id}>
-                        {ticket.ticketId} - {ticket.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Rate Card Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RateCardItemsTable
-                items={formData.rateCardDetails || []}
-                onItemChange={handleRateCardItemChange}
-                onRemoveItem={handleRemoveRateCardItem}
-              />
-              <div className="mt-4 space-y-2">
-                <Label htmlFor="rateCardSearch">Add Rate Card Item</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="rateCardSearch"
-                    placeholder="Search rate cards by name or description..."
-                    value={rateCardSearchQuery}
-                    onChange={(e) => setRateCardSearchQuery(e.target.value)}
-                    className="flex-grow"
-                  />
-                  {isSearchingRateCards && (
-                    <Loader2 className="h-5 w-5 animate-spin self-center" />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="ticketSelect">Ticket</Label>
+                  {process.env.NODE_ENV === "development" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchTicketsForSelection}
+                      disabled={isLoadingTickets}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 mr-1 ${isLoadingTickets ? "animate-spin" : ""}`}
+                      />
+                      {isLoadingTickets ? "Loading..." : "Refresh"}
+                    </Button>
                   )}
                 </div>
-                {rateCardSearchResults.length > 0 && (
-                  <div className="border rounded-md max-h-60 overflow-y-auto">
-                    {rateCardSearchResults.map((rc) => (
-                      <div
-                        key={rc.id}
-                        className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
-                        onClick={() => handleAddRateCardItemToQuotation(rc)}
-                      >
-                        <p className="font-medium">
-                          {rc.description || rc.productDescription}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Unit: {rc.unit} | Rate: {rc.rate || rc.unitPrice}
-                        </p>
-                      </div>
-                    ))}
+                <Select
+                  value={selectedTicketId}
+                  onValueChange={handleTicketSelect}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a ticket" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingTickets ? (
+                      <SelectItem value="loading" disabled>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading tickets...
+                      </SelectItem>
+                    ) : ticketsForSelection.length > 0 ? (
+                      ticketsForSelection.map((ticket) => (
+                        <SelectItem key={ticket.id} value={ticket.id}>
+                          {ticket.ticketId} - {ticket.title}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-tickets" disabled>
+                        No tickets available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+
+                {selectedClient && (
+                  <div className="p-3 bg-muted rounded-md">
+                    <h4 className="font-medium">Auto-selected Client:</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedClient.name} (
+                      {selectedClient.displayId || selectedClient.id})
+                    </p>
                   </div>
                 )}
-                {rateCardSearchQuery.trim() &&
-                  !isSearchingRateCards &&
-                  rateCardSearchResults.length === 0 && (
-                    <div className="text-sm text-muted-foreground p-2 text-center">
-                      No rate cards found.
-                    </div>
-                  )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Rate Card Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Select Rate Cards</CardTitle>
+              <CardDescription>
+                Search and add rate cards to your quotation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Search Rate Cards */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="rateCardSearch">Search Rate Cards</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="rateCardSearch"
+                      placeholder="Search rate cards..."
+                      type="text"
+                      value={rateCardSearch}
+                      onChange={(e) => setRateCardSearch(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+
+                {/* Rate Cards List */}
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {loadingRateCards ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Loading rate cards...
+                    </div>
+                  ) : rateCards.length > 0 ? (
+                    <div className="space-y-2">
+                      {rateCards.map((rateCard) => (
+                        <div
+                          key={rateCard.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedRateCard?.id === rateCard.id
+                              ? "border-primary bg-primary/5"
+                              : "hover:bg-accent"
+                          }`}
+                          onClick={() => handleRateCardSelect(rateCard)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium">
+                                {rateCard.description}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {rateCard.unit} • ₹
+                                {rateCard.rate.toLocaleString()}
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              #{rateCard.srNo}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground p-4">
+                      {rateCardSearch
+                        ? "No rate cards found matching your search."
+                        : "No rate cards available."}
+                    </p>
+                  )}
+                </div>
+
+                {/* Create New Rate Card Button */}
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateRateCardDialogOpen(true)}
+                  className="w-full"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create New Rate Card
+                </Button>
+
+                {/* Add to Quotation Section */}
+                {selectedRateCard && (
+                  <div className="border-t pt-4 space-y-4">
+                    <div>
+                      <h4 className="font-medium">Selected Rate Card</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedRateCard.description}
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="1"
+                        value={quantity}
+                        onChange={(e) =>
+                          setQuantity(parseInt(e.target.value) || 1)
+                        }
+                      />
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>
+                        Rate: ₹{selectedRateCard.rate.toLocaleString()}
+                      </span>
+                      <span className="font-medium">
+                        Total: {quantity} × ₹
+                        {selectedRateCard.rate.toLocaleString()} = ₹
+                        {(quantity * selectedRateCard.rate).toLocaleString()}
+                      </span>
+                    </div>
+                    <Button onClick={handleAddToQuotation} className="w-full">
+                      Add to Quotation
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quotation Items */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quotation Items</CardTitle>
+              <CardDescription>Items added to this quotation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {quotationItems.length === 0 ? (
+                <p className="text-center text-muted-foreground p-8">
+                  No items added to quotation yet.
+                </p>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead>Rate</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>GST%</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {quotationItems.map((item, index) => (
+                        <TableRow key={`${item.id}-${index}`}>
+                          <TableCell className="font-medium">
+                            {item.rateCard.description}
+                          </TableCell>
+                          <TableCell>{item.rateCard.unit}</TableCell>
+                          <TableCell>
+                            ₹{item.rateCard.rate.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleQuantityChange(
+                                  index,
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                              className="w-20"
+                              min="0"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.gstPercentage}
+                              onChange={(e) =>
+                                handleGstChange(
+                                  index,
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                              className="w-20"
+                              min="0"
+                              max="100"
+                            />
+                          </TableCell>
+                          <TableCell>₹{item.totalValue.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRemoveItem(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        <div className="md:col-span-1 space-y-6">
+        {/* Right Column - Quotation Details and Summary */}
+        <div className="space-y-6">
+          {/* Quotation Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Summary & Actions</CardTitle>
+              <CardTitle>Quotation Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <Calculations
-                subtotal={formData.subtotal || 0}
-                gst={formData.gst || 0}
-                grandTotal={formData.grandTotal || 0}
-                currency={formData.currency || "INR"}
-              />
-              <div className="mt-6 space-y-2">
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => {
-                    if (
-                      formData.pdfUrl &&
-                      typeof formData.pdfUrl === "string" &&
-                      formData.pdfUrl.trim() !== ""
-                    ) {
-                      window.open(formData.pdfUrl, "_blank");
-                    } else {
-                      toast({
-                        title: "PDF Not Available",
-                        description:
-                          "The PDF for this quotation has not been generated or the URL is missing. Please save the quotation or try generating the PDF if applicable.",
-                        variant: "default",
-                      });
-                    }
-                  }}
-                  disabled={!formData.pdfUrl}
-                >
-                  <Printer className="mr-2 h-4 w-4" /> View PDF
-                </Button>
-              </div>
+              <Form {...quotationForm}>
+                <form className="space-y-4">
+                  <FormField
+                    control={quotationForm.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={quotationForm.control}
+                    name="salesType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sales Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select sales type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Interstate">
+                              Interstate
+                            </SelectItem>
+                            <SelectItem value="Intrastate">
+                              Intrastate
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={quotationForm.control}
+                    name="quotationNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Quotation Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter quotation number"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={quotationForm.control}
+                    name="validUntil"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valid Until</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={quotationForm.control}
+                    name="discount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Discount (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="Enter discount percentage"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={quotationForm.control}
+                    name="expectedExpense"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expected Expense</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Enter expected expense"
+                            {...field}
+                            onChange={(e) => {
+                              // Update the field value while keeping it as a string for form state
+                              field.onChange(e.target.value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
             </CardContent>
           </Card>
 
+          {/* Summary */}
           <Card>
             <CardHeader>
-              <CardTitle>Notes</CardTitle>
+              <CardTitle>Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea
-                value={formData.notes || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                }
-                placeholder="Internal notes or notes for client..."
-                rows={4}
-              />
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span>Items:</span>
+                  <span>{quotationItems.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                {discount > 0 && (
+                  <>
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({discount}%):</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>After Discount:</span>
+                      <span>₹{afterDiscount.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between">
+                  <span>GST:</span>
+                  <span>₹{gstAmount.toFixed(2)}</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Grand Total:</span>
+                    <span>₹{grandTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <CreateClientDialog
-        isOpen={isClientDialogOpen}
-        onOpenChange={setIsClientDialogOpen}
-        onClientCreated={handleClientCreated}
-      />
+      {/* Create Rate Card Dialog */}
+      <Dialog
+        open={isCreateRateCardDialogOpen}
+        onOpenChange={setIsCreateRateCardDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Rate Card</DialogTitle>
+            <DialogDescription>
+              Add a new rate card to your database. Serial number will be
+              auto-generated.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...rateCardForm}>
+            <form
+              onSubmit={rateCardForm.handleSubmit(onRateCardFormSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={rateCardForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter rate card description"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={rateCardForm.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., pcs, kg, m" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="rate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rate *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={rateCardForm.control}
+                name="bankName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bank Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="BE" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreateRateCardDialogOpen(false)}
+                  disabled={isCreatingRateCard}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isCreatingRateCard}>
+                  {isCreatingRateCard ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Rate Card"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default EditQuotationPage;
+}
