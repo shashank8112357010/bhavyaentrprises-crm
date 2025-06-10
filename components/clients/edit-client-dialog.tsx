@@ -29,7 +29,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 
 interface Client {
-  id: string;
+  id?: string;
+  displayId?: string; // Add displayId field
   name: string;
   type: string;
   totalBranches: number;
@@ -38,11 +39,15 @@ interface Client {
   contactPhone: string;
   contractStatus: string;
   lastServiceDate: string;
+  avatar: string;
+  initials: string;
+  activeTickets?: number;
   gstn?: string;
+  tickets: any[];
 }
 
 interface EditClientDialogProps {
-  client: Client | null;
+  client: Client | null; // Allow client to be null initially;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;

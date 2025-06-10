@@ -570,7 +570,14 @@ export default function TicketDetailsPage() {
               <NewExpenseDialog
                 onSuccess={loadTicketData}
                 ticketId={ticket.id}
-                ticketQuotations={ticket.Quotation || []}
+                ticketQuotations={ticket.Quotation?.map((q:any) => ({
+                  id: q.id,
+                  name: q.name,
+                  client: {
+                    name : q?.client?.name || "N/A",
+                    id: q?.client?.id || "",
+                  } // Ensure that `client` is included in the mapping
+                })) || []}
               />
             </div>
           )}

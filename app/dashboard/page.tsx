@@ -89,14 +89,14 @@ export default function Home() {
             Monitor repairs, track progress, and manage client requests
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           {isAdminOrAccounts && (
             <Button variant="outline">
               <Plus className="mr-2 h-4 w-4" />
               New Ticket
             </Button>
           )}
-        </div>
+        </div> */}
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">

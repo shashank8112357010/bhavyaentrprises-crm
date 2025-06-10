@@ -1,41 +1,121 @@
 // lib/services/ticket.ts
 import axios from "../axios";
 
+// Type for User details within a Comment
+interface CommentUser {
+  id: string;
+  name: string | null;
+  avatar: string | null;
+  initials: string | null;
+}
+
+// Type for Comment
+interface Comment {
+  id: string;
+  text: string;
+  createdAt: string; // Assuming ISO string date
+  userId: string;
+  user: CommentUser;
+  // ticketId is implicitly known
+}
+
+
+// Type for Client
+interface Client {
+  id: string;
+  name: string;
+  // Add other relevant client fields: e.g., type, contactPerson, contactEmail, gstn
+  type?: string;
+  contactPerson?: string;
+  contactEmail?: string | null;
+  gstn?: string | null;
+  initials?: string; // from schema
+}
+
+
+// Type for Assignee (User)
+interface Assignee {
+  id: string;
+  name: string | null;
+  email: string | null; // Included based on API update
+  avatar: string | null;
+  initials: string | null;
+  role?: string; // Included based on API update
+  // Add other relevant user fields if needed
+}
+
+// Type for WorkStage
+interface WorkStage {
+  id: string;
+  stateName: string;
+  adminName: string;
+  clientName: string;
+  siteName: string;
+  quoteNo: string;
+  dateReceived: string; // Assuming ISO string date
+  quoteTaxable: number;
+  quoteAmount: number;
+  workStatus: string;
+  approval: string;
+  poStatus: boolean;
+  poNumber: string;
+  jcrStatus: boolean; // In schema it was string, but boolean makes more sense
+  agentName: string;
+  // ticketId is implicitly known
+}
+
+// Type for Quotation
+interface Quotation {
+  id: string;
+  name: string;
+  pdfUrl: string;
+  // clientId is implicitly known via ticket
+  createdAt: string; // Assuming ISO string date
+  // rateCardDetails: any; // This was Json?, define more strictly if possible or needed for UI
+  ticketId: string | null;
+  subtotal: number;
+  gst: number;
+  grandTotal: number;
+  expectedExpense?: number; // Add expected expense field
+  // Add other relevant quotation fields
+}
+
+// Type for Expense
+interface Expense {
+  id: string;
+  customId: string;
+  amount: number;
+  description: string;
+  category: string; // Assuming enum converted to string (e.g., LABOR, TRANSPORT)
+  requester: string;
+  paymentType: string; // Assuming enum converted to string (e.g., VCASH, ONLINE)
+  // quotationId: string | null; // Not directly needed if always accessed via ticket
+  // ticketId: string | null; // Implicitly known
+  createdAt: string; // Assuming ISO string date
+  pdfUrl: string | null;
+  // Add other relevant expense fields
+}
+
 export type Ticket = {
   id: string;
   title: string;
-  client: string;
+
   branch: string;
   priority: string;
-  assignee: {
-    name: string;
-    avatar: string;
-    initials: string;
-  };
-  workStage: {
-    stateName: string;
-    adminName: string;
-    clientName: string;
-    siteName: string;
-    quoteNo: string;
-    dateReceived: string;
-    quoteTaxable: number;
-    quoteAmount: number;
-    workStatus: string;
-    approval: string;
-    poStatus: Boolean;
-    poNumber: string;
-    jcrStatus: string;
-    agentName: string;
-  };
-  dueDate: string;
-  scheduledDate?: string;
-  completedDate?: string;
-  createdAt: string;
-  description: string;
-  comments: number;
-  holdReason?: string;
-  status: Status;
+  client: Client | null;
+  assignee: Assignee | null;
+  workStage: WorkStage | null;
+  Quotation: Quotation[]; // Array of Quotations
+  expenses: Expense[]; // Array of Expenses
+  comments: Comment[]; // Array of Comments
+  dueDate: string | null;
+  scheduledDate?: string | null ;
+  completedDate?: string | null;
+  createdAt: string | null; // Assuming ISO string date
+  description: string ;
+
+  holdReason?: string | null;
+  status: Status | null; // Status can be null if not set
 };
 
 type Status =

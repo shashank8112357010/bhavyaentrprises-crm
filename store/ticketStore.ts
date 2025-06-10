@@ -430,102 +430,102 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
     try {
       // Store previous state for potential rollback
-      previousState = JSON.parse(JSON.stringify(state.tickets));
+      // previousState = JSON.parse(JSON.stringify(state.tickets));
 
       const response = await updateTicketService(updatedTicket);
-      const ticketFromServer = response.ticket || response;
+      // const ticketFromServer = response.ticket || response;
 
-      set((currentState) => {
-        const { tickets, all_tickets } = currentState;
+      // set((currentState) => {
+      //   const { tickets, all_tickets } = currentState;
 
-        // Update all_tickets list
-        const updatedAllTickets = all_tickets.map((t) =>
-          t.id === ticketFromServer.id ? ticketFromServer : t,
-        );
+      //   // Update all_tickets list
+      //   const updatedAllTickets = all_tickets.map((t) =>
+      //     t.id === ticketFromServer.id ? ticketFromServer : t,
+      //   );
 
-        // Find current ticket in any status group
-        let foundStatus: Status | null = null;
-        for (const statusKey of Object.keys(tickets) as Status[]) {
-          if (tickets[statusKey].some((t) => t.id === ticketFromServer.id)) {
-            foundStatus = statusKey;
-            break;
-          }
-        }
+      //   // Find current ticket in any status group
+      //   let foundStatus: Status | null = null;
+      //   for (const statusKey of Object.keys(tickets) as Status[]) {
+      //     if (tickets[statusKey].some((t) => t.id === ticketFromServer.id)) {
+      //       foundStatus = statusKey;
+      //       break;
+      //     }
+      //   }
 
-        // If ticket not found in any group, find it in all_tickets and use its current status
-        if (!foundStatus) {
-          const existingTicket = all_tickets.find(
-            (t) => t.id === ticketFromServer.id,
-          );
-          if (existingTicket) {
-            foundStatus = existingTicket.status as Status;
-          }
-        }
+      //   // If ticket not found in any group, find it in all_tickets and use its current status
+      //   if (!foundStatus) {
+      //     const existingTicket = all_tickets.find(
+      //       (t) => t.id === ticketFromServer.id,
+      //     );
+      //     if (existingTicket) {
+      //       foundStatus = existingTicket.status as Status;
+      //     }
+      //   }
 
-        if (!foundStatus) {
-          // If still not found, just add to the new status array
-          const ticketNewStatus = ticketFromServer.status as Status;
-          return {
-            ...currentState,
-            all_tickets: updatedAllTickets,
-            tickets: {
-              ...tickets,
-              [ticketNewStatus]: [
-                ...tickets[ticketNewStatus],
-                ticketFromServer,
-              ],
-            },
-            loading: false,
-          };
-        }
+      //   if (!foundStatus) {
+      //     // If still not found, just add to the new status array
+      //     const ticketNewStatus = ticketFromServer.status as Status;
+      //     return {
+      //       ...currentState,
+      //       all_tickets: updatedAllTickets,
+      //       tickets: {
+      //         ...tickets,
+      //         [ticketNewStatus]: [
+      //           ...tickets[ticketNewStatus],
+      //           ticketFromServer,
+      //         ],
+      //       },
+      //       loading: false,
+      //     };
+      //   }
 
-        // Handle status change
-        const ticketNewStatus = ticketFromServer.status as Status;
+      //   // Handle status change
+      //   const ticketNewStatus = ticketFromServer.status as Status;
 
-        if (foundStatus !== ticketNewStatus) {
-          // Remove from current status array
-          const updatedCurrentStatusTickets = tickets[foundStatus].filter(
-            (t) => t.id !== ticketFromServer.id,
-          );
+      //   if (foundStatus !== ticketNewStatus) {
+      //     // Remove from current status array
+      //     const updatedCurrentStatusTickets = tickets[foundStatus].filter(
+      //       (t) => t.id !== ticketFromServer.id,
+      //     );
 
-          // Check if ticket already exists in new status array (avoid duplicates)
-          const existsInNewStatus = tickets[ticketNewStatus].some(
-            (t) => t.id === ticketFromServer.id,
-          );
+      //     // Check if ticket already exists in new status array (avoid duplicates)
+      //     const existsInNewStatus = tickets[ticketNewStatus].some(
+      //       (t) => t.id === ticketFromServer.id,
+      //     );
 
-          const updatedNewStatusTickets = existsInNewStatus
-            ? tickets[ticketNewStatus].map((t) =>
-                t.id === ticketFromServer.id ? ticketFromServer : t,
-              )
-            : [...tickets[ticketNewStatus], ticketFromServer];
+      //     const updatedNewStatusTickets = existsInNewStatus
+      //       ? tickets[ticketNewStatus].map((t) =>
+      //           t.id === ticketFromServer.id ? ticketFromServer : t,
+      //         )
+      //       : [...tickets[ticketNewStatus], ticketFromServer];
 
-          return {
-            ...currentState,
-            all_tickets: updatedAllTickets,
-            tickets: {
-              ...tickets,
-              [foundStatus]: updatedCurrentStatusTickets,
-              [ticketNewStatus]: updatedNewStatusTickets,
-            },
-            loading: false,
-          };
-        } else {
-          // Update the ticket in the same status array
-          const updatedStatusTickets = tickets[foundStatus].map((t) =>
-            t.id === ticketFromServer.id ? ticketFromServer : t,
-          );
+      //     return {
+      //       ...currentState,
+      //       all_tickets: updatedAllTickets,
+      //       tickets: {
+      //         ...tickets,
+      //         [foundStatus]: updatedCurrentStatusTickets,
+      //         [ticketNewStatus]: updatedNewStatusTickets,
+      //       },
+      //       loading: false,
+      //     };
+      //   } else {
+      //     // Update the ticket in the same status array
+      //     const updatedStatusTickets = tickets[foundStatus].map((t) =>
+      //       t.id === ticketFromServer.id ? ticketFromServer : t,
+      //     );
 
-          return {
-            ...currentState,
-            all_tickets: updatedAllTickets,
-            tickets: {
-              ...tickets,
-              [foundStatus]: updatedStatusTickets,
-            },
-            loading: false,
-          };
-        }
-      });
+      //     return {
+      //       ...currentState,
+      //       all_tickets: updatedAllTickets,
+      //       tickets: {
+      //         ...tickets,
+      //         [foundStatus]: updatedStatusTickets,
+      //       },
+      //       loading: false,
+      //     };
+      //   }
+      // });
     } catch (error: any) {
       // Rollback to previous state on error
       if (previousState) {

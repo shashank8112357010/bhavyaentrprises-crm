@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
           client: { name: client.name },
         },
       });
-    } catch (pdfError) {
+    } catch (pdfError:any) {
       console.error("PDF generation error:", pdfError);
       return NextResponse.json(
         { message: "Failed to generate PDF", error: pdfError.message },

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (!file)
     return NextResponse.json(
       { message: "CSV file is required" },
-      { status: 400 },
+      { status: 400 }
     );
 
   const text = await file.text();
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   // Process each record from CSV - use srNo from CSV directly
   for (const record of records) {
     try {
-      const bankName = record.bankName || record.bank_name || "BE"; // fallback to BE
+      const bankName = record.bankName 
       const srNo = Number(record.srNo || record.sr_no || 1); // Use srNo from CSV
 
       const parsed = rateCardSchema.safeParse({
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         srNo: srNo,
       });
 
+      
       if (!parsed.success) {
         console.log("Validation failed:", parsed.error);
         duplicateCount++;
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
           unit: parsed.data.unit,
           rate: parsed.data.rate,
           bankName: parsed.data.bankName,
-          srNo: parsed.data.srNo,
+          srNo: parsed.data.srNo ? parsed.data.srNo : 1,
         },
       });
       createdEntries.push(newEntry);

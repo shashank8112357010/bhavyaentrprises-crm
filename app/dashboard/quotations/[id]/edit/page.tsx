@@ -65,7 +65,7 @@ import { quotationFormSchema } from "@/lib/validations/quotationSchema";
 import { inlineRateCardFormSchema } from "@/lib/validations/rateCardSchema";
 
 // Services
-import { searchClients, createClient } from "@/lib/services/client";
+import {  createClient } from "@/lib/services/client";
 import { getAllRateCards } from "@/lib/services/rate-card";
 import { getQuotationById, updateQuotation } from "@/lib/services/quotations";
 import {
@@ -87,10 +87,6 @@ interface Client {
   contactEmail?: string;
   totalBranches: number;
   gstn?: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
 }
 
 interface RateCard {
@@ -193,16 +189,12 @@ export default function EditQuotationPage() {
     resolver: zodResolver(createClientSchema),
     defaultValues: {
       name: "",
-      type: "",
+      type: "Bank",
       contactPerson: "",
       contactPhone: "",
       contactEmail: "",
       totalBranches: 1,
       gstn: "",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
       initials: "",
     },
   });
