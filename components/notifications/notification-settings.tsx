@@ -55,10 +55,6 @@ export function NotificationSettings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSystemAvailable, setIsSystemAvailable] = useState(true);
 
-  useEffect(() => {
-    loadNotifications();
-  }, [currentPage, filter, notificationsPerPage, loadNotifications]);
-
   const loadNotifications = useCallback(async () => {
     try {
       const offset = (currentPage - 1) * notificationsPerPage;
