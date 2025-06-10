@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
         const exists = await prisma.rateCard.findFirst({
           where: {
             description: parsed.data.description,
-            bankName: bankName,
+            bankName: parsed.data.bankName,
+            bankRcNo: parsed.data.bankRcNo,
             rate: parsed.data.rate,
           },
         });
