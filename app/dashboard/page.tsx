@@ -48,6 +48,9 @@ export default function Home() {
   const { fetchAgents } = useAgentStore();
   const { user } = useAuthStore();
 
+  // Check if user has admin privileges
+  const isAdminOrAccounts = user?.role === "ADMIN" || user?.role === "ACCOUNTS";
+
   useEffect(() => {
     // Fetch all dashboard data from Zustand stores instead of individual API calls
     const loadDashboardData = async () => {
@@ -57,7 +60,7 @@ export default function Home() {
         await fetchDashboardCounts();
 
         // Only fetch clients and agents data if user is admin
-        if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+        if (isAdminOrAccounts) {
           await fetchClients();
           await fetchAgents();
         }
@@ -72,8 +75,9 @@ export default function Home() {
     fetchDashboardCounts,
     fetchClients,
     fetchAgents,
-    user?.role,
+    isAdminOrAccounts,
   ]);
+
   return (
     <div className="flex flex-col gap-6 h-[100px]">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -86,17 +90,21 @@ export default function Home() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Ticket
-          </Button> */}
+          {isAdminOrAccounts && (
+            <Button variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              New Ticket
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Open Tickets</CardDescription>
+            <CardDescription>
+              {isAdminOrAccounts ? "Open Tickets" : "My Open Tickets"}
+            </CardDescription>
             <CardTitle className="text-2xl">
               {isLoadingDashboardCounts
                 ? "Loading..."
@@ -106,13 +114,18 @@ export default function Home() {
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
               <RotateCw className="mr-1 h-4 w-4 text-primary" />
-              <span>12 pending assignment</span>
+              <span>
+                {isAdminOrAccounts ? "Across all agents" : "Assigned to you"}
+              </span>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Scheduled Today</CardDescription>
+            <CardDescription>
+              {isAdminOrAccounts ? "Scheduled Today" : "My Schedule Today"}
+            </CardDescription>
             <CardTitle className="text-2xl">
               {isLoadingDashboardCounts
                 ? "Loading..."
@@ -122,13 +135,22 @@ export default function Home() {
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
               <Clock className="mr-1 h-4 w-4 text-yellow-500" />
-              <span>2 high priority</span>
+              <span>
+                {isAdminOrAccounts
+                  ? "All scheduled visits"
+                  : "Your scheduled visits"}
+              </span>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Client Updates Needed</CardDescription>
+            <CardDescription>
+              {isAdminOrAccounts
+                ? "Client Updates Needed"
+                : "My Updates Needed"}
+            </CardDescription>
             <CardTitle className="text-2xl">
               {isLoadingDashboardCounts
                 ? "Loading..."
@@ -138,13 +160,22 @@ export default function Home() {
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
               <AlertTriangle className="mr-1 h-4 w-4 text-destructive" />
-              <span>5 overdue responses</span>
+              <span>
+                {isAdminOrAccounts
+                  ? "Requiring attention"
+                  : "Need your attention"}
+              </span>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Completed This Week</CardDescription>
+            <CardDescription>
+              {isAdminOrAccounts
+                ? "Completed This Week"
+                : "My Completed This Week"}
+            </CardDescription>
             <CardTitle className="text-2xl">
               {isLoadingDashboardCounts
                 ? "Loading..."
@@ -154,13 +185,18 @@ export default function Home() {
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">
               <CheckCircle className="mr-1 h-4 w-4 text-green-500" />
-              <span>↑ 15% from last week</span>
+              <span>
+                {isAdminOrAccounts
+                  ? "↑ 15% from last week"
+                  : "Your completions"}
+              </span>
             </div>
           </CardContent>
         </Card>
+
         {/* Conditionally rendered cards for admins */}
-        {user?.role === "ADMIN" && <TotalAgentsCard />}
-        {user?.role === "ADMIN" && <TotalClientsCard />}
+        {isAdminOrAccounts && <TotalAgentsCard />}
+        {isAdminOrAccounts && <TotalClientsCard />}
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
@@ -168,7 +204,9 @@ export default function Home() {
           <CardHeader>
             <CardTitle>Status Summary</CardTitle>
             <CardDescription>
-              Current distribution of maintenance requests
+              {isAdminOrAccounts
+                ? "Current distribution of maintenance requests"
+                : "Distribution of your assigned requests"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -179,7 +217,9 @@ export default function Home() {
           <CardHeader>
             <CardTitle>Priority Issues</CardTitle>
             <CardDescription>
-              Maintenance requests requiring immediate attention
+              {isAdminOrAccounts
+                ? "Maintenance requests requiring immediate attention"
+                : "Your high-priority assignments"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -206,17 +246,21 @@ export default function Home() {
             <Clock className="h-4 w-4 mr-2" />
             Schedule
           </TabsTrigger>
-          <TabsTrigger value="clients">
-            <Building2 className="h-4 w-4 mr-2" />
-            Top Clients
-          </TabsTrigger>
+          {isAdminOrAccounts && (
+            <TabsTrigger value="clients">
+              <Building2 className="h-4 w-4 mr-2" />
+              Top Clients
+            </TabsTrigger>
+          )}
         </TabsList>
         <TabsContent value="metrics">
           <Card>
             <CardHeader>
               <CardTitle>Performance Overview</CardTitle>
               <CardDescription>
-                Key metrics for the current month
+                {isAdminOrAccounts
+                  ? "Key metrics for the current month"
+                  : "Your performance metrics for the current month"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -228,7 +272,11 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>Recent External Calls</CardTitle>
-              <CardDescription>Last 10 calls with clients</CardDescription>
+              <CardDescription>
+                {isAdminOrAccounts
+                  ? "Last 10 calls with clients"
+                  : "Your last 10 calls with clients"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ExternalCallsList />
@@ -240,7 +288,9 @@ export default function Home() {
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>
-                Latest actions taken on maintenance requests
+                {isAdminOrAccounts
+                  ? "Latest actions taken on maintenance requests"
+                  : "Your latest actions on maintenance requests"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -253,7 +303,9 @@ export default function Home() {
             <CardHeader>
               <CardTitle>Upcoming Schedule</CardTitle>
               <CardDescription>
-                Maintenance visits for the next 7 days
+                {isAdminOrAccounts
+                  ? "Maintenance visits for the next 7 days"
+                  : "Your maintenance visits for the next 7 days"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -261,6 +313,24 @@ export default function Home() {
             </CardContent>
           </Card>
         </TabsContent>
+        {isAdminOrAccounts && (
+          <TabsContent value="clients">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Clients</CardTitle>
+                <CardDescription>
+                  Client performance and ticket statistics
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Add top clients component here if needed */}
+                <p className="text-muted-foreground">
+                  Top clients data coming soon.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

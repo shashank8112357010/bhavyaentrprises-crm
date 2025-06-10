@@ -141,9 +141,17 @@ export interface DashboardCounts {
   completedThisWeekCount: number;
 }
 
-// Placeholder for the actual service call
+// Service to fetch dashboard ticket counts with authentication
 const getDashboardTicketCountsService = async (): Promise<DashboardCounts> => {
-  const response = await fetch("/api/ticket/counts");
+  const response = await fetch("/api/ticket/counts", {
+    credentials: "include", // Include cookies for authentication
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
+  });
+
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(
