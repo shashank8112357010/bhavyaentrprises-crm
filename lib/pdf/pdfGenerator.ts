@@ -72,7 +72,7 @@ export async function generatePdf(data: QuotationData): Promise<Uint8Array> {
       color: rgb(0, 0, 0),
     });
     yPosition -= 20;
-    page.drawText(`GST Type: ${detail.gstType}`, {
+    page.drawText(`GST Percentage: ${detail.gstPercentage}%`, {
       x: 70,
       y: yPosition,
       size: 10,
