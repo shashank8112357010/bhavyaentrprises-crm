@@ -21,9 +21,9 @@ const updateQuotationSchema = z.object({
   clientId: z.string().uuid().optional(),
   rateCardDetails: z.array(rateCardDetailItemSchema).optional(),
   ticketId: z.string().uuid().optional().nullable(), // Allow string UUID, null, or undefined
-  grandTotal: z.number(),
-  gst: z.number(),
-  subtotal: z.number(),
+  grandTotal: z.number().optional(), // Make optional since it's calculated
+  gst: z.number().optional(), // Make optional since it's calculated
+  subtotal: z.number().optional(), // Make optional since it's calculated
   expectedExpense: z.number().min(0).optional(), // Add expectedExpense field
 
   // Add other fields that can be updated here
@@ -82,19 +82,28 @@ export async function PUT(
       }
       newGrandTotal = newSubtotal + newGst;
 
-      // Add calculated totals to the data to be updated
-      updateData.subtotal = newSubtotal;
-      updateData.gst = newGst;
-      updateData.grandTotal = newGrandTotal;
+      // Use provided totals if available, otherwise use calculated ones
+      updateData.subtotal = updateData.subtotal ?? newSubtotal;
+      updateData.gst = updateData.gst ?? newGst;
+      updateData.grandTotal = updateData.grandTotal ?? newGrandTotal;
     } else if (
       updateData.rateCardDetails &&
       updateData.rateCardDetails.length === 0
     ) {
       // Handle case where rateCardDetails is explicitly emptied
-
       updateData.subtotal = 0;
       updateData.gst = 0;
       updateData.grandTotal = 0;
+    } else if (
+      updateData.subtotal !== undefined ||
+      updateData.gst !== undefined ||
+      updateData.grandTotal !== undefined
+    ) {
+      // If totals are provided without rate card details, use them as is
+      // This allows for direct total updates if needed
+      newSubtotal = updateData.subtotal ?? 0;
+      newGst = updateData.gst ?? 0;
+      newGrandTotal = updateData.grandTotal ?? 0;
     }
 
     // Fetch the existing quotation to compare totals if ticketId exists and to get quoteNo for PDF naming
@@ -143,7 +152,6 @@ export async function PUT(
 
     // If grandTotal has changed and there's an associated ticket, update ticket.due
     if (
-      updateData.grandTotal !== undefined &&
       existingQuotationForUpdate.ticketId &&
       updatedQuotation.grandTotal !== existingQuotationForUpdate.grandTotal
     ) {
