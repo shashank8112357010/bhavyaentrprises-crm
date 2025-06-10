@@ -13,7 +13,7 @@ interface RateCardEntry {
 interface RateCardDetail {
   rateCardId: string;
   quantity: number;
-  gstType: number;
+  gstPercentage: number; // Changed from gstType to gstPercentage
 }
 interface QuotationPdfParams {
   quotationId: string;

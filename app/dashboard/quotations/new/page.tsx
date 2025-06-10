@@ -416,12 +416,42 @@ export default function NewQuotationPage() {
       return;
     }
 
+    // Validate form before proceeding
+    const isFormValid = await quotationForm.trigger();
+    if (!isFormValid) {
+      toast({
+        title: "Form Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSavingQuotation(true);
     try {
+      const formValues = quotationForm.getValues();
+
+      // Validate that we have a quotation number
+      if (
+        !formValues.quotationNumber ||
+        formValues.quotationNumber.trim() === ""
+      ) {
+        throw new Error("Quotation number is required");
+      }
+
       const quotationData = {
-        ...quotationForm.getValues(),
+        name: formValues.quotationNumber.trim(), // Use quotation number as name
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
+        salesType: formValues.salesType,
+        date: formValues.date,
+        quotationNumber: formValues.quotationNumber.trim(),
+        validUntil: formValues.validUntil,
+        expectedExpense: formValues.expectedExpense
+          ? parseFloat(formValues.expectedExpense) || 0
+          : 0,
+        discount: formValues.discount,
+        serialNumber: formValues.serialNumber,
         rateCardDetails: quotationItems.map((item) => ({
           rateCardId: item.id,
           quantity: item.quantity,
@@ -430,6 +460,11 @@ export default function NewQuotationPage() {
         })),
       };
 
+      console.log(
+        "Sending quotation data:",
+        JSON.stringify(quotationData, null, 2),
+      );
+
       await createQuotation(quotationData);
       toast({
         title: "Success",
@@ -437,6 +472,7 @@ export default function NewQuotationPage() {
       });
       router.push("/dashboard/quotations");
     } catch (error: any) {
+      console.error("Quotation creation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to save quotation.",
@@ -458,12 +494,42 @@ export default function NewQuotationPage() {
       return;
     }
 
+    // Validate form before proceeding
+    const isFormValid = await quotationForm.trigger();
+    if (!isFormValid) {
+      toast({
+        title: "Form Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsExportingPdf(true);
     try {
+      const formValues = quotationForm.getValues();
+
+      // Validate that we have a quotation number
+      if (
+        !formValues.quotationNumber ||
+        formValues.quotationNumber.trim() === ""
+      ) {
+        throw new Error("Quotation number is required");
+      }
+
       const quotationData = {
-        ...quotationForm.getValues(),
+        name: formValues.quotationNumber.trim(), // Use quotation number as name
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
+        salesType: formValues.salesType,
+        date: formValues.date,
+        quotationNumber: formValues.quotationNumber.trim(),
+        validUntil: formValues.validUntil,
+        expectedExpense: formValues.expectedExpense
+          ? parseFloat(formValues.expectedExpense) || 0
+          : 0,
+        discount: formValues.discount,
+        serialNumber: formValues.serialNumber,
         rateCardDetails: quotationItems.map((item) => ({
           rateCardId: item.id,
           quantity: item.quantity,
@@ -471,6 +537,11 @@ export default function NewQuotationPage() {
           totalValue: item.totalValue,
         })),
       };
+
+      console.log(
+        "Sending PDF export data:",
+        JSON.stringify(quotationData, null, 2),
+      );
 
       const response = await fetch("/api/quotations/preview-pdf", {
         method: "POST",
@@ -495,9 +566,14 @@ export default function NewQuotationPage() {
           description: "PDF downloaded successfully!",
         });
       } else {
-        throw new Error("Failed to generate PDF");
+        const errorText = await response.text();
+        console.error("PDF generation error response:", errorText);
+        throw new Error(
+          `Failed to generate PDF: ${response.status} ${response.statusText}`,
+        );
       }
     } catch (error: any) {
+      console.error("PDF export error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to export PDF.",
@@ -1046,6 +1122,10 @@ export default function NewQuotationPage() {
                             step="0.01"
                             placeholder="Enter expected expense"
                             {...field}
+                            onChange={(e) => {
+                              // Update the field value while keeping it as a string for form state
+                              field.onChange(e.target.value);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

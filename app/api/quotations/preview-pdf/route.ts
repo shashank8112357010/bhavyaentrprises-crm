@@ -4,60 +4,113 @@ import { prisma } from "@/lib/prisma";
 import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
 
 const previewPdfSchema = z.object({
-  quotationId: z.string(),
-  clientName: z.string(),
-  clientId: z.string(),
   name: z.string(),
-  rateCardDetails: z.array(
-    z.object({
-      rateCardId: z.string(),
-      quantity: z.number().min(1),
-      gstType: z.number().min(0),
-    })
-  ).min(1),
-  subtotal: z.number(),
-  gst: z.number(),
-  grandTotal: z.number(),
+  clientId: z.string(),
+  ticketId: z.string().optional(),
+  salesType: z.string(),
+  date: z.string(),
+  quotationNumber: z.string(),
+  validUntil: z.string().optional(),
+  expectedExpense: z.number().optional(),
+  discount: z.string().optional(),
+  serialNumber: z.string().optional(),
+  rateCardDetails: z
+    .array(
+      z.object({
+        rateCardId: z.string(),
+        quantity: z.number().min(1),
+        gstPercentage: z.number().min(0),
+        totalValue: z.number().optional(),
+      }),
+    )
+    .min(1),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("Preview PDF request body:", JSON.stringify(body, null, 2));
+
     const parsed = previewPdfSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ message: "Invalid input", errors: parsed.error.errors }, { status: 400 });
+      console.error("Preview PDF validation failed:", parsed.error);
+      return NextResponse.json(
+        { message: "Invalid input", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
     }
 
     const {
-      quotationId,
-      clientName,
-      clientId,
       name,
+      clientId,
+      ticketId,
+      salesType,
+      date,
+      quotationNumber,
+      validUntil,
+      expectedExpense,
+      discount,
+      serialNumber,
       rateCardDetails,
-      subtotal,
-      gst,
-      grandTotal,
     } = parsed.data;
 
-    const rateCardIds = rateCardDetails.map(detail => detail.rateCardId);
+    // Fetch client data
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { name: true },
+    });
+
+    if (!client) {
+      return NextResponse.json(
+        { message: "Client not found" },
+        { status: 404 },
+      );
+    }
+
+    const rateCardIds = rateCardDetails.map((detail) => detail.rateCardId);
     const dbRateCards = await prisma.rateCard.findMany({
       where: { id: { in: rateCardIds } },
     });
 
     if (dbRateCards.length !== rateCardIds.length) {
-      const foundDbIds = dbRateCards.map(rc => rc.id);
-      const missingIds = rateCardIds.filter(id => !foundDbIds.includes(id));
-      console.error("Some RateCard entries not found for PDF preview:", missingIds);
-      return NextResponse.json({ message: `RateCard entries not found: ${missingIds.join(", ")}` }, { status: 404 });
+      const foundDbIds = dbRateCards.map((rc) => rc.id);
+      const missingIds = rateCardIds.filter((id) => !foundDbIds.includes(id));
+      console.error(
+        "Some RateCard entries not found for PDF preview:",
+        missingIds,
+      );
+      return NextResponse.json(
+        { message: `RateCard entries not found: ${missingIds.join(", ")}` },
+        { status: 404 },
+      );
     }
 
-    const rateCardsMap = new Map(dbRateCards.map(rc => [rc.id, rc]));
+    // Calculate totals
+    const subtotal = rateCardDetails.reduce((sum, detail) => {
+      const rateCard = dbRateCards.find((rc) => rc.id === detail.rateCardId);
+      return sum + (rateCard ? rateCard.rate * detail.quantity : 0);
+    }, 0);
 
-    const hydratedRateCardsForPdf = rateCardDetails.map(detail => {
+    const discountAmount = discount
+      ? (subtotal * parseFloat(discount)) / 100
+      : 0;
+    const afterDiscount = subtotal - discountAmount;
+    const gst = rateCardDetails.reduce((sum, detail) => {
+      const rateCard = dbRateCards.find((rc) => rc.id === detail.rateCardId);
+      const itemTotal = rateCard ? rateCard.rate * detail.quantity : 0;
+      return sum + (itemTotal * detail.gstPercentage) / 100;
+    }, 0);
+    const grandTotal = afterDiscount + gst;
+
+    const rateCardsMap = new Map(dbRateCards.map((rc) => [rc.id, rc]));
+
+    const hydratedRateCardsForPdf = rateCardDetails.map((detail) => {
       const baseRateCard = rateCardsMap.get(detail.rateCardId);
       if (!baseRateCard) {
-        throw new Error(`Rate card with ID ${detail.rateCardId} not found after initial fetch.`);
+        throw new Error(
+          `Rate card with ID ${detail.rateCardId} not found after initial fetch.`,
+        );
       }
       return {
         ...baseRateCard,
@@ -66,8 +119,8 @@ export async function POST(req: NextRequest) {
     });
 
     const pdfBuffer = await generateQuotationPdf({
-      quotationId,
-      clientName,
+      quotationId: quotationNumber,
+      clientName: client.name,
       clientId,
       name,
       rateCards: hydratedRateCardsForPdf,
@@ -75,21 +128,23 @@ export async function POST(req: NextRequest) {
       gst,
       grandTotal,
       rateCardDetails,
+      expectedExpense: expectedExpense || 0,
+      quoteNo: quotationNumber,
+      validUntil,
     });
 
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${quotationId}_preview.pdf"`,
+        "Content-Disposition": `attachment; filename="${quotationNumber}_preview.pdf"`,
       },
     });
-
   } catch (error) {
     console.error("Error generating PDF preview:", error);
     let errorMessage = "Internal server error";
     if (error instanceof Error) {
-        errorMessage = error.message;
+      errorMessage = error.message;
     }
     return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
