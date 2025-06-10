@@ -128,13 +128,12 @@ export default function ClientsPage() {
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  async function refreshClients() {
+  const refreshClients = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getAllClients();
       setClients(data?.clients || []);
     } catch (err) {
-      console.error("Failed to fetch clients:", err);
       toast({
         title: "Error",
         description: "Could not refresh client list.",
@@ -143,7 +142,7 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     refreshClients();
