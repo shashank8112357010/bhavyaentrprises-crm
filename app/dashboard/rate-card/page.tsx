@@ -115,8 +115,9 @@ export default function RateCardPage() {
         <h1 className="text-3xl font-bold tracking-tight">Rate Cards</h1>
         <div className="flex items-center gap-2">
           <UploadRateCardDialog
-            onUploadSuccess={() => {
-              setPage(0); /* fetchRateCards will be triggered by useEffect */
+            onUploadSuccess={async () => {
+              setPage(0);
+              await fetchRateCards(); // Immediately refresh the data
             }}
           />
           <a href="/sample_rate_card.csv" download>
