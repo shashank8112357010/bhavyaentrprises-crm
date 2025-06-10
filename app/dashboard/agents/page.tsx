@@ -59,23 +59,7 @@ import { useAuthStore } from "@/store/authStore";
 export default function AgentsPage() {
   const { user } = useAuthStore();
 
-  // Role-based access control - only ADMIN and ACCOUNTS users can access agents page
-  if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              You don't have permission to access the agents page.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // All hooks must be called before any conditional logic
   const {
     agents,
     loading,
@@ -88,7 +72,7 @@ export default function AgentsPage() {
     searchQuery,
     setCurrentPage,
     setSearchQuery,
-    setItemsPerPage, // Added setItemsPerPage from store
+    setItemsPerPage,
   } = useAgentStore();
 
   const [selectedAgentForDetails, setSelectedAgentForDetails] =
@@ -99,6 +83,24 @@ export default function AgentsPage() {
     useState<Agent | null>(null);
   const [isDeletingAgent, setIsDeletingAgent] = useState<boolean>(false);
   const { toast } = useToast();
+
+  // Role-based access control - after all hooks are called
+  if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground">
+              You don&apos;t have permission to access the agents page.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   useEffect(() => {
     // Only fetch agents if user has permission
