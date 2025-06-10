@@ -4,7 +4,8 @@ import axios from "@/lib/axios";
 interface RateCardDetail {
   rateCardId: string;
   quantity: number;
-  gstType: number;
+  gstPercentage: number; // Changed from gstType to gstPercentage to match form
+  totalValue?: number; // Add totalValue as optional
 }
 
 interface CreateQuotationParams {
@@ -13,9 +14,12 @@ interface CreateQuotationParams {
   rateCardDetails: RateCardDetail[];
   ticketId?: string;
   salesType: string;
+  date: string;
+  quotationNumber: string;
   validUntil?: string;
-  expectedExpense?: number; // Add expectedExpense field
-  // status: string; // Removed status
+  expectedExpense?: number;
+  discount?: string;
+  serialNumber?: string;
 }
 interface UpdateRateCardDetail {
   rateCardId: string;
