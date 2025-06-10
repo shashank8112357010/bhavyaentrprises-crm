@@ -57,7 +57,7 @@ export function NotificationBell() {
               No notifications
             </p>
             <p className="text-xs text-muted-foreground">
-              You'll see notifications here when they arrive
+              You&apos;ll see notifications here when they arrive
             </p>
           </div>
 
