@@ -133,11 +133,14 @@ export async function POST(req: NextRequest) {
       validUntil,
     });
 
+    // Sanitize filename for download
+    const sanitizedQuotationNumber = quotationNumber.replace(/\//g, "-");
+
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${quotationNumber}_preview.pdf"`,
+        "Content-Disposition": `attachment; filename="${sanitizedQuotationNumber}_preview.pdf"`,
       },
     });
   } catch (error) {
