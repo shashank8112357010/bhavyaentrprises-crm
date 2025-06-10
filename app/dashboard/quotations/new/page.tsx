@@ -1122,6 +1122,10 @@ export default function NewQuotationPage() {
                             step="0.01"
                             placeholder="Enter expected expense"
                             {...field}
+                            onChange={(e) => {
+                              // Update the field value while keeping it as a string for form state
+                              field.onChange(e.target.value);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
