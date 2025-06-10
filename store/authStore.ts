@@ -139,7 +139,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       return { success: true, user };
     } catch (error: any) {
-      console.error("Login error:", error);
       let errorMessage = "An unexpected error occurred during login.";
 
       if (error.response) {
