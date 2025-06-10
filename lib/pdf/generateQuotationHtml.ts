@@ -165,8 +165,6 @@ export async function generateQuotationPdf(
       upiQrPath,
     };
 
-    console.log("Template data prepared for PDF generation");
-
     const html = await ejs.renderFile(templatePath, templateData);
 
     const browser = await puppeteer.launch({
