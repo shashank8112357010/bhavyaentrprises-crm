@@ -498,7 +498,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       </Card>
 
       <EditTicketDialog
-        ticket={ticket}
+        ticket={
+          {
+            ...ticket,
+            workStage: ticket.workStage || null,
+          } as any
+        }
         onUpdate={handleUpdate}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
