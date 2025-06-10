@@ -152,7 +152,6 @@ export async function PUT(
 
     // If grandTotal has changed and there's an associated ticket, update ticket.due
     if (
-      updateData.grandTotal !== undefined &&
       existingQuotationForUpdate.ticketId &&
       updatedQuotation.grandTotal !== existingQuotationForUpdate.grandTotal
     ) {
