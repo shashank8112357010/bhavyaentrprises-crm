@@ -216,8 +216,36 @@ export default function NewQuotationPage() {
     console.log("Fetching tickets for selection...");
     setIsLoadingTickets(true);
     try {
-      const tickets = await getTicketsForSelection();
-      console.log("Tickets fetched successfully:", tickets);
+      // Try using the service function first
+      let tickets;
+      try {
+        tickets = await getTicketsForSelection();
+        console.log("Tickets fetched via service:", tickets);
+      } catch (serviceError) {
+        console.warn(
+          "Service method failed, trying direct fetch:",
+          serviceError,
+        );
+
+        // Fallback to direct fetch
+        const response = await fetch("/api/tickets/selection", {
+          credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        tickets = data.tickets || data;
+        console.log("Tickets fetched via direct fetch:", tickets);
+      }
+
       setTicketsForSelection(tickets || []);
 
       if (!tickets || tickets.length === 0) {
@@ -225,6 +253,8 @@ export default function NewQuotationPage() {
           title: "No Tickets",
           description: "No tickets available for quotation creation.",
         });
+      } else {
+        console.log(`Successfully loaded ${tickets.length} tickets`);
       }
     } catch (error: any) {
       console.error("Error fetching tickets:", error);
