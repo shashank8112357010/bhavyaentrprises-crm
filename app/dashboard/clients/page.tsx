@@ -147,7 +147,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     refreshClients();
-  }, []);
+  }, [refreshClients]);
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
