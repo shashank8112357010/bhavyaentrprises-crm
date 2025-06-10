@@ -209,9 +209,28 @@ export async function PUT(
     if (!existsSync(folderPath)) {
       mkdirSync(folderPath, { recursive: true });
     }
-    // newPdfFilename already defined based on quoteNo
+
+    // Delete the old PDF file if it exists (in case the filename has changed)
+    if (existingQuotationForUpdate.pdfUrl) {
+      const oldPdfPath = path.join(
+        process.cwd(),
+        "public",
+        existingQuotationForUpdate.pdfUrl,
+      );
+      if (fs.existsSync(oldPdfPath)) {
+        try {
+          fs.unlinkSync(oldPdfPath);
+          console.log("Deleted old PDF file:", oldPdfPath);
+        } catch (deleteError) {
+          console.warn("Could not delete old PDF file:", deleteError);
+        }
+      }
+    }
+
+    // newPdfFilename already defined based on sanitized quoteNo
     const filePath = path.join(folderPath, newPdfFilename);
     writeFileSync(filePath, pdfBuffer);
+    console.log("PDF saved to:", filePath);
 
     // The updatedQuotation object already has the correct pdfUrl due to the earlier dataToUpdate.pdfUrl assignment
 
