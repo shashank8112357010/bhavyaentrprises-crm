@@ -83,6 +83,19 @@ export interface Ticket {
   comments: Comment[];
   holdReason?: string;
   status: Status;
+  Quotation: QuotationTicketStore[]; // Add required property for compatibility
+}
+
+export interface QuotationTicketStore {
+  id: string;
+  name: string;
+  pdfUrl: string;
+  clientId: string;
+  ticketId: string;
+  createdAt: string;
+  subtotal: number;
+  gst: number;
+  grandTotal: number;
 }
 
 export interface TicketsState {
