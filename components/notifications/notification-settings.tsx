@@ -57,7 +57,7 @@ export function NotificationSettings() {
 
   useEffect(() => {
     loadNotifications();
-  }, [currentPage, filter, notificationsPerPage]);
+  }, [currentPage, filter, notificationsPerPage, loadNotifications]);
 
   const loadNotifications = async () => {
     try {
