@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { getTicketById, addComment } from "@/lib/services/ticket"; // Import services
 import { useToast } from "@/hooks/use-toast"; // Import useToast
