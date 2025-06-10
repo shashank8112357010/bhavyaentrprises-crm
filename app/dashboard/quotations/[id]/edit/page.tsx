@@ -1183,6 +1183,8 @@ export default function EditQuotationPage() {
                           <Input
                             placeholder="Enter quotation number"
                             {...field}
+                            readOnly
+                            className="bg-muted"
                           />
                         </FormControl>
                         <FormMessage />
