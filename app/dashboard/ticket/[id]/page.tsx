@@ -285,7 +285,7 @@ export default function TicketDetailsPage() {
     if (ticketId) {
       loadTicketData(); // Call the defined loadTicketData
     }
-  }, [ticketId]); // Removed loadTicketData from dependency array as it's stable now
+  }, [ticketId, loadTicketData]);
 
   // The old placeholder fetchTicketById and its associated useEffect have been removed.
   // The new useEffect uses getTicketById directly.
