@@ -132,6 +132,15 @@ interface Expense {
   // Add other relevant expense fields
 }
 
+// Status type to match the one used in the ticket store
+type Status =
+  | "new"
+  | "inProgress"
+  | "onHold"
+  | "completed"
+  | "billing_pending"
+  | "billing_completed";
+
 // Updated TicketData type
 interface TicketData {
   id: string;
@@ -146,7 +155,7 @@ interface TicketData {
   description: string;
   holdReason: string | null;
   // comments: number; // This was the old field, now it's an array of Comment objects
-  status: string; // Assuming enum like 'new', 'inProgress', etc.
+  status: Status | null; // Fixed to match Status type
   // Relations
   client: Client | null;
   assignee: Assignee | null;
@@ -570,14 +579,16 @@ export default function TicketDetailsPage() {
               <NewExpenseDialog
                 onSuccess={loadTicketData}
                 ticketId={ticket.id}
-                ticketQuotations={ticket.Quotation?.map((q:any) => ({
-                  id: q.id,
-                  name: q.name,
-                  client: {
-                    name : q?.client?.name || "N/A",
-                    id: q?.client?.id || "",
-                  } // Ensure that `client` is included in the mapping
-                })) || []}
+                ticketQuotations={
+                  ticket.Quotation?.map((q: any) => ({
+                    id: q.id,
+                    name: q.name,
+                    client: {
+                      name: q?.client?.name || "N/A",
+                      id: q?.client?.id || "",
+                    }, // Ensure that `client` is included in the mapping
+                  })) || []
+                }
               />
             </div>
           )}
