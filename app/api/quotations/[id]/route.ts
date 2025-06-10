@@ -21,9 +21,9 @@ const updateQuotationSchema = z.object({
   clientId: z.string().uuid().optional(),
   rateCardDetails: z.array(rateCardDetailItemSchema).optional(),
   ticketId: z.string().uuid().optional().nullable(), // Allow string UUID, null, or undefined
-  grandTotal: z.number(),
-  gst: z.number(),
-  subtotal: z.number(),
+  grandTotal: z.number().optional(), // Make optional since it's calculated
+  gst: z.number().optional(), // Make optional since it's calculated
+  subtotal: z.number().optional(), // Make optional since it's calculated
   expectedExpense: z.number().min(0).optional(), // Add expectedExpense field
 
   // Add other fields that can be updated here
