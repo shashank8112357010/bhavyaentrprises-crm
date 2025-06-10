@@ -138,7 +138,7 @@ export default function RateCardPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search by description, bank name, RC no..."
+            placeholder="Search by description, bank name..."
             className="w-full md:w-[300px] pl-8"
             value={searchQuery}
             onChange={(e) => {
@@ -183,7 +183,6 @@ export default function RateCardPage() {
                     <TableHead>Unit</TableHead>
                     <TableHead>Rate</TableHead>
                     <TableHead>Bank Name</TableHead>
-                    <TableHead>Bank RC Number</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -195,7 +194,6 @@ export default function RateCardPage() {
                       <TableCell>{rc.unit}</TableCell>
                       <TableCell>₹{rc.rate.toLocaleString()}</TableCell>
                       <TableCell>{rc.bankName}</TableCell>
-                      <TableCell>{rc.bankRcNo}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
