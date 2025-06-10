@@ -56,3 +56,18 @@ export async function logout() {
     throw new Error("Logout failed. Please try again.");
   }
 }
+
+export async function verifyToken(token: string): Promise<TokenPayload | null> {
+  try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+
+    const payload = verify(token, secret) as TokenPayload;
+    return payload;
+  } catch (error: any) {
+    console.error("Token verification failed:", error);
+    return null;
+  }
+}
