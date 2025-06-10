@@ -1,10 +1,10 @@
-// app/dashboard/ticket/[id]/page.tsx
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { getTicketById, addComment } from "@/lib/services/ticket"; // Import services
 import { useToast } from "@/hooks/use-toast"; // Import useToast
+import { useAuthStore } from "@/store/authStore"; // Import auth store
 
 // UI Imports
 import { Button } from "@/components/ui/button"; // Already here
@@ -162,11 +162,15 @@ interface TicketData {
 export default function TicketDetailsPage() {
   const params = useParams();
   const ticketId = params.id as string; // Or params.id?.toString()
+  const { user } = useAuthStore(); // Get current user from auth store
 
   const [ticket, setTicket] = useState<TicketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Check if user has admin privileges (can create quotations and expenses)
+  const isAdminOrAccounts = user?.role === "ADMIN" || user?.role === "ACCOUNTS";
 
   const loadTicketData = async () => {
     // Ensure loadTicketData is defined before it's used in useEffect or passed as prop
@@ -280,36 +284,35 @@ export default function TicketDetailsPage() {
   if (loading) {
     return (
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        {/* Header Skeleton */}
         <div className="flex items-center justify-between space-y-2">
           <div>
-            <Skeleton className="h-6 w-24 mb-2" /> {/* Badge */}
-            <Skeleton className="h-10 w-1/2" /> {/* Title */}
+            <Skeleton className="h-6 w-24 mb-2" />
+            <Skeleton className="h-10 w-1/2" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-24" />
           </div>
         </div>
 
-        {/* TabsList Skeleton */}
         <div className="flex space-x-4 border-b">
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-32" />
         </div>
 
-        {/* Details Tab Content Skeleton (mimicking default visible tab) */}
         <div className="space-y-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Client Information Card Skeleton */}
             <div className="p-4 border rounded-lg space-y-3">
-              <Skeleton className="h-5 w-1/3 mb-2" /> {/* Title */}
+              <Skeleton className="h-5 w-1/3 mb-2" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-5/6" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
             </div>
 
-            {/* Assignment & Scheduling Card Skeleton */}
             <div className="p-4 border rounded-lg space-y-3">
-              <Skeleton className="h-5 w-1/3 mb-2" /> {/* Title */}
+              <Skeleton className="h-5 w-1/3 mb-2" />
               <div className="flex items-center gap-2">
                 <Skeleton className="h-8 w-8 rounded-full" />
                 <Skeleton className="h-4 w-3/4" />
@@ -320,18 +323,16 @@ export default function TicketDetailsPage() {
             </div>
           </div>
 
-          {/* Work Stage Details Card Skeleton */}
           <div className="p-4 border rounded-lg space-y-3">
-            <Skeleton className="h-5 w-1/4 mb-2" /> {/* Title */}
+            <Skeleton className="h-5 w-1/4 mb-2" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
           </div>
 
-          {/* Description Card Skeleton */}
           <div className="p-4 border rounded-lg space-y-3">
-            <Skeleton className="h-5 w-1/5 mb-2" /> {/* Title */}
+            <Skeleton className="h-5 w-1/5 mb-2" />
             <Skeleton className="h-4 w-full mb-1" />
             <Skeleton className="h-4 w-full mb-1" />
             <Skeleton className="h-4 w-5/6 mb-1" />
@@ -363,23 +364,28 @@ export default function TicketDetailsPage() {
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setEditDialogOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Edit className="h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setReassignDialogOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <User className="h-4 w-4" />
-            Reassign
-          </Button>
-          {/* Add any other action buttons here if needed */}
+          {/* Only show Edit button for admin roles */}
+          {isAdminOrAccounts && (
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </Button>
+          )}
+          {/* Only show Reassign button for admin roles */}
+          {isAdminOrAccounts && (
+            <Button
+              variant="outline"
+              onClick={() => setReassignDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <User className="h-4 w-4" />
+              Reassign
+            </Button>
+          )}
         </div>
       </div>
 
@@ -550,21 +556,26 @@ export default function TicketDetailsPage() {
 
         {/* Financials Tab Content */}
         <TabsContent value="financials" className="space-y-4 mt-4">
-          <div className="mb-4  flex gap-2 flex-wrap">
-            <Link
-              href={`/dashboard/quotations/new?ticketId=${ticket.id}&clientId=${ticket.client?.id}`}
-            >
-              <Button className="flex items-center gap-2">
-                <Receipt className="h-4 w-4" />
-                Create Quotation
-              </Button>
-            </Link>
-            <NewExpenseDialog
-              onSuccess={loadTicketData}
-              ticketId={ticket.id}
-              ticketQuotations={ticket.Quotation || []}
-            />
-          </div>
+          {/* Only show create buttons for admin roles */}
+          {isAdminOrAccounts && (
+            <div className="mb-4 flex gap-2 flex-wrap">
+              <Link
+                href={`/dashboard/quotations/new?ticketId=${ticket.id}&clientId=${ticket.client?.id}`}
+              >
+                <Button className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Create Quotation
+                </Button>
+              </Link>
+              <NewExpenseDialog
+                onSuccess={loadTicketData}
+                ticketId={ticket.id}
+                ticketQuotations={ticket.Quotation || []}
+              />
+            </div>
+          )}
+
+          {/* Show quotations - read-only for agent roles */}
           {ticket.Quotation && ticket.Quotation.length > 0 ? (
             ticket.Quotation.map((quotation) => (
               <Card key={quotation.id}>
@@ -614,6 +625,7 @@ export default function TicketDetailsPage() {
             </Card>
           )}
 
+          {/* Show expenses - read-only for agent roles */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium">Expenses</CardTitle>
@@ -657,7 +669,7 @@ export default function TicketDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Profit Analysis */}
+          {/* Profit Analysis - show to all users */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium">
@@ -798,7 +810,7 @@ export default function TicketDetailsPage() {
                 </p>
               )}
 
-              {/* Add Comment Form */}
+              {/* Add Comment Form - available to all users */}
               <div className="mt-6 pt-4 border-t">
                 <h4 className="text-lg font-semibold mb-3">Add New Comment</h4>
                 <div className="grid gap-2 mb-2">
@@ -827,14 +839,27 @@ export default function TicketDetailsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Reassign Ticket Dialog */}
-      <ReassignTicketDialog
-        open={reassignDialogOpen}
-        onOpenChange={setReassignDialogOpen}
-        ticketId={ticket.id}
-        currentAssignee={currentAssignee}
-        onReassignSuccess={loadTicketData}
-      />
+      {/* Only show dialogs for admin roles */}
+      {isAdminOrAccounts && (
+        <>
+          {/* Reassign Ticket Dialog */}
+          <ReassignTicketDialog
+            open={reassignDialogOpen}
+            onOpenChange={setReassignDialogOpen}
+            ticketId={ticket.id}
+            currentAssignee={currentAssignee}
+            onReassignSuccess={loadTicketData}
+          />
+
+          {/* Edit Ticket Dialog */}
+          <EditTicketDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            ticket={ticket}
+            onEditSuccess={loadTicketData}
+          />
+        </>
+      )}
     </div>
   );
 }
