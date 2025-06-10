@@ -207,7 +207,7 @@ export function NewExpenseDialog({
         quotationId: selectedQuotation,
         requester,
         paymentType,
-        file,
+        file: file || undefined,
         screenshotFile: paymentType === "ONLINE" ? screenshotFile : undefined,
         approvalName:
           paymentType === "VCASH" || paymentType === "REST"
