@@ -418,10 +418,22 @@ export default function NewQuotationPage() {
 
     setIsSavingQuotation(true);
     try {
+      const formValues = quotationForm.getValues();
+
       const quotationData = {
-        ...quotationForm.getValues(),
+        name:
+          formValues.quotationNumber || `Quotation for ${selectedClient.name}`, // Add required name field
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
+        salesType: formValues.salesType,
+        date: formValues.date,
+        quotationNumber: formValues.quotationNumber,
+        validUntil: formValues.validUntil,
+        expectedExpense: formValues.expectedExpense
+          ? parseFloat(formValues.expectedExpense)
+          : 0, // Convert string to number
+        discount: formValues.discount,
+        serialNumber: formValues.serialNumber,
         rateCardDetails: quotationItems.map((item) => ({
           rateCardId: item.id,
           quantity: item.quantity,
@@ -437,6 +449,7 @@ export default function NewQuotationPage() {
       });
       router.push("/dashboard/quotations");
     } catch (error: any) {
+      console.error("Quotation creation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to save quotation.",
