@@ -416,22 +416,40 @@ export default function NewQuotationPage() {
       return;
     }
 
+    // Validate form before proceeding
+    const isFormValid = await quotationForm.trigger();
+    if (!isFormValid) {
+      toast({
+        title: "Form Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSavingQuotation(true);
     try {
       const formValues = quotationForm.getValues();
 
+      // Validate that we have a quotation number
+      if (
+        !formValues.quotationNumber ||
+        formValues.quotationNumber.trim() === ""
+      ) {
+        throw new Error("Quotation number is required");
+      }
+
       const quotationData = {
-        name:
-          formValues.quotationNumber || `Quotation for ${selectedClient.name}`, // Add required name field
+        name: formValues.quotationNumber.trim(), // Use quotation number as name
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
         salesType: formValues.salesType,
         date: formValues.date,
-        quotationNumber: formValues.quotationNumber,
+        quotationNumber: formValues.quotationNumber.trim(),
         validUntil: formValues.validUntil,
         expectedExpense: formValues.expectedExpense
-          ? parseFloat(formValues.expectedExpense)
-          : 0, // Convert string to number
+          ? parseFloat(formValues.expectedExpense) || 0
+          : 0,
         discount: formValues.discount,
         serialNumber: formValues.serialNumber,
         rateCardDetails: quotationItems.map((item) => ({
@@ -441,6 +459,11 @@ export default function NewQuotationPage() {
           totalValue: item.totalValue,
         })),
       };
+
+      console.log(
+        "Sending quotation data:",
+        JSON.stringify(quotationData, null, 2),
+      );
 
       await createQuotation(quotationData);
       toast({
