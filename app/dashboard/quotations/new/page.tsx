@@ -208,6 +208,7 @@ export default function NewQuotationPage() {
       unit: "",
       rate: 0,
       bankName: "BE", // Default bank name as BE
+      bankRcNo: "", // Bank RC number
     },
   });
 
@@ -723,7 +724,7 @@ export default function NewQuotationPage() {
                                 {rateCard.description}
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {rateCard.unit} • ���
+                                {rateCard.unit} • ₹
                                 {rateCard.rate.toLocaleString()}
                               </div>
                             </div>
