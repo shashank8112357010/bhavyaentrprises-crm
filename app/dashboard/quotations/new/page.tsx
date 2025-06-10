@@ -181,8 +181,6 @@ export default function NewQuotationPage() {
         oneWeekLater.setDate(oneWeekLater.getDate() + 7);
         return oneWeekLater.toISOString().split("T")[0];
       })(),
-      admin: "",
-      quoteBy: "",
       discount: "0",
       expectedExpense: "0",
     },
