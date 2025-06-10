@@ -131,7 +131,6 @@ export default function ReassignTicketDialog({
         onReassignSuccess();
       }
     } catch (error: any) {
-      console.error("Failed to reassign ticket:", error);
       toast({
         title: "Error",
         description:
