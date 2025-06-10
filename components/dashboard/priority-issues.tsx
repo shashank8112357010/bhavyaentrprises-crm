@@ -14,7 +14,8 @@ import Link from "next/link"; // For the "View all" button
 import { format } from "date-fns"; // For date formatting
 
 // Helper to get initials from name
-const getInitials = (name: string = "") => {
+const getInitials = (name: string | null | undefined = "") => {
+  if (!name) return "N/A";
   return (
     name
       .split(" ")
@@ -34,11 +35,11 @@ export default function PriorityIssues() {
   const priorityIssues = all_tickets
     ?.filter(
       (ticket: any) =>
-        ticket.priority === "high" || ticket.priority === "CRITICAl"
+        ticket.priority === "high" || ticket.priority === "CRITICAl",
     )
     .sort(
       (a: any, b: any) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, 5); // Show top 5
 
@@ -50,20 +51,19 @@ export default function PriorityIssues() {
       </div>
     );
   }
-  
 
   return (
     <div className="space-y-4">
       {priorityIssues.map((issue) => (
-        <Link href={`/dashboard/ticket/${issue.id}`} key={issue.id} legacyBehavior>
+        <Link
+          href={`/dashboard/ticket/${issue.id}`}
+          key={issue.id}
+          legacyBehavior
+        >
           <a className="flex items-start justify-between p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/50 transition-colors cursor-pointer">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Badge
-                  variant="destructive"
-                >
-                  {issue.priority}
-                </Badge>
+                <Badge variant="destructive">{issue.priority}</Badge>
                 <span className="text-sm font-medium text-muted-foreground">
                   #{issue.ticketId}
                 </span>
@@ -123,7 +123,7 @@ export default function PriorityIssues() {
       ))}
       {all_tickets.filter(
         (ticket: any) =>
-          ticket.priority === "High" || ticket.priority === "Critical"
+          ticket.priority === "High" || ticket.priority === "Critical",
       ).length > 5 && (
         <div className="text-center mt-4">
           <Link href="/tickets?priority=High,Critical" legacyBehavior>
