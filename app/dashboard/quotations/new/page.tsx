@@ -5,7 +5,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Save, Download, Search, Plus, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  Download,
+  Search,
+  Plus,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -213,28 +221,57 @@ export default function NewQuotationPage() {
 
   // Fetch tickets for selection
   const fetchTicketsForSelection = useCallback(async () => {
+    console.log("Fetching tickets for selection...");
     setIsLoadingTickets(true);
     try {
-      const response = await fetch("/api/tickets/selection", {
-        credentials: "include",
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      });
+      // Try using the service function first
+      let tickets;
+      try {
+        tickets = await getTicketsForSelection();
+        console.log("Tickets fetched via service:", tickets);
+      } catch (serviceError) {
+        console.warn(
+          "Service method failed, trying direct fetch:",
+          serviceError,
+        );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch tickets");
+        // Fallback to direct fetch
+        const response = await fetch("/api/tickets/selection", {
+          credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `HTTP ${response.status}: ${response.statusText} - ${errorText}`,
+          );
+        }
+
+        const data = await response.json();
+        tickets = data.tickets || data;
+        console.log("Tickets fetched via direct fetch:", tickets);
       }
 
-      const data = await response.json();
-      setTicketsForSelection(data.tickets || []);
-    } catch (error) {
+      setTicketsForSelection(tickets || []);
+
+      if (!tickets || tickets.length === 0) {
+        toast({
+          title: "No Tickets",
+          description: "No tickets available for quotation creation.",
+        });
+      } else {
+        console.log(`Successfully loaded ${tickets.length} tickets`);
+      }
+    } catch (error: any) {
       console.error("Error fetching tickets:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch tickets for selection.",
+        description: error.message || "Failed to fetch tickets for selection.",
         variant: "destructive",
       });
     } finally {
@@ -631,7 +668,23 @@ export default function NewQuotationPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Label htmlFor="ticketSelect">Ticket</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="ticketSelect">Ticket</Label>
+                  {process.env.NODE_ENV === "development" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchTicketsForSelection}
+                      disabled={isLoadingTickets}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 mr-1 ${isLoadingTickets ? "animate-spin" : ""}`}
+                      />
+                      {isLoadingTickets ? "Loading..." : "Refresh"}
+                    </Button>
+                  )}
+                </div>
                 <Select
                   value={selectedTicketId}
                   onValueChange={handleTicketSelect}

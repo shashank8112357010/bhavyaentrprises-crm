@@ -108,7 +108,7 @@ export async function getTicketsForSelection(): Promise<TicketForSelection[]> {
         Expires: "0",
       },
     });
-    return response.data;
+    return response.data.tickets || response.data;
   } catch (error: any) {
     console.error("Error fetching tickets for selection:", error);
     const message =
