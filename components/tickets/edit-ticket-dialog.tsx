@@ -43,7 +43,8 @@ interface EditTicketInput {
 
 type EditTicketDialogProps = {
   ticket: Ticket;
-  onUpdate: () => void;
+  onUpdate?: () => void;
+  onEditSuccess?: () => void | Promise<void>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
