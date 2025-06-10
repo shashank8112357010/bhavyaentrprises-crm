@@ -291,7 +291,6 @@ export const useTicketStore = create<TicketState>((set) => ({
     return foundTicket;
   },
   updateTicket: async (updatedTicket: any) => {
-    set({ loading: true, error: null });
     try {
       const response = await updateTicket(updatedTicket);
       const ticketFromServer = response.ticket || response;
@@ -304,7 +303,7 @@ export const useTicketStore = create<TicketState>((set) => ({
           t.id === ticketFromServer.id ? ticketFromServer : t,
         );
 
-        // Find current ticket status group to update in that array
+        // Find current ticket in any status group
         let foundStatus: Status | null = null;
         for (const statusKey of Object.keys(tickets) as Status[]) {
           if (tickets[statusKey].some((t) => t.id === ticketFromServer.id)) {
@@ -313,12 +312,34 @@ export const useTicketStore = create<TicketState>((set) => ({
           }
         }
 
+        // If ticket not found in any group, find it in all_tickets and use its current status
         if (!foundStatus) {
-          // Ticket not found in any group, just return state without changes
-          return { ...state, loading: false };
+          const existingTicket = all_tickets.find(
+            (t) => t.id === ticketFromServer.id,
+          );
+          if (existingTicket) {
+            foundStatus = existingTicket.status as Status;
+          }
         }
 
-        // If the ticket status has changed, move it to the correct status array
+        if (!foundStatus) {
+          // If still not found, just add to the new status array
+          const ticketNewStatus = ticketFromServer.status as Status;
+          return {
+            ...state,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [ticketNewStatus]: [
+                ...tickets[ticketNewStatus],
+                ticketFromServer,
+              ],
+            },
+            loading: false,
+          };
+        }
+
+        // Handle status change
         const ticketNewStatus = ticketFromServer.status as Status;
 
         if (foundStatus !== ticketNewStatus) {
@@ -327,11 +348,16 @@ export const useTicketStore = create<TicketState>((set) => ({
             (t) => t.id !== ticketFromServer.id,
           );
 
-          // Add to new status array
-          const updatedNewStatusTickets = [
-            ...tickets[ticketNewStatus],
-            ticketFromServer,
-          ];
+          // Check if ticket already exists in new status array (avoid duplicates)
+          const existsInNewStatus = tickets[ticketNewStatus].some(
+            (t) => t.id === ticketFromServer.id,
+          );
+
+          const updatedNewStatusTickets = existsInNewStatus
+            ? tickets[ticketNewStatus].map((t) =>
+                t.id === ticketFromServer.id ? ticketFromServer : t,
+              )
+            : [...tickets[ticketNewStatus], ticketFromServer];
 
           return {
             ...state,
@@ -362,6 +388,7 @@ export const useTicketStore = create<TicketState>((set) => ({
       });
     } catch (error: any) {
       set({ error: error.message, loading: false });
+      throw error; // Re-throw to allow calling code to handle the error
     }
   },
   fetchDashboardCounts: async () => {
