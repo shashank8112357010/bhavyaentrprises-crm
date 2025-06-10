@@ -1016,34 +1016,6 @@ export default function NewQuotationPage() {
 
                   <FormField
                     control={quotationForm.control}
-                    name="admin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Admin</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter admin name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={quotationForm.control}
-                    name="quoteBy"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quote By</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter quote by" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={quotationForm.control}
                     name="discount"
                     render={({ field }) => (
                       <FormItem>
