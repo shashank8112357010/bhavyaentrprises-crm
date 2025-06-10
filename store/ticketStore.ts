@@ -156,7 +156,7 @@ const getDashboardTicketCountsService = async (): Promise<{
   return response.json();
 };
 
-export const useTicketStore = create<TicketState>((set) => ({
+export const useTicketStore = create<TicketState>((set, get) => ({
   tickets: {
     new: [],
     inProgress: [],
