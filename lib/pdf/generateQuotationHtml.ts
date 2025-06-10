@@ -137,8 +137,6 @@ export async function generateQuotationPdf(
   params: QuotationPdfParams,
 ): Promise<Buffer> {
   try {
-    console.log("Generating PDF with params:", JSON.stringify(params, null, 2));
-
     const templatePath = path.join(
       process.cwd(),
       "lib",
