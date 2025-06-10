@@ -1,25 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
-  images: { unoptimized: true },
+  images: {
+    domains: ["localhost"],
+    unoptimized: true,
+  },
   reactStrictMode: true,
-  trailingSlash: false,
-  generateBuildId: () => "build",
-  experimental: {
-    forceSwcTransforms: true,
-  },
+  swcMinify: true,
+  poweredByHeader: false,
+  compress: true,
 
   async headers() {
     return [
       {
-        // Apply CORS headers to all API routes
         source: "/api/:path*",
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: "*", // In production, replace with specific domain
+            value:
+              process.env.NODE_ENV === "development"
+                ? "*"
+                : "https://yourdomain.com",
           },
           {
             key: "Access-Control-Allow-Methods",
@@ -32,6 +35,35 @@ const nextConfig = {
           {
             key: "Access-Control-Allow-Credentials",
             value: "true",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+        ],
+      },
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
           },
         ],
       },
