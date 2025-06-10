@@ -114,12 +114,6 @@ export default function ReassignTicketDialog({
 
     setIsLoading(true);
     try {
-      console.log("Reassigning ticket:", {
-        ticketId,
-        selectedAssigneeId,
-        currentAssigneeId: currentAssignee?.id,
-      });
-
       await updateTicket({
         id: ticketId,
         assigneeId: selectedAssigneeId,
