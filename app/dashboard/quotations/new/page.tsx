@@ -222,10 +222,7 @@ export default function NewQuotationPage() {
         tickets = await getTicketsForSelection();
         console.log("Tickets fetched via service:", tickets);
       } catch (serviceError) {
-        console.warn(
-          "Service method failed, trying direct fetch:",
-          serviceError,
-        );
+        console.warn("Service method failed, trying direct fetch:", serviceError);
 
         // Fallback to direct fetch
         const response = await fetch("/api/tickets/selection", {
@@ -567,10 +564,7 @@ export default function NewQuotationPage() {
   };
 
   // Calculate totals
-  const subtotal = quotationItems.reduce(
-    (sum, item) => sum + item.totalValue,
-    0,
-  );
+  const subtotal = quotationItems.reduce((sum, item) => sum + item.totalValue, 0);
   const discount = parseFloat(quotationForm.watch("discount") || "0");
   const discountAmount = (subtotal * discount) / 100;
   const afterDiscount = subtotal - discountAmount;
@@ -656,8 +650,19 @@ export default function NewQuotationPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="flex items-center gap-2">
                 <Label htmlFor="ticketSelect">Ticket</Label>
+                {process.env.NODE_ENV === "development" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchTicketsForSelection}
+                    disabled={isLoadingTickets}
+                  >
+                    {isLoadingTickets ? "Loading..." : "Refresh Tickets"}
+                  </Button>
+                )}
                 <Select
                   value={selectedTicketId}
                   onValueChange={handleTicketSelect}
@@ -665,9 +670,6 @@ export default function NewQuotationPage() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select a ticket" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingTickets ? (
-                      <SelectItem value="loading" disabled>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Loading tickets...
                       </SelectItem>
@@ -1112,8 +1114,7 @@ export default function NewQuotationPage() {
           <DialogHeader>
             <DialogTitle>Create New Rate Card</DialogTitle>
             <DialogDescription>
-              Add a new rate card to your database. Serial number will be
-              auto-generated.
+              Add a new rate card to your database. Serial number will be auto-generated.
             </DialogDescription>
           </DialogHeader>
           <Form {...rateCardForm}>
