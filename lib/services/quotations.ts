@@ -31,8 +31,11 @@ export interface UpdateQuotationParams {
   name?: string;
   clientId?: string;
   rateCardDetails?: UpdateRateCardDetail[];
-  ticketId: string;
-  expectedExpense?: number; // Add expectedExpense field
+  ticketId?: string;
+  expectedExpense?: number;
+  subtotal?: number; // Make optional since it's calculated
+  gst?: number; // Make optional since it's calculated
+  grandTotal?: number; // Make optional since it's calculated
   // Include other fields that can be updated, matching the PUT route's Zod schema
 }
 
