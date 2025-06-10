@@ -11,9 +11,6 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
-  experimental: {
-    runtime: "nodejs",
-  },
 
   async headers() {
     return [
