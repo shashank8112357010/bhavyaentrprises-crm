@@ -69,7 +69,6 @@ function SettingsContent() {
 
         <TabsContent value="notifications" className="space-y-6">
           <NotificationSettings />
-          {process.env.NODE_ENV === "development" && <NotificationDebug />}
         </TabsContent>
 
         <TabsContent value="profile" className="space-y-6">
