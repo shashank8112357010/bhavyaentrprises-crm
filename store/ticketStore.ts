@@ -318,24 +318,48 @@ export const useTicketStore = create<TicketState>((set) => ({
           return { ...state, loading: false };
         }
 
-        // Update the ticket in the appropriate status array
-        const updatedStatusTickets = tickets[foundStatus].map((t) =>
-          t.id === ticketFromServer.id ? ticketFromServer : t,
-        );
+        // If the ticket status has changed, move it to the correct status array
+        const ticketNewStatus = ticketFromServer.status as Status;
 
-        return {
-          ...state,
-          all_tickets: updatedAllTickets,
-          tickets: {
-            ...tickets,
-            [foundStatus]: updatedStatusTickets,
-          },
-          loading: false,
-        };
+        if (foundStatus !== ticketNewStatus) {
+          // Remove from current status array
+          const updatedCurrentStatusTickets = tickets[foundStatus].filter(
+            (t) => t.id !== ticketFromServer.id,
+          );
+
+          // Add to new status array
+          const updatedNewStatusTickets = [
+            ...tickets[ticketNewStatus],
+            ticketFromServer,
+          ];
+
+          return {
+            ...state,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [foundStatus]: updatedCurrentStatusTickets,
+              [ticketNewStatus]: updatedNewStatusTickets,
+            },
+            loading: false,
+          };
+        } else {
+          // Update the ticket in the same status array
+          const updatedStatusTickets = tickets[foundStatus].map((t) =>
+            t.id === ticketFromServer.id ? ticketFromServer : t,
+          );
+
+          return {
+            ...state,
+            all_tickets: updatedAllTickets,
+            tickets: {
+              ...tickets,
+              [foundStatus]: updatedStatusTickets,
+            },
+            loading: false,
+          };
+        }
       });
-
-      // Refresh tickets to ensure data consistency after update
-      get().fetchTickets();
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
