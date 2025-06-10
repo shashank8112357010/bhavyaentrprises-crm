@@ -92,6 +92,7 @@ interface RateCard {
   unit: string;
   rate: number;
   bankName: string;
+  bankRcNo: string;
 }
 
 interface QuotationItem extends RateCard {
