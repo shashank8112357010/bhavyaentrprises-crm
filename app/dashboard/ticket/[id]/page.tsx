@@ -221,7 +221,7 @@ export default function TicketDetailsPage() {
       };
     }
     return undefined;
-  }, [ticket.assignee]);
+  }, [ticket?.assignee]);
 
   const handleAddComment = async () => {
     const currentUserId = getCurrentUserIdFromAuth();
