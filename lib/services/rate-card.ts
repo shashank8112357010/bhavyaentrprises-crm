@@ -39,7 +39,6 @@ export async function deleteRateCard(id: string) {
     });
     return response.data;
   } catch (error: any) {
-    console.error("Error deleting rate card:", error);
     const message =
       error.response?.data?.error || "Failed to delete rate card.";
     throw new Error(message);
