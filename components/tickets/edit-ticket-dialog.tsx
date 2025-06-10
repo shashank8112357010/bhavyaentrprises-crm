@@ -59,6 +59,7 @@ const formatDate = (date: Date | string) => {
 export default function EditTicketDialog({
   ticket,
   onUpdate,
+  onEditSuccess,
   open,
   onOpenChange,
 }: EditTicketDialogProps) {
