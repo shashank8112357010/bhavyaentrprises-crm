@@ -19,29 +19,12 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Response interceptor: just logs that response was received
+// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
-    // You cannot access Set-Cookie headers here due to browser security
-    // But you can check if cookies exist client-side after the response
-
-    // Debug logging for login requests
-    if (response.config.url?.includes("/login")) {
-      console.log("Axios interceptor - Login response:", {
-        status: response.status,
-        data: response.data,
-        url: response.config.url,
-      });
-    }
-
     return response;
   },
   (error) => {
-    console.log("Axios interceptor - Error:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-    });
     return Promise.reject(error);
   },
 );
