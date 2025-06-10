@@ -1,47 +1,3 @@
-// components/agent/types.ts
-export type Role = "ADMIN" | "BACKEND" | "RM" | "MST" | "ACCOUNTS";
-export type Status = "ACTIVE" | "INACTIVE" | "PENDING";
-export type PerformanceTrend = "UP" | "DOWN" | "STABLE";
-
-export type Agent = {
-  id: string;
-
-  name: string;
-  email: string;
-  password: string;
-  mobile: string;
-  role: Role;
-  createdAt: Date;
-  department?: string;
-  specialization?: string;
-  status: Status;
-  leadsAssigned: number;
-  leadsActive: number;
-  leadsClosed: number;
-  conversionRate: number;
-  performanceTrend: PerformanceTrend;
-  joinedDate: Date;
-  avatar?: string;
-  initials?: string;
-  activeTickets: number;
-  rating: number;
-  completedTickets: number;
-};
-
-export type CreateAgentPayload = Omit<
-  Agent,
-  | "id"
-  | "createdAt"
-  | "joinedDate"
-  | "leadsAssigned"
-  | "leadsActive"
-  | "leadsClosed"
-  | "conversionRate"
-  | "performanceTrend"
-  | "activeTickets"
-  | "rating"
-  | "completedTickets"
->;
 // components/kanban/types.ts
 export type TicketStatus =
   | "new"
@@ -50,12 +6,52 @@ export type TicketStatus =
   | "completed"
   | "billing_pending"
   | "billing_completed";
+
+export interface Assignee {
+  id: string;
+  name: string;
+  avatar: string;
+  initials: string;
+}
+
+export interface WorkStage {
+  stateName: string;
+  adminName: string;
+  clientName: string;
+  siteName: string;
+  quoteNo: string;
+  dateReceived: string;
+  quoteTaxable: number;
+  quoteAmount: number;
+  workStatus: string;
+  approval: string;
+  poStatus: boolean;
+  poNumber: string;
+  jcrStatus: boolean;
+  agentName: string;
+  jcrFilePath?: string;
+  poFilePath?: string;
+}
+
 export interface Expense {
   id: string;
   amount: string;
   category: string;
   createdAt: string;
   pdfUrl: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  type: string;
+  contactPerson: string;
+}
+
+export interface Comment {
+  text: string;
+  ticketId: string;
+  userId: string;
 }
 
 export interface Quotation {
@@ -71,50 +67,17 @@ export interface Quotation {
   grandTotal: number;
 }
 
-type Comment = {
-  text: string;
-  ticketId: string;
-  userId: string; // Assuming GST types are 18 and 28
-};
-
 export interface Ticket {
   id: string;
   title: string;
   ticketId: string;
-
   branch: string;
   priority: string;
-  assignee: {
-    name: string;
-    avatar: string;
-    initials: string;
-  };
-  workStage?: {
-    stateName: string;
-    adminName: string;
-    clientName: string;
-    siteName: string;
-    quoteNo: string;
-    dateReceived: string;
-    quoteTaxable: number;
-    quoteAmount: number;
-    workStatus: string;
-    approval: string;
-    poStatus: Boolean;
-    poNumber: string;
-    jcrStatus: Boolean;
-    agentName: string;
-    jcrFilePath: string;
-    poFilePath: string;
-  };
+  assignee: Assignee;
+  workStage?: WorkStage;
   due?: number;
-  paid?: Boolean;
-  client: {
-    id: string;
-    name: string;
-    type: string;
-    contactPerson: string;
-  };
+  paid?: boolean;
+  client: Client;
   expenses: Expense[];
   dueDate: string | undefined;
   scheduledDate?: string;
@@ -127,7 +90,37 @@ export interface Ticket {
   quotations?: Quotation[];
 }
 
-// jcr status => red(N/A) , orange (hard copy) , green (soft copy)
-// removed scheduled
-// after complete billing board
-// quote form fix
+export interface TicketsState {
+  new: Ticket[];
+  inProgress: Ticket[];
+  onHold: Ticket[];
+  completed: Ticket[];
+  billing_pending: Ticket[];
+  billing_completed: Ticket[];
+}
+
+export interface DragEndResult {
+  source: string;
+  destination: string;
+  ticketId: string;
+}
+
+export interface KanbanBoardProps {
+  tickets: TicketsState;
+  onDragEnd: (result: DragEndResult) => Promise<void>;
+}
+
+export interface KanbanColumnProps {
+  title: string;
+  status: TicketStatus;
+  tickets: Ticket[];
+  onDragEnd: (result: DragEndResult) => Promise<void>;
+}
+
+export interface SortableTicketProps {
+  ticket: Ticket;
+  index: number;
+}
+
+// Export types from ticket store for compatibility
+export type { TicketStatus as Status } from "./types";
