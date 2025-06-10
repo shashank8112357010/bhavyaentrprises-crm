@@ -91,25 +91,7 @@ export default function QuotationsPage() {
   const { toast } = useToast();
   const { user } = useAuthStore();
 
-  // Role-based access control - only ADMIN users can access quotations
-  if (user?.role !== "ADMIN") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              Only administrators can access quotations.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Use Zustand store instead of local state
+  // Use Zustand store - must be called before any conditional logic
   const { quotations, loading, error, totalQuotations, fetchQuotations } =
     useQuotationStore();
 
