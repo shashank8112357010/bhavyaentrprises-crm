@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
-import fs from "fs"; // Keep separate for unlinkSync if needed elsewhere
+import fs from "fs";
 import path from "path";
 import { z } from "zod";
 import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
@@ -140,8 +140,10 @@ export async function PUT(
     // Determine if PDF regeneration is needed and set the new pdfUrl
     // PDF is regenerated if rateCardDetails, name, or other financial details affecting PDF are changed.
     // For simplicity, we regenerate it on any meaningful update that might alter PDF content.
-    // The filename will be based on quoteNo.
-    const newPdfFilename = `${existingQuotationForUpdate.quoteNo}.pdf`;
+    // The filename will be based on quoteNo, but we need to sanitize it for file system safety.
+    const sanitizedQuoteNo =
+      existingQuotationForUpdate.quoteNo?.replace(/\//g, "-") || "quotation";
+    const newPdfFilename = `${sanitizedQuoteNo}.pdf`;
     dataToUpdate.pdfUrl = `/quotations/${newPdfFilename}`;
 
     const updatedQuotation = await prisma.quotation.update({
@@ -207,9 +209,28 @@ export async function PUT(
     if (!existsSync(folderPath)) {
       mkdirSync(folderPath, { recursive: true });
     }
-    // newPdfFilename already defined based on quoteNo
+
+    // Delete the old PDF file if it exists (in case the filename has changed)
+    if (existingQuotationForUpdate.pdfUrl) {
+      const oldPdfPath = path.join(
+        process.cwd(),
+        "public",
+        existingQuotationForUpdate.pdfUrl,
+      );
+      if (fs.existsSync(oldPdfPath)) {
+        try {
+          fs.unlinkSync(oldPdfPath);
+          console.log("Deleted old PDF file:", oldPdfPath);
+        } catch (deleteError) {
+          console.warn("Could not delete old PDF file:", deleteError);
+        }
+      }
+    }
+
+    // newPdfFilename already defined based on sanitized quoteNo
     const filePath = path.join(folderPath, newPdfFilename);
     writeFileSync(filePath, pdfBuffer);
+    console.log("PDF saved to:", filePath);
 
     // The updatedQuotation object already has the correct pdfUrl due to the earlier dataToUpdate.pdfUrl assignment
 
