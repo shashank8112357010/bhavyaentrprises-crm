@@ -4,18 +4,46 @@ import jwt from "jsonwebtoken";
 
 export async function GET(req: NextRequest) {
   try {
-    // Optional: Add authentication/authorization if needed
+    // Authentication check
     const token = req.cookies.get("token")?.value;
     if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      console.log("[TICKETS_SELECTION] No token provided");
+      return NextResponse.json(
+        { error: "Unauthorized - No token provided" },
+        { status: 401 },
+      );
     }
 
-    // You might want to verify the token and check roles, e.g.,
-    // const { role } = jwt.verify(token, process.env.JWT_SECRET!) as { role: string };
-    // if (role !== 'ADMIN' && role !== 'RM' && role !== 'BACKEND') { // Example roles
-    //   return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    // }
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+        role: string;
+        userId: string;
+      };
+    } catch (jwtError) {
+      console.log("[TICKETS_SELECTION] Invalid token:", jwtError);
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
 
+    // Role-based access control (Optional - adjust based on your requirements)
+    const allowedRoles = ["ADMIN", "RM", "BACKEND", "ACCOUNTS"];
+    if (!allowedRoles.includes(decoded.role)) {
+      console.log("[TICKETS_SELECTION] Forbidden role:", decoded.role);
+      return NextResponse.json(
+        { error: "Forbidden - Insufficient permissions" },
+        { status: 403 },
+      );
+    }
+
+    console.log(
+      "[TICKETS_SELECTION] Fetching tickets for user:",
+      decoded.userId,
+      "role:",
+      decoded.role,
+    );
+
+    // Fetch tickets from database
     const tickets = await prisma.ticket.findMany({
       select: {
         id: true, // UUID
@@ -23,18 +51,32 @@ export async function GET(req: NextRequest) {
         ticketId: true, // Human-readable/sequential ID
       },
       orderBy: {
-        createdAt: "desc", // Or ticketId if it's sortable numerically
+        createdAt: "desc",
       },
     });
 
-    return NextResponse.json({ tickets });
+    console.log("[TICKETS_SELECTION] Found tickets count:", tickets.length);
+
+    return NextResponse.json({
+      tickets,
+      count: tickets.length,
+    });
   } catch (error) {
     console.error("[GET_TICKETS_FOR_SELECTION_ERROR]", error);
+
     if (error instanceof jwt.JsonWebTokenError) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
+
+    // Database or other errors
     return NextResponse.json(
-      { message: "Internal server error" },
+      {
+        error: "Internal server error",
+        details:
+          process.env.NODE_ENV === "development"
+            ? (error as Error).message
+            : undefined,
+      },
       { status: 500 },
     );
   }
