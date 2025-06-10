@@ -9,7 +9,6 @@ interface RateCardEntry {
   unit: string;
   rate: number;
   bankName: string;
-  bankRcNo: string;
 }
 interface RateCardDetail {
   rateCardId: string;
