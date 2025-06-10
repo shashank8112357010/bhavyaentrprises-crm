@@ -1,15 +1,24 @@
 import axios from "@/lib/axios";
+import { verify } from "jsonwebtoken";
 
 export interface LoginPayload {
   email: string;
   password: string;
 }
 
+export interface TokenPayload {
+  userId: string;
+  email: string;
+  role: string;
+  iat?: number;
+  exp?: number;
+}
+
 export async function login(payload: LoginPayload) {
   try {
     const response = await axios.post("/login", payload, {
-      withCredentials: true,           // ✅ important for setting HttpOnly cookies
-      maxRedirects: 0,                 // ✅ disable auto-following redirects
+      withCredentials: true, // ✅ important for setting HttpOnly cookies
+      maxRedirects: 0, // ✅ disable auto-following redirects
       validateStatus: (status) => status < 400 || status === 302, // allow manual redirect
     });
 
@@ -28,11 +37,10 @@ export async function login(payload: LoginPayload) {
   }
 }
 
-
 export async function logout() {
   try {
     await axios.get("/logout", {
-      withCredentials: true,  // Required to clear HttpOnly cookie
+      withCredentials: true, // Required to clear HttpOnly cookie
     });
 
     // Optional: Clear any localStorage/sessionStorage
