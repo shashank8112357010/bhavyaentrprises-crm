@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Role-based access control (Optional - adjust based on your requirements)
-    const allowedRoles = ["ADMIN", "RM", "BACKEND", "ACCOUNTS"];
+    // Role-based access control (Allow all authenticated users for now)
+    const allowedRoles = ["ADMIN", "RM", "BACKEND", "ACCOUNTS", "MST"];
     if (!allowedRoles.includes(decoded.role)) {
       console.log("[TICKETS_SELECTION] Forbidden role:", decoded.role);
       return NextResponse.json(
