@@ -40,7 +40,6 @@ interface RateCard {
   unit: string;
   rate: number;
   bankName: string;
-  bankRcNo: string;
   id: string;
 }
 
@@ -86,7 +85,6 @@ export default function RateCardPage() {
     fetchRateCards();
   }, [page, debouncedSearchQuery, itemsPerPage]); // Added itemsPerPage to dependency array
 
-
   const handlePageChange = (selectedItem: { selected: number }) => {
     setPage(selectedItem.selected);
   };
@@ -114,11 +112,13 @@ export default function RateCardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Rate Cards
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight">Rate Cards</h1>
         <div className="flex items-center gap-2">
-          <UploadRateCardDialog onUploadSuccess={() => { setPage(0); /* fetchRateCards will be triggered by useEffect */ }} />
+          <UploadRateCardDialog
+            onUploadSuccess={() => {
+              setPage(0); /* fetchRateCards will be triggered by useEffect */
+            }}
+          />
           <a href="/sample_rate_card.csv" download>
             <Button variant="outline">
               <Download className="mr-2 h-4 w-4" />
@@ -161,11 +161,15 @@ export default function RateCardPage() {
               <Spinner size="8" />
             </div>
           )}
-          {error && <p className="text-destructive text-center py-10">{error}</p>}
+          {error && (
+            <p className="text-destructive text-center py-10">{error}</p>
+          )}
 
           {!loading && !error && totalCount === 0 && (
             <p className="text-center py-10 text-muted-foreground">
-              {searchQuery ? "No rate cards found matching your search." : "No rate cards found."}
+              {searchQuery
+                ? "No rate cards found matching your search."
+                : "No rate cards found."}
             </p>
           )}
 
@@ -213,55 +217,65 @@ export default function RateCardPage() {
 
       {/* Standardized Pagination Controls Area */}
       {!loading && !error && totalCount > 0 && (
-         <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
-            <div className="text-sm text-muted-foreground mb-2 md:mb-0">
-            {totalCount > 0 ? (
-                `Showing ${page * itemsPerPage + 1} - ${Math.min((page + 1) * itemsPerPage, totalCount)} of ${totalCount} rate cards`
-            ) : (
-                // This part might be redundant if the table itself shows "No rate cards found"
+        <div className="mt-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
+          <div className="text-sm text-muted-foreground mb-2 md:mb-0">
+            {totalCount > 0
+              ? `Showing ${page * itemsPerPage + 1} - ${Math.min((page + 1) * itemsPerPage, totalCount)} of ${totalCount} rate cards`
+              : // This part might be redundant if the table itself shows "No rate cards found"
                 // For consistency:
-                searchQuery ? "No rate cards found matching your search." : "No rate cards found."
-            )}
-            </div>
+                searchQuery
+                ? "No rate cards found matching your search."
+                : "No rate cards found."}
+          </div>
 
-            {totalCount > itemsPerPage && (
+          {totalCount > itemsPerPage && (
             <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">Rows:</span>
-                <Select
+              <span className="text-sm text-muted-foreground">Rows:</span>
+              <Select
                 value={String(itemsPerPage)}
                 onValueChange={(value) => {
-                    setItemsPerPage(Number(value));
-                    setPage(0);
+                  setItemsPerPage(Number(value));
+                  setPage(0);
                 }}
-                >
+              >
                 <SelectTrigger className="w-[75px] h-9">
-                    <SelectValue placeholder={String(itemsPerPage)} />
+                  <SelectValue placeholder={String(itemsPerPage)} />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
                 </SelectContent>
-                </Select>
+              </Select>
 
-                <ReactPaginate
-                    previousLabel={"← Previous"}
-                    nextLabel={"Next →"}
-                    breakLabel={"..."}
-                    pageCount={pageCount}
-                    marginPagesDisplayed={1}
-                    pageRangeDisplayed={2}
-                    onPageChange={handlePageChange}
-                    containerClassName={"flex items-center space-x-1 text-sm select-none"}
-                    pageLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-                    activeLinkClassName={"bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"}
-                    previousLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-                    nextLinkClassName={"px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"}
-                    disabledLinkClassName={"opacity-50 cursor-not-allowed"}
-                    forcePage={page}
-                />
+              <ReactPaginate
+                previousLabel={"← Previous"}
+                nextLabel={"Next →"}
+                breakLabel={"..."}
+                pageCount={pageCount}
+                marginPagesDisplayed={1}
+                pageRangeDisplayed={2}
+                onPageChange={handlePageChange}
+                containerClassName={
+                  "flex items-center space-x-1 text-sm select-none"
+                }
+                pageLinkClassName={
+                  "px-3 py-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                }
+                activeLinkClassName={
+                  "bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+                }
+                previousLinkClassName={
+                  "px-3 py-1.5 border border-gray-300 rounded-l-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                }
+                nextLinkClassName={
+                  "px-3 py-1.5 border border-gray-300 rounded-r-md cursor-pointer hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                }
+                disabledLinkClassName={"opacity-50 cursor-not-allowed"}
+                forcePage={page}
+              />
             </div>
-            )}
+          )}
         </div>
       )}
     </div>
