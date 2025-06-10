@@ -213,10 +213,19 @@ export default function NewQuotationPage() {
 
   // Fetch tickets for selection
   const fetchTicketsForSelection = useCallback(async () => {
+    console.log("Fetching tickets for selection...");
     setIsLoadingTickets(true);
     try {
       const tickets = await getTicketsForSelection();
+      console.log("Tickets fetched successfully:", tickets);
       setTicketsForSelection(tickets || []);
+
+      if (!tickets || tickets.length === 0) {
+        toast({
+          title: "No Tickets",
+          description: "No tickets available for quotation creation.",
+        });
+      }
     } catch (error: any) {
       console.error("Error fetching tickets:", error);
       toast({
