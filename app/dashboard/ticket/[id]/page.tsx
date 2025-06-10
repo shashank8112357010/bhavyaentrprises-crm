@@ -181,19 +181,17 @@ export default function TicketDetailsPage() {
   // Check if user has admin privileges (can create quotations and expenses)
   const isAdminOrAccounts = user?.role === "ADMIN" || user?.role === "ACCOUNTS";
 
-  const loadTicketData = async () => {
-    // Ensure loadTicketData is defined before it's used in useEffect or passed as prop
+  const loadTicketData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getTicketById(ticketId); // Use the actual service
+      const data = await getTicketById(ticketId);
       if (data) {
         setTicket(data);
       } else {
         setError("Ticket not found.");
       }
     } catch (err: any) {
-      console.error("Error fetching ticket:", err);
       setError(
         err.message || "An error occurred while fetching ticket details.",
       );
@@ -579,16 +577,14 @@ export default function TicketDetailsPage() {
               <NewExpenseDialog
                 onSuccess={loadTicketData}
                 ticketId={ticket.id}
-                ticketQuotations={
-                  ticket.Quotation?.map((q: any) => ({
-                    id: q.id,
-                    name: q.name,
-                    client: {
-                      name: q?.client?.name || "N/A",
-                      id: q?.client?.id || "",
-                    }, // Ensure that `client` is included in the mapping
-                  })) || []
-                }
+                ticketQuotations={ticket.Quotation?.map((q:any) => ({
+                  id: q.id,
+                  name: q.name,
+                  client: {
+                    name : q?.client?.name || "N/A",
+                    id: q?.client?.id || "",
+                  } // Ensure that `client` is included in the mapping
+                })) || []}
               />
             </div>
           )}
