@@ -153,7 +153,6 @@ export default function EditTicketDialog({
       }
       toast({ title: "Success", description: "Ticket updated successfully!" });
     } catch (error: any) {
-      console.error("Failed to update ticket:", error);
       toast({
         title: "Error",
         description:
