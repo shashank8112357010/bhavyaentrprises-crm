@@ -83,6 +83,10 @@ export function NotificationSettings() {
     }
   }, [currentPage, notificationsPerPage, filter, fetchNotifications]);
 
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead();
