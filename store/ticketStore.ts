@@ -91,6 +91,7 @@ export interface Ticket {
 export interface QuotationTicketStore {
   id: string;
   name: string;
+  quoteNo: string;
   pdfUrl: string;
   clientId: string;
   ticketId: string;
