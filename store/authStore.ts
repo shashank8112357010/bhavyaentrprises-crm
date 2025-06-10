@@ -119,12 +119,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Validate required user fields
       if (!user.userId || !user.email || !user.role) {
-        console.error("Missing required user fields:", {
-          userId: user.userId,
-          email: user.email,
-          role: user.role,
-          fullUser: user,
-        });
         const errorMsg = `User data is missing required fields. Missing: ${[
           !user.userId && "userId",
           !user.email && "email",
