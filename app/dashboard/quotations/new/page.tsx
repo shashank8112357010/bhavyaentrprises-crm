@@ -181,8 +181,6 @@ export default function NewQuotationPage() {
         oneWeekLater.setDate(oneWeekLater.getDate() + 7);
         return oneWeekLater.toISOString().split("T")[0];
       })(),
-      admin: "",
-      quoteBy: "",
       discount: "0",
       expectedExpense: "0",
     },
@@ -1008,34 +1006,6 @@ export default function NewQuotationPage() {
                         <FormLabel>Valid Until</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={quotationForm.control}
-                    name="admin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Admin</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter admin name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={quotationForm.control}
-                    name="quoteBy"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quote By</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter quote by" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
