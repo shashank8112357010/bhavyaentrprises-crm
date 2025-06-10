@@ -64,7 +64,6 @@ model RateCard {
   unit        String
   rate        Float
   bankName    String
-  bankRcNo    String
   uploadedAt  DateTime @default(now())
 }
 

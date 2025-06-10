@@ -10,14 +10,13 @@ export async function POST(request: Request) {
     // Validate the request body against the schema
     const validatedData = inlineRateCardFormSchema.parse(jsonPayload);
 
-    // Auto-generate serial number based on bank name and RC number
+    // Auto-increment serial number based on bankName
     let srNo = 1;
 
-    // Find the latest rate card for the same bank name and RC number combination
+    // Find the latest rate card for the same bank name
     const latestRateCard = await prisma.rateCard.findFirst({
       where: {
         bankName: validatedData.bankName,
-        bankRcNo: validatedData.bankRcNo,
       },
       orderBy: { srNo: "desc" },
       select: { srNo: true },
@@ -34,7 +33,6 @@ export async function POST(request: Request) {
         unit: validatedData.unit,
         rate: validatedData.rate,
         bankName: validatedData.bankName,
-        bankRcNo: validatedData.bankRcNo,
         srNo,
       },
     });

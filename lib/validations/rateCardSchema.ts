@@ -5,6 +5,7 @@ export const rateCardSchema = z.object({
   unit: z.string().min(1),
   rate: z.number().positive(),
   bankName: z.string().min(1),
+  srNo: z.number().int().positive().optional(), // Optional for CSV uploads
 });
 
 // Schema for inline rate card creation (without serial number - auto-generated in backend)
