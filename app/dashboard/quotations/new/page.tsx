@@ -92,6 +92,7 @@ interface RateCard {
   unit: string;
   rate: number;
   bankName: string;
+  bankRcNo: string;
 }
 
 interface QuotationItem extends RateCard {
@@ -208,6 +209,7 @@ export default function NewQuotationPage() {
       unit: "",
       rate: 0,
       bankName: "BE", // Default bank name as BE
+      bankRcNo: "", // Bank RC number
     },
   });
 
@@ -518,6 +520,7 @@ export default function NewQuotationPage() {
         unit: "",
         rate: 0,
         bankName: "BE",
+        bankRcNo: "",
       });
 
       // Automatically add the new rate card to the quotation
@@ -723,7 +726,7 @@ export default function NewQuotationPage() {
                                 {rateCard.description}
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {rateCard.unit} • ���
+                                {rateCard.unit} • ₹
                                 {rateCard.rate.toLocaleString()}
                               </div>
                             </div>
@@ -1150,19 +1153,35 @@ export default function NewQuotationPage() {
                 />
               </div>
 
-              <FormField
-                control={rateCardForm.control}
-                name="bankName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bank Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="BE" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={rateCardForm.control}
+                  name="bankName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bank Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="BE" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={rateCardForm.control}
+                  name="bankRcNo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bank RC No *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="RC001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="flex justify-end space-x-2">
                 <Button
