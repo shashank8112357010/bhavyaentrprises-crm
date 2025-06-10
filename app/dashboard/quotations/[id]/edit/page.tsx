@@ -259,16 +259,18 @@ export default function EditQuotationPage() {
         quotationData.rateCardDetails &&
         Array.isArray(quotationData.rateCardDetails)
       ) {
-        const items: QuotationItem[] = [];
+        // Fetch all rate cards first
+        try {
+          const rateCardResponse = await getAllRateCards({
+            searchQuery: "",
+            limit: 1000,
+          });
+          const allRateCardsData = rateCardResponse.data || [];
 
-        for (const detail of quotationData.rateCardDetails) {
-          // Fetch rate card info
-          try {
-            const rateCardResponse = await getAllRateCards({
-              searchQuery: "",
-              limit: 1000,
-            });
-            const rateCard = rateCardResponse.data.find(
+          const items: QuotationItem[] = [];
+
+          for (const detail of quotationData.rateCardDetails) {
+            const rateCard = allRateCardsData.find(
               (rc: RateCard) => rc.id === detail.rateCardId,
             );
 
@@ -280,13 +282,23 @@ export default function EditQuotationPage() {
                 totalValue: (detail.quantity || 1) * rateCard.rate,
                 rateCard: rateCard,
               });
+            } else {
+              console.warn(`Rate card with ID ${detail.rateCardId} not found`);
             }
-          } catch (error) {
-            console.error("Error fetching rate card:", error);
           }
-        }
 
-        setQuotationItems(items);
+          setQuotationItems(items);
+        } catch (error) {
+          console.error(
+            "Error fetching rate cards for quotation items:",
+            error,
+          );
+          toast({
+            title: "Warning",
+            description: "Could not load some rate card details.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error: any) {
       console.error("Error fetching quotation:", error);
