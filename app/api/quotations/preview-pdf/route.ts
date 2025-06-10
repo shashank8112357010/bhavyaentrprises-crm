@@ -29,25 +29,44 @@ const previewPdfSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("Preview PDF request body:", JSON.stringify(body, null, 2));
+
     const parsed = previewPdfSchema.safeParse(body);
 
     if (!parsed.success) {
+      console.error("Preview PDF validation failed:", parsed.error);
       return NextResponse.json(
-        { message: "Invalid input", errors: parsed.error.errors },
+        { message: "Invalid input", errors: parsed.error.flatten() },
         { status: 400 },
       );
     }
 
     const {
-      quotationId,
-      clientName,
-      clientId,
       name,
+      clientId,
+      ticketId,
+      salesType,
+      date,
+      quotationNumber,
+      validUntil,
+      expectedExpense,
+      discount,
+      serialNumber,
       rateCardDetails,
-      subtotal,
-      gst,
-      grandTotal,
     } = parsed.data;
+
+    // Fetch client data
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { name: true },
+    });
+
+    if (!client) {
+      return NextResponse.json(
+        { message: "Client not found" },
+        { status: 404 },
+      );
+    }
 
     const rateCardIds = rateCardDetails.map((detail) => detail.rateCardId);
     const dbRateCards = await prisma.rateCard.findMany({
@@ -67,6 +86,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Calculate totals
+    const subtotal = rateCardDetails.reduce((sum, detail) => {
+      const rateCard = dbRateCards.find((rc) => rc.id === detail.rateCardId);
+      return sum + (rateCard ? rateCard.rate * detail.quantity : 0);
+    }, 0);
+
+    const discountAmount = discount
+      ? (subtotal * parseFloat(discount)) / 100
+      : 0;
+    const afterDiscount = subtotal - discountAmount;
+    const gst = rateCardDetails.reduce((sum, detail) => {
+      const rateCard = dbRateCards.find((rc) => rc.id === detail.rateCardId);
+      const itemTotal = rateCard ? rateCard.rate * detail.quantity : 0;
+      return sum + (itemTotal * detail.gstPercentage) / 100;
+    }, 0);
+    const grandTotal = afterDiscount + gst;
+
     const rateCardsMap = new Map(dbRateCards.map((rc) => [rc.id, rc]));
 
     const hydratedRateCardsForPdf = rateCardDetails.map((detail) => {
@@ -83,8 +119,8 @@ export async function POST(req: NextRequest) {
     });
 
     const pdfBuffer = await generateQuotationPdf({
-      quotationId,
-      clientName,
+      quotationId: quotationNumber,
+      clientName: client.name,
       clientId,
       name,
       rateCards: hydratedRateCardsForPdf,
@@ -92,13 +128,16 @@ export async function POST(req: NextRequest) {
       gst,
       grandTotal,
       rateCardDetails,
+      expectedExpense: expectedExpense || 0,
+      quoteNo: quotationNumber,
+      validUntil,
     });
 
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${quotationId}_preview.pdf"`,
+        "Content-Disposition": `attachment; filename="${quotationNumber}_preview.pdf"`,
       },
     });
   } catch (error) {
