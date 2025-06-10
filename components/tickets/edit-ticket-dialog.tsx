@@ -146,7 +146,11 @@ export default function EditTicketDialog({
 
       await updateTicket(ticketData);
       onOpenChange(false);
-      onUpdate();
+      if (onEditSuccess) {
+        await onEditSuccess();
+      } else if (onUpdate) {
+        onUpdate();
+      }
       toast({ title: "Success", description: "Ticket updated successfully!" });
     } catch (error: any) {
       console.error("Failed to update ticket:", error);
