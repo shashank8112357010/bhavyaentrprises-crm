@@ -66,7 +66,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   fetchAgents: async (params = {}, userRole?: Role) => {
     // Only allow ADMIN and ACCOUNTS to fetch agents
-    if (userRole && userRole !== "ADMIN" && userRole !== "ACCOUNTS") {
+    if (userRole && userRole !== "ADMIN" && userRole !== "ACCOUNTS" && userRole !== "BACKEND") {
       set({ loading: false, error: null });
       return;
     }

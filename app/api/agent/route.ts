@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
     // Renamed role to adminRole to avoid conflict
     role: string;
   };
-  if (adminRole !== "ADMIN") {
-    return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
+  if (adminRole !== "ADMIN" &&  adminRole !== "BACKEND" && adminRole !== "ACCOUNTS") {
+    return NextResponse.json({ message: "Required Roles Admin Backend Accounts" }, { status: 403 });
   }
 
   try {

@@ -88,7 +88,7 @@ export default function AgentsPage() {
 
   useEffect(() => {
     // Only fetch agents if user has permission
-    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS" || user?.role === "BACKEND") {
       fetchAgents({}, user.role);
     }
   }, [fetchAgents, user?.role]);
@@ -149,7 +149,7 @@ export default function AgentsPage() {
     itemsPerPage > 0 ? Math.ceil(totalAgents / itemsPerPage) : 0;
 
   // Role-based access control - only ADMIN and ACCOUNTS users can access agents page
-  if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS") {
+  if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS" && user.role !== "BACKEND") {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">

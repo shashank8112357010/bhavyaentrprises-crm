@@ -16,7 +16,7 @@ export const navRoleAccess: Record<Role, string[]> = {
     "Email Templates",
     "Settings",
   ],
-  BACKEND: ["Dashboard", "Settings" , "Kanban Board"],
+  BACKEND: ["Dashboard", "Settings" , "Kanban Board" ,  "Agents",   "Rate Card"],
   RM: ["Dashboard", "Kanban Board", "Clients", "Agents", "Calls", "Email Templates"],
   MST: ["Dashboard", "Kanban Board", "Agents", "Calls"],
   ACCOUNTS: [
@@ -48,7 +48,7 @@ export const pathRoleAccess: Record<Role, string[]> = {
     "/dashboard/settings",
     "/admin",
   ],
-  BACKEND: ["/dashboard", "/dashboard/settings" , "/dashboard/kanban"],
+  BACKEND: ["/dashboard", "/dashboard/settings" , "/dashboard/kanban" ,   "/dashboard/rate-card",     "/dashboard/agents",],
   RM: ["/dashboard", "/dashboard/kanban", "/dashboard/clients", "/dashboard/agents", "/dashboard/calls", "/dashboard/email-template"],
   MST: ["/dashboard", "/dashboard/kanban", "/dashboard/agents", "/dashboard/calls"],
   ACCOUNTS: [
