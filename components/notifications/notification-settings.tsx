@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -55,11 +55,7 @@ export function NotificationSettings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSystemAvailable, setIsSystemAvailable] = useState(true);
 
-  useEffect(() => {
-    loadNotifications();
-  }, [currentPage, filter, notificationsPerPage]);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       const offset = (currentPage - 1) * notificationsPerPage;
       const filters: any = {
@@ -86,8 +82,11 @@ export function NotificationSettings() {
         setIsSystemAvailable(false);
       }
     }
-  };
+  }, [currentPage, notificationsPerPage, filter, fetchNotifications]);
 
+  useEffect(() => {
+    loadNotifications();
+  }, [currentPage, filter, notificationsPerPage, loadNotifications]);
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead();
@@ -100,7 +99,7 @@ export function NotificationSettings() {
   const handleDeleteAll = async () => {
     if (
       !confirm(
-        "Are you sure you want to delete all notifications? This action cannot be undone.",
+        "Are you sure you want to delete all notifications? This action cannot be undone."
       )
     ) {
       return;
@@ -342,10 +341,10 @@ export function NotificationSettings() {
                 {searchQuery
                   ? "No notifications match your search."
                   : filter === "unread"
-                    ? "No unread notifications."
-                    : filter === "read"
-                      ? "No read notifications."
-                      : "No notifications yet."}
+                  ? "No unread notifications."
+                  : filter === "read"
+                  ? "No read notifications."
+                  : "No notifications yet."}
               </p>
               {searchQuery && (
                 <Button
@@ -383,7 +382,7 @@ export function NotificationSettings() {
                 Showing {(currentPage - 1) * notificationsPerPage + 1} to{" "}
                 {Math.min(
                   currentPage * notificationsPerPage,
-                  totalNotifications,
+                  totalNotifications
                 )}{" "}
                 of {totalNotifications} notifications
               </div>

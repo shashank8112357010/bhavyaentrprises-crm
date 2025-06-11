@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ReactPaginate from "react-paginate";
 import { Building, Download, MoreHorizontal, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -128,26 +128,26 @@ export default function ClientsPage() {
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  async function refreshClients() {
-    try {
-      setLoading(true);
-      const data = await getAllClients();
-      setClients(data?.clients || []);
-    } catch (err) {
-      console.error("Failed to fetch clients:", err);
-      toast({
-        title: "Error",
-        description: "Could not refresh client list.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
+  const refreshClients = useCallback(async () => {
+      try {
+        setLoading(true);
+        const data = await getAllClients();
+        setClients(data?.clients || []);
+      } catch (err) {
+        console.error("Failed to fetch clients:", err);
+        toast({
+          title: "Error",
+          description: "Could not refresh client list.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }, [toast]);
 
   useEffect(() => {
     refreshClients();
-  }, []);
+  }, [refreshClients]);
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch =

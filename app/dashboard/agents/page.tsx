@@ -59,23 +59,7 @@ import { useAuthStore } from "@/store/authStore";
 export default function AgentsPage() {
   const { user } = useAuthStore();
 
-  // Role-based access control - only ADMIN and ACCOUNTS users can access agents page
-  if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              You don't have permission to access the agents page.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
   const {
     agents,
     loading,
@@ -99,6 +83,8 @@ export default function AgentsPage() {
     useState<Agent | null>(null);
   const [isDeletingAgent, setIsDeletingAgent] = useState<boolean>(false);
   const { toast } = useToast();
+
+  
 
   useEffect(() => {
     // Only fetch agents if user has permission
@@ -141,6 +127,16 @@ export default function AgentsPage() {
     }
   };
 
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value, user?.role);
   };
@@ -152,15 +148,23 @@ export default function AgentsPage() {
   const pageCount =
     itemsPerPage > 0 ? Math.ceil(totalAgents / itemsPerPage) : 0;
 
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error",
-        description: error,
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
+  // Role-based access control - only ADMIN and ACCOUNTS users can access agents page
+  if (user?.role && user.role !== "ADMIN" && user.role !== "ACCOUNTS") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground">
+              {`You don't have permission to access the agents page.`}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">

@@ -90,25 +90,6 @@ export default function QuotationsPage() {
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { toast } = useToast();
   const { user } = useAuthStore();
-
-  // Role-based access control - only ADMIN users can access quotations
-  if (user?.role !== "ADMIN") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              Only administrators can access quotations.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Use Zustand store instead of local state
   const { quotations, loading, error, totalQuotations, fetchQuotations } =
     useQuotationStore();
@@ -185,7 +166,9 @@ Thank you for your business.
 Best regards,
 Bhavya Enterprises Team`;
 
-      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      const mailtoLink = `mailto:?subject=${encodeURIComponent(
+        subject
+      )}&body=${encodeURIComponent(body)}`;
       window.location.href = mailtoLink;
 
       toast({
@@ -215,6 +198,25 @@ Bhavya Enterprises Team`;
   const pageCount = Math.ceil(totalQuotations / itemsPerPage);
   const currentPageStart = totalQuotations > 0 ? page * itemsPerPage + 1 : 0;
   const currentPageEnd = Math.min((page + 1) * itemsPerPage, totalQuotations);
+
+
+    // Role-based access control - only ADMIN users can access quotations
+    if (user?.role !== "ADMIN") {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-center">Access Denied</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-center text-muted-foreground">
+                Only administrators can access quotations.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 pt-6">
@@ -357,7 +359,7 @@ Bhavya Enterprises Team`;
                                     q.pdfUrl,
                                     q.quoteNo ||
                                       q.name ||
-                                      `quotation-${q.id}.pdf`,
+                                      `quotation-${q.id}.pdf`
                                   )
                                 }
                               >

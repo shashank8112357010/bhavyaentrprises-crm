@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { useNotificationStore } from "@/store/notificationStore";
 import { NotificationItem } from "./notification-item";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
@@ -185,7 +185,7 @@ export function NotificationBell() {
                   No notifications
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  You're all caught up!
+                 {` You're all caught up!`}
                 </p>
               </div>
             ) : (

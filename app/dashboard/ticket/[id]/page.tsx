@@ -221,7 +221,7 @@ export default function TicketDetailsPage() {
       };
     }
     return undefined;
-  }, [ticket?.assignee?.id, ticket?.assignee?.name]);
+  }, [ticket?.assignee]);
 
   const handleAddComment = async () => {
     const currentUserId = getCurrentUserIdFromAuth();
@@ -285,7 +285,7 @@ export default function TicketDetailsPage() {
     if (ticketId) {
       loadTicketData(); // Call the defined loadTicketData
     }
-  }, [ticketId]); // Removed loadTicketData from dependency array as it's stable now
+  }, [ticketId , loadTicketData]); // Removed loadTicketData from dependency array as it's stable now
 
   // The old placeholder fetchTicketById and its associated useEffect have been removed.
   // The new useEffect uses getTicketById directly.

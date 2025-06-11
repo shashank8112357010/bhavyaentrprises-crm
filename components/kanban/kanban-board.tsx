@@ -148,7 +148,7 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
 
   useEffect(() => {
     getVisibleColumns();
-  }, [user?.role]);
+  }, [user?.role , getVisibleColumns]);
 
   return (
     <div className="w-[calc(100vw-15rem)]">
