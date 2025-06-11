@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
     }
 
-    // Check for file type
     if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
       return NextResponse.json(
         { error: "Invalid file type. Please upload a CSV file (.csv)." },
@@ -55,15 +54,15 @@ export async function POST(req: NextRequest) {
     const importErrors: Array<{ row: number; name?: string; error: string | object }> = [];
 
     const results = Papa.parse(fileText, {
-      header: true, // Uses the first row as keys
+      header: true,
       skipEmptyLines: true,
-      dynamicTyping: false, // All values are strings initially
+      dynamicTyping: false,
     });
 
-    if (results.errors && results.errors.length > 0) {
-      results.errors.forEach((err:any) => {
+    if (results.errors?.length) {
+      results.errors.forEach((err: any) => {
         importErrors.push({
-          row: err.row + 1, // PapaParse is 0-indexed for rows if header is true
+          row: err.row + 1,
           error: err.message,
         });
       });
@@ -76,9 +75,24 @@ export async function POST(req: NextRequest) {
 
     const rows = results.data as Array<Record<string, string>>;
 
+    // Track display ID counter during this import
+    let clientCounter = 1;
+    const latestClient = await prisma.client.findFirst({
+      where: { displayId: { not: null } },
+      orderBy: { displayId: "desc" },
+      select: { displayId: true },
+    });
+
+    if (latestClient?.displayId) {
+      const idMatch = latestClient.displayId.match(/CLIENT-(\d+)$/);
+      if (idMatch) {
+        clientCounter = parseInt(idMatch[1]) + 1;
+      }
+    }
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const rowIndex = i + 2; // CSV row number (1-based index + 1 for header)
+      const rowIndex = i + 2;
 
       const name = String(row.Name || "").trim();
       if (!name) {
@@ -87,60 +101,60 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      let totalBranchesNum: number;
       const totalBranchesStr = String(row.TotalBranches || "").trim();
-      if (totalBranchesStr !== "") {
-        totalBranchesNum = Number(totalBranchesStr);
-        if (isNaN(totalBranchesNum) || !Number.isInteger(totalBranchesNum) || totalBranchesNum < 0) {
-          importErrors.push({ row: rowIndex, name: name, error: `Invalid value for TotalBranches: '${row.TotalBranches}'. Must be a non-negative integer.` });
-          errorCount++;
-          continue;
-        }
-      } else {
-        importErrors.push({ row: rowIndex, name: name, error: "TotalBranches is required and must be a non-negative integer." });
+      const totalBranchesNum = Number(totalBranchesStr);
+      if (
+        totalBranchesStr === "" ||
+        isNaN(totalBranchesNum) ||
+        !Number.isInteger(totalBranchesNum) ||
+        totalBranchesNum < 0
+      ) {
+        importErrors.push({
+          row: rowIndex,
+          name,
+          error: `Invalid value for TotalBranches: '${row.TotalBranches}'. Must be a non-negative integer.`,
+        });
         errorCount++;
         continue;
       }
 
       const contactPerson = String(row.ContactPerson || "").trim();
       if (!contactPerson) {
-        importErrors.push({ row: rowIndex, name: name, error: "Contact Person is required." });
+        importErrors.push({ row: rowIndex, name, error: "Contact Person is required." });
         errorCount++;
         continue;
       }
 
       const contactPhone = String(row.ContactPhone || "").trim();
       if (!contactPhone) {
-        importErrors.push({ row: rowIndex, name: name, error: "Contact Phone is required." });
+        importErrors.push({ row: rowIndex, name, error: "Contact Phone is required." });
         errorCount++;
         continue;
       }
 
-      const lastServiceDate = String(row.LastServiceDate || "").trim();
-      if (!lastServiceDate) {
-          importErrors.push({ row: rowIndex, name: name, error: "Last Service Date is required." });
-          errorCount++;
-          continue;
+      const lastServiceDateRaw = String(row.LastServiceDate || "").trim();
+      if (!lastServiceDateRaw) {
+        importErrors.push({ row: rowIndex, name, error: "Last Service Date is required." });
+        errorCount++;
+        continue;
       }
 
-
       const clientData = {
-        name: name,
+        name,
         type: normalizeEnumValue(String(row.Type || ""), ["Bank", "NBFC", "Insurance", "Corporate"]),
         totalBranches: totalBranchesNum,
-        contactPerson: contactPerson,
-        contactEmail: String(row.ContactEmail || "").trim() === "" ? undefined : String(row.ContactEmail).trim(),
-        contactPhone: contactPhone,
+        contactPerson,
+        contactEmail: String(row.ContactEmail || "").trim() || undefined,
+        contactPhone,
         contractStatus: normalizeEnumValue(String(row.ContractStatus || ""), ["Active", "Inactive"]),
-        lastServiceDate: lastServiceDate,
-        gstn: String(row.GSTN || "").trim() === "" ? undefined : String(row.GSTN).trim(),
-        initials: String(row.Initials || "").trim() === "" ? generateInitials(name) : String(row.Initials).trim(),
+        lastServiceDate: lastServiceDateRaw, // pass string for schema
+        gstn: String(row.GSTN || "").trim() || undefined,
+        initials: String(row.Initials || "").trim() || generateInitials(name),
       };
 
       const validationResult = createClientSchema.safeParse(clientData);
 
       if (validationResult.success) {
-        // Destructure validated data to ensure type safety with Prisma
         const { name: validatedName, ...dataToCreate } = validationResult.data;
 
         const existingClient = await prisma.client.findFirst({
@@ -152,15 +166,19 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Initials are now optional in schema, but we ensure they are set if not provided in CSV
         const finalInitials = dataToCreate.initials || generateInitials(validatedName);
+
+        let displayId = `CLIENT-${clientCounter.toString().padStart(4, "0")}`;
+        clientCounter++; // increment for next row
 
         try {
           await prisma.client.create({
             data: {
               ...dataToCreate,
               name: validatedName,
-              initials: finalInitials, // Use validated/generated initials
+              initials: finalInitials,
+              lastServiceDate: new Date(dataToCreate.lastServiceDate),
+              displayId,
             },
           });
           successCount++;
@@ -176,7 +194,7 @@ export async function POST(req: NextRequest) {
         errorCount++;
         importErrors.push({
           row: rowIndex,
-          name: name, // Use original name for error reporting if validation fails early
+          name,
           error: validationResult.error.flatten().fieldErrors,
         });
       }
@@ -190,16 +208,22 @@ export async function POST(req: NextRequest) {
       errors: importErrors,
     });
   } catch (error: any) {
-    console.error("Import Error:", error);
+    console.error("Client import error:", error);
     let errorMessage = "An unexpected error occurred during import.";
-    if (error.message) {
+
+    if (error instanceof TypeError && error.message.includes("formData.get is not a function")) {
+      errorMessage = "Failed to parse form data. Ensure the request is correctly formatted.";
+    } else if (error.message) {
       errorMessage = error.message;
     }
-    // Specific error messages can be refined here
-    if (error instanceof TypeError && error.message.includes("formData.get is not a function")) {
-        errorMessage = "Failed to parse form data. Ensure the request is correctly formatted.";
-    }
 
-    return NextResponse.json({ error: errorMessage, details: error.toString() }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: errorMessage,
+        details: error.toString(),
+      },
+      { status: 500 }
+    );
   }
 }
+
