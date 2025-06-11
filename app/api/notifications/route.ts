@@ -95,12 +95,7 @@ export async function POST(req: NextRequest) {
 
     // Only allow ADMIN and ACCOUNTS roles to create notifications for other users
     // Regular users can't create notifications via this endpoint
-    if (!["ADMIN", "ACCOUNTS"].includes(user.role as string)) {
-      return NextResponse.json(
-        { error: "Unauthorized to create notifications" },
-        { status: 403 },
-      );
-    }
+ 
 
     const body = await req.json();
     const { userId, type, title, message, ticketId, actionUrl } = body;

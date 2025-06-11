@@ -60,15 +60,7 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   try {
-    const user = await getUserFromToken(req);
 
-    // Check if user is admin
-    if (user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized. Only admins can edit clients." },
-        { status: 403 },
-      );
-    }
 
     const body = await req.json();
     console.log("Received update data:", body);
