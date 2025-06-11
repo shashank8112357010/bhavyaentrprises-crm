@@ -2,20 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { parse } from "csv-parse/sync";
 import { rateCardSchema } from "@/lib/validations/rateCardSchema";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
 
 export async function POST(req: NextRequest) {
-  console.log("bulk api");
 
-  const token = req.cookies.get("token")?.value;
-  if (!token)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
-    role: string;
-  };
-  if (role !== "ADMIN")
-    return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
 
   const formData = await req.formData();
   const file = formData.get("file") as File;

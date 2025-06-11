@@ -130,7 +130,7 @@ export default function NewQuotationPage() {
 
   // State for selected rate card and quantity
   const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(
-    null,
+    null
   );
   const [quantity, setQuantity] = useState<number>(1);
 
@@ -147,7 +147,7 @@ export default function NewQuotationPage() {
     TicketForSelection[]
   >([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(
-    undefined,
+    undefined
   );
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(false);
@@ -213,7 +213,7 @@ export default function NewQuotationPage() {
       } catch (serviceError) {
         console.warn(
           "Service method failed, trying direct fetch:",
-          serviceError,
+          serviceError
         );
 
         // Fallback to direct fetch
@@ -229,7 +229,7 @@ export default function NewQuotationPage() {
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(
-            `HTTP ${response.status}: ${response.statusText} - ${errorText}`,
+            `HTTP ${response.status}: ${response.statusText} - ${errorText}`
           );
         }
 
@@ -266,9 +266,11 @@ export default function NewQuotationPage() {
       setLoadingRateCards(true);
       try {
         const response = await getAllRateCards({
-          limit: 100,
+          limit: 3,
           searchQuery,
         });
+        console.log(response);
+
         setRateCards(response.data || []);
       } catch (error) {
         console.error("Error fetching rate cards:", error);
@@ -281,7 +283,7 @@ export default function NewQuotationPage() {
         setLoadingRateCards(false);
       }
     },
-    [toast],
+    [toast]
   );
 
   // Auto-fetch client info when ticket is selected
@@ -313,15 +315,12 @@ export default function NewQuotationPage() {
         });
       }
     },
-    [toast],
+    [toast]
   );
 
   // Initial data fetch
   useEffect(() => {
-    // Only fetch data if user is authorized
-    if (user?.role === "ADMIN") {
-      fetchTicketsForSelection();
-    }
+    fetchTicketsForSelection();
   }, [fetchTicketsForSelection, user?.role]);
 
   // Auto-select ticket from URL params
@@ -334,10 +333,8 @@ export default function NewQuotationPage() {
 
   // Debounced rate card search
   useEffect(() => {
-    if (user?.role === "ADMIN") {
-      searchRateCards(debouncedRateCardSearch);
-    }
-  }, [debouncedRateCardSearch, searchRateCards, user?.role]);
+    searchRateCards(debouncedRateCardSearch);
+  }, [debouncedRateCardSearch, searchRateCards]);
 
   // Handle rate card selection
   const handleRateCardSelect = (rateCard: RateCard) => {
@@ -357,7 +354,7 @@ export default function NewQuotationPage() {
 
     // Check if the rate card already exists in quotation
     const existingItemIndex = quotationItems.findIndex(
-      (item) => item.id === selectedRateCard.id,
+      (item) => item.id === selectedRateCard.id
     );
 
     if (existingItemIndex !== -1) {
@@ -445,7 +442,7 @@ export default function NewQuotationPage() {
 
       console.log(
         "Sending quotation data:",
-        JSON.stringify(quotationData, null, 2),
+        JSON.stringify(quotationData, null, 2)
       );
 
       await createQuotation(quotationData);
@@ -500,6 +497,12 @@ export default function NewQuotationPage() {
         throw new Error("Quotation number is required");
       }
 
+      // Calculate total from quotationItems
+      const totalFromRateCard = quotationItems.reduce(
+        (sum, item) => sum + (parseFloat(item.totalValue.toString()) || 0),
+        0
+      );
+
       const quotationData = {
         name: formValues.quotationNumber.trim(), // Use quotation number as name
         clientId: selectedClient.id,
@@ -508,9 +511,11 @@ export default function NewQuotationPage() {
         date: formValues.date,
         quotationNumber: formValues.quotationNumber.trim(),
         validUntil: formValues.validUntil,
-        expectedExpense: formValues.expectedExpense
-          ? parseFloat(formValues.expectedExpense) || 0
-          : 0,
+        expectedExpense:
+          formValues.expectedExpense &&
+          parseFloat(formValues.expectedExpense) !== 0
+            ? parseFloat(formValues.expectedExpense)
+            : totalFromRateCard,
         discount: formValues.discount,
         serialNumber: formValues.serialNumber,
         rateCardDetails: quotationItems.map((item) => ({
@@ -523,7 +528,7 @@ export default function NewQuotationPage() {
 
       console.log(
         "Sending PDF export data:",
-        JSON.stringify(quotationData, null, 2),
+        JSON.stringify(quotationData, null, 2)
       );
 
       const response = await fetch("/api/quotations/preview-pdf", {
@@ -552,7 +557,7 @@ export default function NewQuotationPage() {
         const errorText = await response.text();
         console.error("PDF generation error response:", errorText);
         throw new Error(
-          `Failed to generate PDF: ${response.status} ${response.statusText}`,
+          `Failed to generate PDF: ${response.status} ${response.statusText}`
         );
       }
     } catch (error: any) {
@@ -637,7 +642,7 @@ export default function NewQuotationPage() {
   // Calculate totals
   const subtotal = quotationItems.reduce(
     (sum, item) => sum + item.totalValue,
-    0,
+    0
   );
   const discount = parseFloat(quotationForm.watch("discount") || "0");
   const discountAmount = (subtotal * discount) / 100;
@@ -647,24 +652,6 @@ export default function NewQuotationPage() {
     return sum + (itemTotal * item.gstPercentage) / 100;
   }, 0);
   const grandTotal = afterDiscount + gstAmount;
-
-  // Role-based access control - AFTER ALL HOOKS ARE CALLED
-  if (user?.role !== "ADMIN") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              Only administrators can create quotations.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -819,6 +806,9 @@ export default function NewQuotationPage() {
                                 {rateCard.description}
                               </div>
                               <div className="text-sm text-muted-foreground">
+                                {rateCard.bankName}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
                                 {rateCard.unit} • ₹
                                 {rateCard.rate.toLocaleString()}
                               </div>
@@ -931,7 +921,7 @@ export default function NewQuotationPage() {
                               onChange={(e) =>
                                 handleQuantityChange(
                                   index,
-                                  parseFloat(e.target.value) || 0,
+                                  parseFloat(e.target.value) || 0
                                 )
                               }
                               className="w-20"
@@ -945,7 +935,7 @@ export default function NewQuotationPage() {
                               onChange={(e) =>
                                 handleGstChange(
                                   index,
-                                  parseFloat(e.target.value) || 0,
+                                  parseFloat(e.target.value) || 0
                                 )
                               }
                               className="w-20"

@@ -5,20 +5,6 @@ import { Prisma } from "@prisma/client";
 
 // GET /api/agents
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
-
-  if (!token) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const { role: adminRole } = jwt.verify(token, process.env.JWT_SECRET!) as {
-    // Renamed role to adminRole to avoid conflict
-    role: string;
-  };
-  if (adminRole !== "ADMIN" &&  adminRole !== "BACKEND" && adminRole !== "ACCOUNTS") {
-    return NextResponse.json({ message: "Required Roles Admin Backend Accounts" }, { status: 403 });
-  }
-
   try {
     const searchParams = req.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1", 10);

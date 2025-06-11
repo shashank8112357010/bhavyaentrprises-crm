@@ -87,11 +87,10 @@ export default function AgentsPage() {
   
 
   useEffect(() => {
-    // Only fetch agents if user has permission
-    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS" || user?.role === "BACKEND") {
+    if (user) {
       fetchAgents({}, user.role);
     }
-  }, [fetchAgents, user?.role]);
+  }, [fetchAgents, user]);
 
   const handleViewDetails = (agent: Agent) => {
     setSelectedAgentForDetails(agent);

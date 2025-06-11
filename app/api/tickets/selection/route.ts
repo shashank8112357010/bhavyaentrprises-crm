@@ -4,44 +4,7 @@ import jwt from "jsonwebtoken";
 
 export async function GET(req: NextRequest) {
   try {
-    // Authentication check
-    const token = req.cookies.get("token")?.value;
-    if (!token) {
-      console.log("[TICKETS_SELECTION] No token provided");
-      return NextResponse.json(
-        { error: "Unauthorized - No token provided" },
-        { status: 401 },
-      );
-    }
 
-    // Verify JWT token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-        role: string;
-        userId: string;
-      };
-    } catch (jwtError) {
-      console.log("[TICKETS_SELECTION] Invalid token:", jwtError);
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    // Role-based access control (Allow all authenticated users for now)
-    const allowedRoles = ["ADMIN", "RM", "BACKEND", "ACCOUNTS", "MST"];
-    if (!allowedRoles.includes(decoded.role)) {
-      console.log("[TICKETS_SELECTION] Forbidden role:", decoded.role);
-      return NextResponse.json(
-        { error: "Forbidden - Insufficient permissions" },
-        { status: 403 },
-      );
-    }
-
-    console.log(
-      "[TICKETS_SELECTION] Fetching tickets for user:",
-      decoded.userId,
-      "role:",
-      decoded.role,
-    );
 
     // Fetch tickets from database
     const tickets = await prisma.ticket.findMany({

@@ -361,9 +361,13 @@ export default function EditQuotationPage() {
       setLoadingRateCards(true);
       try {
         const response = await getAllRateCards({
-          limit: 100,
+          limit: 3,
           searchQuery,
         });
+
+        console.log("Fetched rate cards:", response.data);
+  
+        
         setRateCards(response.data || []);
       } catch (error) {
         console.error("Error fetching rate cards:", error);
@@ -414,18 +418,18 @@ export default function EditQuotationPage() {
   // Initial data fetch
   useEffect(() => {
     // Only fetch data if user is authorized
-    if (user?.role === "ADMIN") {
+ 
       fetchTicketsForSelection();
       fetchQuotationData();
-    }
-  }, [fetchTicketsForSelection, fetchQuotationData, user?.role]);
+  
+  }, [fetchTicketsForSelection, fetchQuotationData]);
 
   // Debounced rate card search
   useEffect(() => {
-    if (user?.role === "ADMIN") {
+   
       searchRateCards(debouncedRateCardSearch);
-    }
-  }, [debouncedRateCardSearch, searchRateCards, user?.role]);
+  
+  }, [debouncedRateCardSearch, searchRateCards]);
 
   // Handle rate card selection
   const handleRateCardSelect = (rateCard: RateCard) => {
@@ -747,23 +751,7 @@ export default function EditQuotationPage() {
   }, 0);
   const grandTotal = afterDiscount + gstAmount;
 
-  // Role-based access control - AFTER ALL HOOKS ARE CALLED
-  if (user?.role !== "ADMIN") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              Only administrators can edit quotations.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
 
   // Loading state
   if (isLoadingQuotation) {
@@ -931,9 +919,12 @@ export default function EditQuotationPage() {
                           onClick={() => handleRateCardSelect(rateCard)}
                         >
                           <div className="flex justify-between items-start">
-                            <div>
+                          <div>
                               <div className="font-medium">
                                 {rateCard.description}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {rateCard.bankName}
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 {rateCard.unit} • ₹

@@ -9,18 +9,7 @@ import path from "path";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get("token")?.value;
-    if (!token)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
-      role: string;
-    };
-    if (role !== "ADMIN")
-      return NextResponse.json(
-        { message: "Need Admin Access" },
-        { status: 403 },
-      );
 
     const body = await req.json();
     console.log(

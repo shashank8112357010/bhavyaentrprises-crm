@@ -94,12 +94,11 @@ export default function KanbanPage() {
           startDate: startDateTicket,
           endDate: endDateTicket,
         });
-
-        // Only fetch agents and clients if user has permission
-        if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+        if (user) {
           await fetchAgents({}, user.role);
-          await fetchClients();
         }
+
+        await fetchClients();
       } catch (error) {
         console.error("Error loading kanban data:", error);
         toast({
@@ -334,7 +333,7 @@ export default function KanbanPage() {
 
       return acc;
     },
-    {} as TicketsState,
+    {} as TicketsState
   );
 
   const ticketStatuses: Status[] = [
@@ -366,7 +365,10 @@ export default function KanbanPage() {
       setExportModalOpen(false);
       toast({
         title: "Export Successful",
-        description: `${status.replaceAll("_", " ")} tickets exported successfully.`,
+        description: `${status.replaceAll(
+          "_",
+          " "
+        )} tickets exported successfully.`,
       });
     } catch (err: any) {
       toast({
@@ -394,7 +396,7 @@ export default function KanbanPage() {
             Manage and track maintenance requests
           </p>
         </div>
-        {user?.role === "ADMIN" && <NewTicketDialog />}
+        <NewTicketDialog />
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 items-center justify-between">

@@ -34,18 +34,6 @@ export async function PUT(
   { params }: { params: { id: string } },
 ) {
   try {
-    const token = req.cookies.get("token")?.value;
-    if (!token)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
-      role: string;
-    };
-    if (role !== "ADMIN")
-      return NextResponse.json(
-        { message: "Need Admin Access" },
-        { status: 403 },
-      );
 
     const { id } = params;
     const body = await req.json();
@@ -256,20 +244,7 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
-    // Add role-based access control
-    const token = req.cookies.get("token")?.value;
-    if (!token)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
-      role: string;
-    };
-    if (role !== "ADMIN") {
-      return NextResponse.json(
-        { message: "Need Admin Access" },
-        { status: 403 },
-      );
-    }
 
     const { id } = params;
     const quotation = await prisma.quotation.findUnique({

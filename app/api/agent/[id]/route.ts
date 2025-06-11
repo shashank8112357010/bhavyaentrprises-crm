@@ -13,13 +13,6 @@ export async function GET(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { role } = jwt.verify(token, process.env.JWT_SECRET!) as {
-    role: string;
-  };
-  if (role !== "ADMIN") {
-    return NextResponse.json({ message: "Need Admin Access" }, { status: 403 });
-  }
-
   try {
     const agent = await prisma.user.findUnique({
       where: {
