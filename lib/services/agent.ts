@@ -46,6 +46,9 @@ export async function getAllAgents(
         Expires: "0",
       },
     });
+
+    console.log(response , "response");
+    
     return response.data; // Should now be the paginated response
   } catch (error: any) {
     const message =

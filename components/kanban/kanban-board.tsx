@@ -27,6 +27,15 @@ import { Ticket } from "@/components/kanban/types";
 import { useEffect, useState } from "react";
 import { Role } from "@/constants/roleAccessConfig";
 import { useAuthStore } from "@/store/authStore";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface TicketsState {
   new: Ticket[];
@@ -49,6 +58,7 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const { user } = useAuthStore();
+  const [selectedColumns, setSelectedColumns] = useState<keyof TicketsState[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -56,7 +66,6 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -134,31 +143,73 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   };
 
   const getVisibleColumns = () => {
-    const allColumns = Object.keys(tickets) as Array<keyof TicketsState>;
-
-    if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
-      return allColumns;
-    } else {
-      return allColumns.filter(
-        (column) =>
-          column !== "billing_pending" && column !== "billing_completed"
-      );
+    if (user?.role === "ACCOUNTS") {
+      return ["billing_pending", "billing_completed", ...selectedColumns];
     }
+    return Object.keys(tickets) as Array<keyof TicketsState>;
   };
 
-  useEffect(() => {
-    getVisibleColumns();
-  }, [user?.role , getVisibleColumns]);
+  const availableStatuses: keyof TicketsState[] = [
+    "new",
+    "inProgress",
+    "onHold",
+    "completed",
+  ];
 
   return (
     <div className="w-[calc(100vw-15rem)]">
+      {user?.role === "ACCOUNTS" && (
+        <div className="flex flex-col gap-2 px-4 pt-4">
+          <div className="flex gap-2 flex-wrap">
+            {selectedColumns.map((status) => (
+              <Badge key={status} className="flex items-center gap-1">
+                {getColumnTitle(status)}
+                <X
+                  className="w-3 h-3 cursor-pointer"
+                  onClick={() =>
+                    setSelectedColumns((prev) =>
+                      prev.filter((s) => s !== status)
+                    )
+                  }
+                />
+              </Badge>
+            ))}
+          </div>
+          <Select
+            onValueChange={(value) => {
+              const status = value as keyof TicketsState;
+              if (!selectedColumns.includes(status)) {
+                setSelectedColumns([...selectedColumns, status]);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="Add status column" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableStatuses
+                .filter((status) => !selectedColumns.includes(status))
+                .map((status) => (
+                  <SelectItem
+                    key={status}
+                    value={status}
+                    className="capitalize"
+                  >
+                    {getColumnTitle(status)}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="  flex overflow-x-auto gap-4 p-4">
+        <div className="flex overflow-x-auto gap-4 p-4">
           {getVisibleColumns().map((status) => (
             <KanbanColumn
               key={status}
@@ -171,15 +222,14 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
         </div>
 
         <DragOverlay>
-          {activeId &&
-            (() => {
-              const activeTicket = Object.values(tickets)
-                .flat()
-                .find((t) => t.id === activeId);
-              return activeTicket ? (
-                <SortableTicket key={activeTicket.id} ticket={activeTicket} />
-              ) : null;
-            })()}
+          {activeId && (() => {
+            const activeTicket = Object.values(tickets)
+              .flat()
+              .find((t) => t.id === activeId);
+            return activeTicket ? (
+              <SortableTicket key={activeTicket.id} ticket={activeTicket} />
+            ) : null;
+          })()}
         </DragOverlay>
       </DndContext>
     </div>

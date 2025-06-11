@@ -70,6 +70,7 @@ export interface Ticket {
   ticketId: string;
   title: string;
   branch: string;
+  approvedByAccountant : string ;
   priority: string;
   assignee: Assignee;
   workStage?: WorkStage;

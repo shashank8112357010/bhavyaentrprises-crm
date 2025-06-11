@@ -150,6 +150,8 @@ model Ticket {
   expenses      Expense[]
   Quotation     Quotation[]
   comments      Comment[]
+  approvedByAccountant   String?
+   approvalNote         String?
   notifications Notification[]   @relation("TicketNotifications")
 }
 

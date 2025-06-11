@@ -105,6 +105,8 @@ export default function EditTicketDialog({
   }, [agents, ticket.assignee]);
 
   const handleChange = (field: string, value: string) => {
+    console.log(`Updating field: ${field} with value: ${value}`);
+    
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -284,10 +286,10 @@ export default function EditTicketDialog({
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      {agent.avatar
-                        ? `${agent.avatar} - ${agent.name}`
+                  {agents.map((agent:any) => (
+                    <SelectItem key={agent.id} value={agent.originalId}>
+                      {agent.name
+                        ? `${agent.avatar}-------- - ${agent.name}`
                         : agent.name}
                     </SelectItem>
                   ))}

@@ -39,6 +39,7 @@ interface Assignee {
   name: string | null;
   email: string | null; // Included based on API update
   avatar: string | null;
+  originalId ?: string; // Original ID for the user, if applicable
   initials: string | null;
   role?: string; // Included based on API update
   // Add other relevant user fields if needed

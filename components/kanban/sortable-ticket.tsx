@@ -104,6 +104,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
 
   const handleUpdate = async () => {
     try {
+      alert("Ticket updated successfully!");
       await updateTicket(ticket);
     } catch (error) {
       console.error("Failed to update ticket:", error);

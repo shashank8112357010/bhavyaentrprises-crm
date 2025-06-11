@@ -30,6 +30,7 @@ export const createTicketSchema = z.object({
 });
 
 export const updateTicketSchema = z.object({
+  id : z.string().uuid("Invalid ticket ID format"),
   title: z.string().min(1, "Title is required").optional(),
   branch: z.string().min(1, "Branch is required").optional(),
   priority: z.string().min(1, "Priority is required").optional(),

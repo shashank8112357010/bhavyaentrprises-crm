@@ -98,7 +98,7 @@ export async function POST(req: Request) {
 
 export async function GET(request: NextRequest) {
   try {
-    const ITEMS_PER_PAGE = 5;
+    const ITEMS_PER_PAGE = 100;
     const { searchParams } = new URL(request.url);
 
     const pageParam = searchParams.get("page") || "1";

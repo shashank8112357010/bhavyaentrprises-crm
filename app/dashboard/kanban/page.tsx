@@ -71,6 +71,12 @@ export default function KanbanPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  // NEW STATE
+const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+const [ticketToApprove, setTicketToApprove] = useState<Ticket | null>(null);
+const [approverId, setApproverId] = useState("");
+const [approvalNote, setApprovalNote] = useState("");
+
 
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -80,12 +86,14 @@ export default function KanbanPage() {
 
   const [startDateTicket, setStartDateTicket] = useState<string>(today);
   const [endDateTicket, setEndDateTicket] = useState<string>(today);
+
   const [holdReasonModalOpen, setHoldReasonModalOpen] =
     useState<boolean>(false);
   const [holdReasonText, setHoldReasonText] = useState<string>("");
   const [ticketToHold, setTicketToHold] = useState<Ticket | null>(null);
   const [isLoadingHold, setLoadingHold] = useState<boolean>(false);
   const { user } = useAuthStore();
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -119,6 +127,42 @@ export default function KanbanPage() {
     user?.role,
     toast,
   ]);
+
+
+
+
+// APPROVAL MODAL CONFIRMATION
+const handleApprovalConfirm = async () => {
+  if (!approverId.trim()) {
+    toast({
+      title: "Missing Accountant",
+      description: "Please enter the accountant guaranteeing this.",
+      variant: "destructive",
+    });
+    return;
+  }
+  if (!ticketToApprove) return;
+
+  try {
+    await updateTicket({
+      ...ticketToApprove,
+      approvedByAccountant: approverId,
+      status: "completed",
+    });
+
+    toast({ title: "Ticket Completed", description: "Ticket marked as completed." });
+    setApprovalModalOpen(false);
+    setTicketToApprove(null);
+    setApproverId("");
+  } catch (err: any) {
+    toast({
+      title: "Update Failed",
+      description: err.message || "Could not complete the ticket.",
+      variant: "destructive",
+    });
+  }
+};
+
 
   const handleDragEnd = async (result: DragEndResult) => {
     const { source, destination, ticketId } = result;
@@ -156,27 +200,32 @@ export default function KanbanPage() {
           setHoldReasonModalOpen(true);
           return;
 
-        case "completed":
-          if (!workStage || workStage.quoteNo === "N/A") {
-            toast({
-              title: "Order Violation",
-              description:
-                "Please attach a quotation and move to In Progress first.",
-              variant: "destructive",
-            });
-            return;
+          case "completed": {
+            if (!workStage || workStage.quoteNo === "N/A") {
+              toast({
+                title: "Order Violation",
+                description: "Attach a quotation before marking as completed.",
+                variant: "destructive",
+              });
+              return;
+            }
+            if (!workStage.jcrStatus) {
+              toast({
+                title: "Missing JCR",
+                description: "You cannot complete a ticket without JCR.",
+                variant: "destructive",
+              });
+              return;
+            }
+            if (!workStage.poStatus) {
+              // Show approval dialog
+              setTicketToApprove(ticket);
+              setApprovalModalOpen(true);
+              return;
+            }
+            break;
           }
-          if (!workStage.poStatus || !workStage.jcrStatus) {
-            toast({
-              title: "Pending Work",
-              description:
-                "PO and JCR must be completed before marking as completed.",
-              variant: "destructive",
-            });
-            return;
-          }
-          break;
-
+          
         case "billing_pending":
           if (ticket.status !== "completed") {
             toast({
@@ -387,6 +436,8 @@ export default function KanbanPage() {
     setAssigneeFilter("all");
   };
 
+  const accountants = agents.filter((agent) => agent.role === "ACCOUNTS");
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -528,6 +579,44 @@ export default function KanbanPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={approvalModalOpen} onOpenChange={setApprovalModalOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>PO Missing - Approval Required</DialogTitle>
+    </DialogHeader>
+    <div className="grid gap-4 py-4">
+      <Label htmlFor="approver">Who guarantees this ticket completion?</Label>
+     <Select value={approverId} onValueChange={setApproverId}>
+  <SelectTrigger className="w-full">
+    <SelectValue placeholder="Select Accountant" />
+  </SelectTrigger>
+  <SelectContent>
+    {accountants.map((acc) => (
+      <SelectItem key={acc.id} value={acc.id}>
+        {acc.name.toUpperCase()}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+<Label htmlFor="approvalNote">Message</Label>
+<Textarea
+  id="approvalNote"
+  placeholder="Enter message"
+  value={approvalNote}
+  onChange={(e) => setApprovalNote(e.target.value)}
+/>
+
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setApprovalModalOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleApprovalConfirm}>Confirm Completion</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
     </div>
   );
 }

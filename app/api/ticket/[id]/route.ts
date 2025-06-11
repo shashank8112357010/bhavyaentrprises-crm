@@ -1,22 +1,25 @@
-// pages/api/tickets/[id]/update.ts
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "../../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 import {
   updateTicketSchema,
   createWorkStageSchema,
   updateTicketStatusSchema,
-} from "../../../../lib/validations/ticketSchema";
+} from "@/lib/validations/ticketSchema";
 import { TicketStatus } from "@prisma/client";
 import { createTicketStatusChangeNotification } from "@/lib/services/notification-helpers";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const body = await req.json();
 
+    console.log(body , "Request body for ticket update");
+    
+
+    // Handle status updates
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
 
@@ -28,9 +31,10 @@ export async function PATCH(
       if (!existingTicket) {
         return NextResponse.json(
           { message: "Ticket not found" },
-          { status: 404 },
+          { status: 404 }
         );
       }
+
       if (body.holdReason) {
         await prisma.ticket.update({
           where: { id: params.id },
@@ -58,7 +62,6 @@ export async function PATCH(
         });
       }
 
-      // Create notification for status change if assignee exists
       if (
         existingTicket.assigneeId &&
         existingTicket.status !== validatedData.status
@@ -70,21 +73,20 @@ export async function PATCH(
             existingTicket.title || "Unknown Ticket",
             existingTicket.ticketId || "Unknown ID",
             existingTicket.status,
-            validatedData.status,
+            validatedData.status
           );
         } catch (notificationError) {
           console.error(
             "Failed to create status change notification:",
-            notificationError,
+            notificationError
           );
-          // Don't fail the update if notification fails
         }
       }
 
       return NextResponse.json({ ticket });
     }
-    console.log(body);
 
+    // Handle non-status updates
     const validatedData = updateTicketSchema.safeParse(body);
     if (validatedData.error) {
       const fieldErrors = validatedData.error.flatten().fieldErrors;
@@ -95,37 +97,51 @@ export async function PATCH(
 
       return NextResponse.json(
         { message: `${firstFieldKey}: ${firstErrorMessage}` },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // Validate assigneeId exists if it's being updated
-    if (validatedData.data.assigneeId) {
+    // ✅ Fix: Only validate if a non-empty assigneeId exists
+    if (
+      validatedData.data.assigneeId &&
+      validatedData.data.assigneeId.trim() !== ""
+    ) {
+      console.log( validatedData.data , "reaching here to validate assigneeId");
+      
       const assigneeExists = await prisma.user.findUnique({
-        where: { id: validatedData.data.assigneeId },
+        where: { id: validatedData.data.id },
         select: { id: true, role: true },
       });
 
+      console.log(assigneeExists , "Assignee exists check");
+      
       if (!assigneeExists) {
         return NextResponse.json(
           { message: "Assignee not found. Please select a valid assignee." },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
-      // Check if the user has a valid role for assignment
       const validRoles = ["ADMIN", "BACKEND", "RM", "MST", "ACCOUNTS"];
       if (!validRoles.includes(assigneeExists.role)) {
         return NextResponse.json(
-          { message: "Selected user cannot be assigned to tickets." },
-          { status: 400 },
+          {
+            message: "Selected user cannot be assigned to tickets.",
+          },
+          { status: 400 }
         );
       }
     }
 
     const ticket = await prisma.ticket.update({
       where: { id: params.id },
-      data: validatedData.data as any,
+      data: {
+        ...validatedData.data,
+        ...(body.approvedByAccountant && {
+          approvedByAccountant: body.approvedByAccountant,
+        }),
+        ...(body.approvalNote && { approvalNote: body.approvalNote }),
+      },
       include: {
         assignee: {
           select: {
@@ -177,7 +193,6 @@ export async function PATCH(
       },
     });
 
-    // Format the ticket response to match the expected structure
     const formattedTicket = {
       id: ticket.id,
       title: ticket.title || "N/A",
@@ -242,10 +257,11 @@ export async function PATCH(
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to update ticket", error: error.message },
-      { status: 400 },
+      { status: 400 }
     );
   }
 }
+
 
 export async function POST(
   req: NextRequest,
