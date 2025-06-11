@@ -37,6 +37,7 @@ import ReassignTicketDialog from "../tickets/reassign-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 import Link from "next/link";
+import { useTicketStore } from "@/store";
 
 interface SortableTicketProps {
   ticket: Ticket;
@@ -47,12 +48,18 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   const { toast } = useToast(); // Initialized useToast
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
+  const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+  const [startDateTicket, setStartDateTicket] = useState<string>(today);
+  const [endDateTicket, setEndDateTicket] = useState<string>(today);
 
   const [isUploadingJcr, setIsUploadingJcr] = useState(false);
   const [isUploadingPo, setIsUploadingPo] = useState(false);
   const jcrInputRef = useRef<HTMLInputElement>(null);
   const poInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthStore();
+
+  const { fetchTickets } = useTicketStore();
 
   // Memoize currentAssignee to prevent object recreation on every render
   const currentAssignee = useMemo(() => {
@@ -63,7 +70,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       };
     }
     return undefined;
-  }, [ ticket.assignee]);
+  }, [ticket.assignee]);
 
   const {
     attributes,
@@ -84,10 +91,10 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     ticket.priority === "Critical"
       ? "bg-destructive"
       : ticket.priority === "High"
-        ? "bg-orange-500"
-        : ticket.priority === "Medium"
-          ? "bg-yellow-500"
-          : "bg-blue-500";
+      ? "bg-orange-500"
+      : ticket.priority === "Medium"
+      ? "bg-yellow-500"
+      : "bg-blue-500";
 
   const formatDateString = (date: string) => {
     return date === "N/A"
@@ -118,7 +125,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   const handlePoUploadClick = () => poInputRef.current?.click();
 
   const handleJcrFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -140,7 +147,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         title: "Success",
         description: "JCR file uploaded successfully.",
       });
-      router.refresh();
+
+      await fetchTickets({
+        startDate: startDateTicket,
+        endDate: endDateTicket,
+      });
+      setIsUploadingJcr(false);
     } catch (error: any) {
       toast({
         title: "Error uploading JCR file",
@@ -156,7 +168,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
   };
 
   const handlePoFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -178,7 +190,11 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         title: "Success",
         description: "PO file uploaded successfully.",
       });
-      router.refresh();
+      await fetchTickets({
+        startDate: startDateTicket,
+        endDate: endDateTicket,
+      });
+      setIsUploadingPo(false);
     } catch (error: any) {
       toast({
         title: "Error uploading PO file",
@@ -304,7 +320,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                     <span>
                       {formatDateString(
                         ticket.workStage?.dateReceived ||
-                          new Date().toISOString(),
+                          new Date().toISOString()
                       )}
                     </span>
                   </div>
@@ -380,7 +396,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                   ?.reduce(
                     (total: any, exp: any) =>
                       total + (Number(exp.grandTotal) || 0),
-                    0,
+                    0
                   )
                   .toLocaleString()}
               </Badge>
@@ -390,7 +406,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 {ticket?.expenses
                   ?.reduce(
                     (total: any, exp: any) => total + (Number(exp.amount) || 0),
-                    0,
+                    0
                   )
                   .toLocaleString()}
               </Badge>
@@ -401,12 +417,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                 ticket.expenses.length > 0 &&
                 ticket.expenses.reduce(
                   (sum, e) => sum + (Number(e.amount) || 0),
-                  0,
+                  0
                 ) !==
                   ticket?.quotations?.reduce(
                     (total: any, exp: any) =>
                       total + (Number(exp.grandTotal) || 0),
-                    0,
+                    0
                   ) && (
                   <Badge
                     variant="secondary"
@@ -414,12 +430,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                       ticket.expenses &&
                       ticket.expenses.reduce(
                         (sum, e) => sum + (Number(e.amount) || 0),
-                        0,
+                        0
                       ) <
                         ticket?.quotations?.reduce(
                           (total: any, exp: any) =>
                             total + (Number(exp.grandTotal) || 0),
-                          0,
+                          0
                         )
                         ? "bg-green-500 text-white"
                         : "bg-red-400 text-white"
@@ -428,12 +444,12 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                     {ticket.expenses &&
                     ticket.expenses.reduce(
                       (sum, e) => sum + (Number(e.amount) || 0),
-                      0,
+                      0
                     ) <
                       ticket?.quotations?.reduce(
                         (total: any, exp: any) =>
                           total + (Number(exp.grandTotal) || 0),
-                        0,
+                        0
                       )
                       ? "Profit"
                       : "Loss"}
@@ -467,8 +483,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               {isUploadingJcr
                 ? "Uploading JCR..."
                 : ticket.workStage?.jcrFilePath
-                  ? "JCR Uploaded"
-                  : "Upload JCR"}
+                ? "JCR Uploaded"
+                : "Upload JCR"}
             </Button>
             <Button
               variant="outline"
@@ -490,8 +506,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               {isUploadingPo
                 ? "Uploading PO..."
                 : ticket.workStage?.poFilePath
-                  ? "PO Uploaded"
-                  : "Upload PO"}
+                ? "PO Uploaded"
+                : "Upload PO"}
             </Button>
           </div>
         </CardFooter>
