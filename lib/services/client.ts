@@ -59,7 +59,7 @@ interface GetAllClientsParams {
 
 export async function getAllClients(params: GetAllClientsParams = {}) {
   try {
-    const { page = 1, limit = 10, searchQuery = "" } = params;
+    const { page = 1, limit = "", searchQuery = "" } = params;
 
     const response = await axios.get("/client", {
       withCredentials: true,

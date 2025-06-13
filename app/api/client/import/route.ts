@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
         contractStatus: normalizeEnumValue(String(row.ContractStatus || ""), ["Active", "Inactive"]),
         lastServiceDate: lastServiceDateRaw,
         gstn: String(row.GSTN || "").trim() || undefined,
-        initials: String(row.Initials || "").trim() || generateInitials(name) || "",
+        initials: String(row.Initials ? row.Initials  :  generateInitials(name)).trim(),
       };
 
       const validationResult = createClientSchema.safeParse(clientData);

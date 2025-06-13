@@ -67,6 +67,8 @@ export default function EditTicketDialog({
   const { clients, fetchClients } = useClientStore();
   const { updateTicket } = useTicketStore();
   const { toast } = useToast();
+  console.log(ticket , "Edit tviekt ");
+  
 
   const [formData, setFormData] = useState<EditTicketInput>({
     id: ticket.id,
@@ -85,6 +87,9 @@ export default function EditTicketDialog({
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  console.log(agents , "agents to reassign");
+  
 
   useEffect(() => {
     fetchAgents();
@@ -110,6 +115,8 @@ export default function EditTicketDialog({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+
+
   const handleSubmit = async () => {
     // Validate required fields
     if (
@@ -130,6 +137,7 @@ export default function EditTicketDialog({
 
     setIsLoading(true);
     try {
+      console.log("Submitting ticket update with data:", formData);
       const ticketData = {
         id: ticket.id,
         title: formData.title,
@@ -287,10 +295,9 @@ export default function EditTicketDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {agents.map((agent:any) => (
-                    <SelectItem key={agent.id} value={agent.originalId}>
-                      {agent.name
-                        ? `${agent.avatar}-------- - ${agent.name}`
-                        : agent.name}
+                    <SelectItem key={agent.originalId} value={agent.originalId}>
+
+                      {agent.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

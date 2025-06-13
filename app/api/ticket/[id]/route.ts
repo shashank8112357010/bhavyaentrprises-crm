@@ -88,6 +88,8 @@ export async function PATCH(
 
     // Handle non-status updates
     const validatedData = updateTicketSchema.safeParse(body);
+    console.log(validatedData , "validatedData");
+    
     if (validatedData.error) {
       const fieldErrors = validatedData.error.flatten().fieldErrors;
       const firstFieldKey = Object.keys(fieldErrors)[0];
@@ -109,7 +111,7 @@ export async function PATCH(
       console.log( validatedData.data , "reaching here to validate assigneeId");
       
       const assigneeExists = await prisma.user.findUnique({
-        where: { id: validatedData.data.id },
+        where: { id: validatedData.data.assigneeId },
         select: { id: true, role: true },
       });
 
