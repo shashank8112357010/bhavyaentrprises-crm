@@ -55,7 +55,7 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const { user } = useAuthStore();
-  const [selectedColumns, setSelectedColumns] = useState<keyof TicketsState[]>([]);
+  const [selectedColumns, setSelectedColumns] = useState<Array<keyof TicketsState>>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -139,14 +139,18 @@ export default function KanbanBoard({ tickets, onDragEnd }: KanbanBoardProps) {
     return titles[status] ?? status;
   };
 
-  const getVisibleColumns = () => {
+  const getVisibleColumns = (): Array<keyof TicketsState> => {
     if (user?.role === "ACCOUNTS") {
-      return ["billing_pending", "billing_completed", ...selectedColumns];
+      return [
+        "billing_pending",
+        "billing_completed",
+        ...selectedColumns,
+      ] as Array<keyof TicketsState>;
     }
     return Object.keys(tickets) as Array<keyof TicketsState>;
   };
 
-  const availableStatuses: keyof TicketsState[] = [
+  const availableStatuses: Array<keyof TicketsState> = [
     "new",
     "inProgress",
     "onHold",
