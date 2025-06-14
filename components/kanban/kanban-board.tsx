@@ -13,7 +13,6 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import {
-  Calendar,
   Check,
   IndianRupee,
   Pause,
@@ -24,8 +23,7 @@ import {
 import { KanbanColumn } from "./kanban-column";
 import { SortableTicket } from "./sortable-ticket";
 import { Ticket } from "@/components/kanban/types";
-import { useEffect, useState } from "react";
-import { Role } from "@/constants/roleAccessConfig";
+import {  useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import {
   Select,
@@ -35,7 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 interface TicketsState {
   new: Ticket[];

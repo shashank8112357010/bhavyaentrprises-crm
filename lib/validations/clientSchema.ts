@@ -22,7 +22,7 @@ export const createClientSchema = z.object({
     message: "Invalid date format",
   }),
   avatar: z.string().optional(),
-  initials: z.string().optional(),
+  initials: z.string().optional().default(""),
 });
 
 export const updateClientSchema = z.object({
