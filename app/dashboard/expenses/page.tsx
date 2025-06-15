@@ -56,6 +56,7 @@ interface ExpenseItem {
   id: string;
   customId?: string;
   createdAt: string;
+  displayId: string;
   description: string;
   category: string;
   requester: string;
@@ -239,7 +240,7 @@ export default function ExpensesPage() {
                     <TableCell>
                       {new Date(exp.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>{exp.customId || exp.id}</TableCell>
+                    <TableCell>{exp.displayId}</TableCell>
                     <TableCell className="font-medium max-w-xs truncate">
                       {exp.description}
                     </TableCell>

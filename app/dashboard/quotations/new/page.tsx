@@ -755,6 +755,126 @@ export default function NewQuotationPage() {
             </CardContent>
           </Card>
 
+             {/* Quotation Items */}
+             <Card>
+            <CardHeader>
+              <CardTitle>Quotation Items</CardTitle>
+              <CardDescription>Items added to this quotation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {quotationItems.length === 0 ? (
+                <p className="text-center text-muted-foreground p-8">
+                  No items added to quotation yet.
+                </p>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead>Rate</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>GST%</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {quotationItems.map((item, index) => (
+                        <TableRow key={`${item.id}-${index}`}>
+                          <TableCell className="font-medium">
+                            {item.rateCard.description}
+                          </TableCell>
+                          <TableCell>{item.rateCard.unit}</TableCell>
+                          <TableCell>
+                            ₹{item.rateCard.rate.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleQuantityChange(
+                                  index,
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              className="w-20"
+                              min="0"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.gstPercentage}
+                              onChange={(e) =>
+                                handleGstChange(
+                                  index,
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              className="w-20"
+                              min="0"
+                              max="100"
+                            />
+                          </TableCell>
+                          <TableCell>₹{item.totalValue.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRemoveItem(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+              {/* Add to Quotation Section */}
+              {selectedRateCard && (
+                  <div className="border-t pt-4 space-y-4">
+                    <div>
+                      <h4 className="font-medium">Selected Rate Card</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedRateCard.description}
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="1"
+                        value={quantity}
+                        onChange={(e) =>
+                          setQuantity(parseInt(e.target.value) || 1)
+                        }
+                      />
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>
+                        Rate: ₹{selectedRateCard.rate.toLocaleString()}
+                      </span>
+                      <span className="font-medium">
+                        Total: {quantity} × ₹
+                        {selectedRateCard.rate.toLocaleString()} = ₹
+                        {(quantity * selectedRateCard.rate).toLocaleString()}
+                      </span>
+                    </div>
+                    <Button onClick={handleAddToQuotation} className="w-full">
+                      Add to Quotation
+                    </Button>
+                  </div>
+                )}
+
           {/* Rate Card Selection */}
           <Card>
             <CardHeader>
@@ -839,128 +959,12 @@ export default function NewQuotationPage() {
                   Create New Rate Card
                 </Button>
 
-                {/* Add to Quotation Section */}
-                {selectedRateCard && (
-                  <div className="border-t pt-4 space-y-4">
-                    <div>
-                      <h4 className="font-medium">Selected Rate Card</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedRateCard.description}
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="quantity">Quantity</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) =>
-                          setQuantity(parseInt(e.target.value) || 1)
-                        }
-                      />
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>
-                        Rate: ₹{selectedRateCard.rate.toLocaleString()}
-                      </span>
-                      <span className="font-medium">
-                        Total: {quantity} × ₹
-                        {selectedRateCard.rate.toLocaleString()} = ₹
-                        {(quantity * selectedRateCard.rate).toLocaleString()}
-                      </span>
-                    </div>
-                    <Button onClick={handleAddToQuotation} className="w-full">
-                      Add to Quotation
-                    </Button>
-                  </div>
-                )}
+            
               </div>
             </CardContent>
           </Card>
 
-          {/* Quotation Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quotation Items</CardTitle>
-              <CardDescription>Items added to this quotation</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {quotationItems.length === 0 ? (
-                <p className="text-center text-muted-foreground p-8">
-                  No items added to quotation yet.
-                </p>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead>Rate</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>GST%</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {quotationItems.map((item, index) => (
-                        <TableRow key={`${item.id}-${index}`}>
-                          <TableCell className="font-medium">
-                            {item.rateCard.description}
-                          </TableCell>
-                          <TableCell>{item.rateCard.unit}</TableCell>
-                          <TableCell>
-                            ₹{item.rateCard.rate.toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleQuantityChange(
-                                  index,
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              className="w-20"
-                              min="0"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={item.gstPercentage}
-                              onChange={(e) =>
-                                handleGstChange(
-                                  index,
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              className="w-20"
-                              min="0"
-                              max="100"
-                            />
-                          </TableCell>
-                          <TableCell>₹{item.totalValue.toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRemoveItem(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+       
         </div>
 
         {/* Right Column - Quotation Details and Summary */}
