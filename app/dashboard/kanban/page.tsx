@@ -349,7 +349,7 @@ const handleApprovalConfirm = async () => {
       if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
         allowedStatuses.push("billing_pending", "billing_completed");
       }
-
+  
       if (allowedStatuses.includes(status as Status)) {
         acc[status as Status] = statusTickets
           .map((ticket: Ticket) => ({
@@ -357,33 +357,40 @@ const handleApprovalConfirm = async () => {
             dueDate: ticket.dueDate || new Date().toISOString(),
           }))
           .filter((ticket: Ticket) => {
+            const clientId = ticket.client?.id?.toString() ?? "";
+            const assigneeId = ticket.assignee?.id?.toString() ?? "";
+    console.log(clientId , "clientId" , clientFilter);
+
+    
             const matchesSearch =
               ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
               ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
-
+  
             const matchesClient =
-              clientFilter === "all" || ticket.client?.id === clientFilter;
-
+              clientFilter === "all" || clientFilter === clientId;
+  
             const matchesAssignee =
-              assigneeFilter === "all" ||
-              ticket.assignee?.id === assigneeFilter;
-
-            // Role-based filtering: Agents can only see their own tickets
+              assigneeFilter === "all" || assigneeFilter === assigneeId;
+  
             const matchesRole =
               user?.role === "ADMIN" ||
               user?.role === "ACCOUNTS" ||
-              ticket.assignee?.id === user?.userId;
-
+              assigneeId === user?.userId;
+  
             return (
               matchesSearch && matchesClient && matchesAssignee && matchesRole
             );
           });
       }
-
+  
       return acc;
     },
     {} as TicketsState
   );
+  
+
+ 
+  
 
   const ticketStatuses: Status[] = [
     "new",
@@ -493,7 +500,7 @@ const handleApprovalConfirm = async () => {
                     <SelectItem
                       className="capitalize"
                       key={agent.id}
-                      value={agent.id}
+                      value={agent.originalId}
                     >
                       {agent.name}
                     </SelectItem>
