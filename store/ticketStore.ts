@@ -149,6 +149,8 @@ export interface FetchTicketsFilters {
   endDate?: string;
   role?: string;
   userId?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface DashboardCounts {
@@ -183,6 +185,8 @@ export interface TicketState {
   all_tickets: Ticket[];
   loading: boolean;
   error: string | null;
+  currentPage: number;
+  hasMoreTickets: boolean;
 
   // Dashboard counts
   openTicketsCount: number | null;
@@ -192,7 +196,7 @@ export interface TicketState {
   isLoadingDashboardCounts: boolean;
 
   // Actions
-  fetchTickets: (filters?: FetchTicketsFilters) => Promise<void>;
+  fetchTickets: (filters?: FetchTicketsFilters & { page?: number, limit?: number }) => Promise<void>;
   updateTicketStatus: (id: string, status: Status) => Promise<void>;
   createTicket: (ticketData: CreateTicketInput) => Promise<void>;
   fetchTicketById: (id: string) => Promise<Ticket | undefined>;
@@ -218,6 +222,8 @@ export const useTicketStore = create<TicketState>((set, get) => ({
   all_tickets: [],
   loading: false,
   error: null,
+  currentPage: 1,
+  hasMoreTickets: true,
 
   // Initialize dashboard count states
   openTicketsCount: null,
@@ -226,7 +232,9 @@ export const useTicketStore = create<TicketState>((set, get) => ({
   completedThisWeekCount: null,
   isLoadingDashboardCounts: false,
 
-  fetchTickets: async (filters?: FetchTicketsFilters) => {
+  fetchTickets: async (filters?: FetchTicketsFilters & { page?: number, limit?: number }) => {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
     set({ loading: true, error: null });
     try {
       // Get user role and ID from auth store for RBA
@@ -237,32 +245,63 @@ export const useTicketStore = create<TicketState>((set, get) => ({
         ...filters,
         role: user?.role,
         userId: user?.userId,
+        page,
+        limit,
       };
 
-      const response = await getAllTickets(enhancedFilters);
-      const { tickets } = response;
+      // getAllTickets now returns an object: { tickets: Ticket[], totalCount: number }
+      const { tickets: fetchedTickets, totalCount } = await getAllTickets(enhancedFilters);
 
-      const statusGroups: TicketsState = {
-        new: [],
-        inProgress: [],
-        onHold: [],
-        completed: [],
-        billing_pending: [],
-        billing_completed: [],
-      };
+      const statusGroups: TicketsState = get().tickets;
+      let updatedAllTickets = get().all_tickets;
 
-      for (const ticket of tickets) {
+      if (page === 1) {
+        // Replace tickets if it's the first page
+        updatedAllTickets = fetchedTickets;
+        // Reset status groups
+        for (const key in statusGroups) {
+          statusGroups[key as Status] = [];
+        }
+      } else {
+        // Append tickets if it's not the first page
+        updatedAllTickets = [...updatedAllTickets, ...fetchedTickets];
+      }
+
+      // Distribute tickets into status groups
+      for (const ticket of fetchedTickets) {
         const status = ticket.status as Status;
         if (status in statusGroups) {
-          statusGroups[status].push(ticket);
+          // Avoid duplicates when appending
+          if (!statusGroups[status].find(t => t.id === ticket.id)) {
+            statusGroups[status].push(ticket);
+          }
+        } else {
+          // Initialize if status group doesn't exist (should not happen with current setup)
+          statusGroups[status] = [ticket];
         }
       }
 
+      // If page is 1, we need to rebuild the statusGroups from scratch from the new updatedAllTickets
+      if (page === 1) {
+        for (const key in statusGroups) {
+          statusGroups[key as Status] = [];
+        }
+        for (const ticket of updatedAllTickets) {
+          const status = ticket.status as Status;
+          if (status in statusGroups) {
+            statusGroups[status].push(ticket);
+          }
+        }
+      }
+
+
       set({
-        all_tickets: tickets,
+        all_tickets: updatedAllTickets,
         tickets: statusGroups,
         loading: false,
         error: null,
+        currentPage: page,
+        hasMoreTickets: updatedAllTickets.length < totalCount,
       });
     } catch (error: any) {
       set({

@@ -24,15 +24,23 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  // DialogFooter, // No longer directly used if moved to child
+} from "@/components/ui/dialog"; // Keep Dialog for potential direct uses if any remain
 import KanbanBoard from "@/components/kanban/kanban-board";
-import NewTicketDialog from "@/components/tickets/new-ticket-dialog";
+// import NewTicketDialog from "@/components/tickets/new-ticket-dialog"; // Lazy load this
 import { useToast } from "@/hooks/use-toast";
-import { exportTicketsToExcel } from "@/lib/services/ticket";
-import { Label } from "@radix-ui/react-label";
-import { Textarea } from "@/components/ui/textarea";
+// import { exportTicketsToExcel } from "@/lib/services/ticket"; // Logic moved to ExportTicketsDialog
+import { Label } from "@radix-ui/react-label"; // Keep if Label is used directly, else remove if only in dialogs
+// import { Textarea } from "@/components/ui/textarea"; // Keep if Textarea is used directly, else remove
 import { useAuthStore } from "@/store/authStore";
+import React, { lazy, Suspense } from "react"; // Import lazy and Suspense
+
+// Lazy load dialog components
+const NewTicketDialog = lazy(() => import("@/components/tickets/new-ticket-dialog"));
+const ExportTicketsDialog = lazy(() => import("@/components/kanban/dialogs/ExportTicketsDialog"));
+const HoldReasonDialog = lazy(() => import("@/components/kanban/dialogs/HoldReasonDialog"));
+const ApprovalDialog = lazy(() => import("@/components/kanban/dialogs/ApprovalDialog"));
+
 
 // Types for filtered tickets
 interface TicketsState {
@@ -61,6 +69,8 @@ export default function KanbanPage() {
     tickets,
     fetchTickets,
     updateTicketStatus,
+    currentPage,
+    hasMoreTickets,
     updateTicket,
     fetchTicketById,
   } = useTicketStore();
@@ -71,36 +81,43 @@ export default function KanbanPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
-  // NEW STATE
-const [approvalModalOpen, setApprovalModalOpen] = useState(false);
-const [ticketToApprove, setTicketToApprove] = useState<Ticket | null>(null);
-const [approverId, setApproverId] = useState("");
-const [approvalNote, setApprovalNote] = useState("");
 
-
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-
+  // State for controlling dialog visibility
+  const [isNewTicketDialogOpen, setIsNewTicketDialogOpen] = useState(false); // For NewTicketDialog if it needs explicit control from parent
   const [exportModalOpen, setExportModalOpen] = useState<boolean>(false);
-  const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+  const [holdReasonModalOpen, setHoldReasonModalOpen] = useState<boolean>(false);
+  const [approvalModalOpen, setApprovalModalOpen] = useState<boolean>(false);
 
+  // State passed to dialogs
+  const [ticketToHold, setTicketToHold] = useState<Ticket | null>(null);
+  const [ticketToApprove, setTicketToApprove] = useState<Ticket | null>(null);
+  // const [approverId, setApproverId] = useState(""); // Managed within ApprovalDialog
+  // const [approvalNote, setApprovalNote] = useState(""); // Managed within ApprovalDialog
+  // const [holdReasonText, setHoldReasonText] = useState<string>(""); // Managed within HoldReasonDialog
+  // const [isLoadingHold, setLoadingHold] = useState<boolean>(false); // Managed within HoldReasonDialog
+
+
+  // const [startDate, setStartDate] = useState<string>(""); // Not used
+  // const [endDate, setEndDate] = useState<string>(""); // Not used
+
+  const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
   const [startDateTicket, setStartDateTicket] = useState<string>(today);
   const [endDateTicket, setEndDateTicket] = useState<string>(today);
-
-  const [holdReasonModalOpen, setHoldReasonModalOpen] =
-    useState<boolean>(false);
-  const [holdReasonText, setHoldReasonText] = useState<string>("");
-  const [ticketToHold, setTicketToHold] = useState<Ticket | null>(null);
-  const [isLoadingHold, setLoadingHold] = useState<boolean>(false);
   const { user } = useAuthStore();
 
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Initial fetch with page 1 and limit 10, and other filters
         await fetchTickets({
           startDate: startDateTicket,
           endDate: endDateTicket,
+          searchQuery: searchQuery,
+          clientFilter: clientFilter === "all" ? undefined : clientFilter,
+          assigneeFilter: assigneeFilter === "all" ? undefined : assigneeFilter,
+          page: 1,
+          limit: 10,
         });
         if (user) {
           await fetchAgents({}, user.role);
@@ -124,6 +141,9 @@ const [approvalNote, setApprovalNote] = useState("");
     fetchClients,
     startDateTicket,
     endDateTicket,
+    searchQuery,
+    clientFilter,
+    assigneeFilter,
     user?.role,
     toast,
   ]);
@@ -131,29 +151,30 @@ const [approvalNote, setApprovalNote] = useState("");
 
 
 
-// APPROVAL MODAL CONFIRMATION
-const handleApprovalConfirm = async () => {
-  if (!approverId.trim()) {
+// Handler for confirming approval - passed to ApprovalDialog
+const handleApprovalConfirm = async (ticketId: string, approverIdLocal: string, approvalNoteLocal: string) => {
+  // approverId and approvalNote are now local to this handler, passed from dialog
+  if (!approverIdLocal.trim()) {
     toast({
       title: "Missing Accountant",
-      description: "Please enter the accountant guaranteeing this.",
+      description: "Please select the accountant guaranteeing this.",
       variant: "destructive",
     });
     return;
   }
-  if (!ticketToApprove) return;
+  if (!ticketToApprove) return; // ticketToApprove is still state in KanbanPage
 
   try {
-    await updateTicket({
-      ...ticketToApprove,
-      approvedByAccountant: approverId,
-      status: "completed",
+    await updateTicket({ // updateTicket is from useTicketStore
+      id: ticketId, // Use ticketId passed from dialog
+      approvedByAccountant: approverIdLocal,
+      // any other fields related to approvalNote if needed by backend
+      status: "completed", // Ensure status is updated
     });
 
     toast({ title: "Ticket Completed", description: "Ticket marked as completed." });
-    setApprovalModalOpen(false);
-    setTicketToApprove(null);
-    setApproverId("");
+    setApprovalModalOpen(false); // Close dialog
+    setTicketToApprove(null);   // Reset ticket to approve
   } catch (err: any) {
     toast({
       title: "Update Failed",
@@ -162,7 +183,6 @@ const handleApprovalConfirm = async () => {
     });
   }
 };
-
 
   const handleDragEnd = async (result: DragEndResult) => {
     const { source, destination, ticketId } = result;
@@ -278,115 +298,64 @@ const handleApprovalConfirm = async () => {
     }
   };
 
-  const handleConfirmHold = async () => {
-    setLoadingHold(true);
+// Handler for confirming hold - passed to HoldReasonDialog
+const handleConfirmHoldCallback = async (ticketId: string, reason: string, originalStatus: Status) => {
+  // isLoadingHold state is now managed within HoldReasonDialog
+  // holdReasonText state is now managed within HoldReasonDialog
 
-    if (!holdReasonText.trim()) {
-      setLoadingHold(false);
-      toast({
-        title: "Hold Reason Required",
-        description: "Please enter a reason to put the ticket on hold.",
-        variant: "destructive",
-      });
-      return;
-    }
+  if (!reason.trim()) { // reason is passed from dialog
+    toast({
+      title: "Hold Reason Required",
+      description: "Please enter a reason to put the ticket on hold.",
+      variant: "destructive",
+    });
+    // Potentially return a boolean or throw to let dialog know not to close
+    return;
+  }
 
-    if (!ticketToHold) {
-      setLoadingHold(false);
-      return;
-    }
+  try {
+    // Optimistic update in store (already part of updateTicketStatus)
+    // await updateTicketStatus(ticketId, "onHold");
 
-    const originalStatus = ticketToHold.status;
+    // Update ticket with hold reason
+    await updateTicket({ // updateTicket is from useTicketStore
+      id: ticketId,
+      holdReason: reason,
+      status: "onHold",
+    });
 
-    try {
-      // First update the ticket status in the store for immediate UI update
-      await updateTicketStatus(ticketToHold.id, "onHold");
+    toast({
+      title: "Ticket Put On Hold",
+      description: "Ticket status updated successfully.",
+    });
 
-      // Then update the ticket with hold reason on the backend
-      await updateTicket({
-        ...ticketToHold,
-        holdReason: holdReasonText.trim(),
-        status: "onHold",
-      });
+    setHoldReasonModalOpen(false); // Close dialog
+    setTicketToHold(null); // Reset ticket to hold
+  } catch (err: any) {
+    console.error("Error updating hold status:", err);
+    // If there's an error, status should ideally be reverted by updateTicketStatus or handled there
+    // For now, just show error. Reverting might be complex if optimistic update was deep.
+    // await updateTicketStatus(ticketId, originalStatus); // Revert if necessary
+    toast({
+      title: "Failed to Update Ticket",
+      description: err.message || "Unknown error occurred.",
+      variant: "destructive",
+    });
+    // throw err; // Optionally rethrow to let dialog know operation failed
+  }
+};
 
-      toast({
-        title: "Ticket Put On Hold",
-        description: "Ticket status updated successfully.",
-      });
+// Handler for cancelling hold - passed to HoldReasonDialog
+const handleCancelHoldCallback = () => {
+  setHoldReasonModalOpen(false);
+  setTicketToHold(null);
+  // holdReasonText is managed within the dialog
+};
 
-      setHoldReasonModalOpen(false);
-      setTicketToHold(null);
-      setHoldReasonText("");
-    } catch (err: any) {
-      console.error("Error updating hold status:", err);
-
-      // If there's an error, revert the status change
-      try {
-        await updateTicketStatus(ticketToHold.id, originalStatus);
-      } catch (revertError) {
-        console.error("Error reverting status:", revertError);
-      }
-
-      toast({
-        title: "Failed to Update Ticket",
-        description: err.message || "Unknown error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingHold(false);
-    }
-  };
-
-  const handleCancelHold = () => {
-    setHoldReasonModalOpen(false);
-    setTicketToHold(null);
-    setHoldReasonText("");
-  };
-
-  const filteredTickets: TicketsState = Object.entries(tickets).reduce(
-    (acc, [status, statusTickets]) => {
-      const allowedStatuses = ["new", "inProgress", "onHold", "completed"];
-      if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
-        allowedStatuses.push("billing_pending", "billing_completed");
-      }
-  
-      if (allowedStatuses.includes(status as Status)) {
-        acc[status as Status] = statusTickets
-          .map((ticket: Ticket) => ({
-            ...ticket,
-            dueDate: ticket.dueDate || new Date().toISOString(),
-          }))
-          .filter((ticket: Ticket) => {
-            const clientId = ticket.client?.id?.toString() ?? "";
-            const assigneeId = ticket.assignee?.id?.toString() ?? "";
-    console.log(clientId , "clientId" , clientFilter);
-
-    
-            const matchesSearch =
-              ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
-  
-            const matchesClient =
-              clientFilter === "all" || clientFilter === clientId;
-  
-            const matchesAssignee =
-              assigneeFilter === "all" || assigneeFilter === assigneeId;
-  
-            const matchesRole =
-              user?.role === "ADMIN" ||
-              user?.role === "ACCOUNTS" ||
-              assigneeId === user?.userId;
-  
-            return (
-              matchesSearch && matchesClient && matchesAssignee && matchesRole
-            );
-          });
-      }
-  
-      return acc;
-    },
-    {} as TicketsState
-  );
+// Client-side filtering is removed as it's now handled by the backend via fetchTickets.
+  // The tickets from the store (which are passed to KanbanBoard) are already paginated and filtered
+  // according to the view determined by user role and selected filters (search, client, assignee, dates).
+  const filteredTickets: TicketsState = tickets;
   
 
  
@@ -402,38 +371,7 @@ const handleApprovalConfirm = async () => {
       : []),
   ];
 
-  const handleExportTickets = async (status: Status) => {
-    if (!startDateTicket || !endDateTicket) {
-      toast({
-        title: "Select Date Range",
-        description: "Please select start and end dates.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await exportTicketsToExcel({
-        status,
-        startDate: startDateTicket,
-        endDate: endDateTicket,
-      });
-      setExportModalOpen(false);
-      toast({
-        title: "Export Successful",
-        description: `${status.replaceAll(
-          "_",
-          " "
-        )} tickets exported successfully.`,
-      });
-    } catch (err: any) {
-      toast({
-        title: "Export Failed",
-        description: err.message || "Failed to export tickets.",
-        variant: "destructive",
-      });
-    }
-  };
+  // handleExportTickets is now part of ExportTicketsDialog component.
 
   const clearFilters = () => {
     setStartDateTicket(today);
@@ -445,6 +383,18 @@ const handleApprovalConfirm = async () => {
 
   const accountants = agents.filter((agent) => agent.role === "ACCOUNTS");
 
+  const handleLoadMore = () => {
+    fetchTickets({
+      searchQuery: searchQuery,
+      clientFilter: clientFilter === "all" ? undefined : clientFilter,
+      assigneeFilter: assigneeFilter === "all" ? undefined : assigneeFilter,
+      startDate: startDateTicket,
+      endDate: endDateTicket,
+      page: currentPage + 1,
+      limit: 10, // Assuming a default limit of 10
+    });
+  };
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -454,7 +404,8 @@ const handleApprovalConfirm = async () => {
             Manage and track maintenance requests
           </p>
         </div>
-        <NewTicketDialog />
+        {/* Button to open NewTicketDialog, dialog itself is lazy loaded */}
+        <Button onClick={() => setIsNewTicketDialogOpen(true)}>Create Ticket</Button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 items-center justify-between">
@@ -464,13 +415,19 @@ const handleApprovalConfirm = async () => {
             placeholder="Search tickets..."
             className="w-full md:w-[300px] pl-8"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              // fetchTickets will be called by useEffect due to searchQuery dependency change
+            }}
           />
         </div>
         {(user?.role === "ADMIN" || user?.role === "ACCOUNTS") && (
           <>
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <Select value={clientFilter} onValueChange={setClientFilter}>
+              <Select value={clientFilter} onValueChange={(value) => {
+                setClientFilter(value);
+                // fetchTickets will be called by useEffect due to clientFilter dependency change
+              }}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <div className="flex items-center">
                     <Building className="mr-2 h-4 w-4" />
@@ -487,7 +444,10 @@ const handleApprovalConfirm = async () => {
                 </SelectContent>
               </Select>
 
-              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+              <Select value={assigneeFilter} onValueChange={(value) => {
+                setAssigneeFilter(value);
+                // fetchTickets will be called by useEffect due to assigneeFilter dependency change
+              }}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <div className="flex items-center capitalize">
                     <User className="mr-2 h-4 w-4" />
@@ -519,14 +479,20 @@ const handleApprovalConfirm = async () => {
             type="date"
             className="cursor-pointer"
             value={startDateTicket}
-            onChange={(e) => setStartDateTicket(e.target.value)}
+            onChange={(e) => {
+              setStartDateTicket(e.target.value);
+              // fetchTickets will be called by useEffect due to startDateTicket dependency change
+            }}
           />
           <Label className="text-muted-foreground">To:</Label>
           <Input
             className="cursor-pointer"
             type="date"
             value={endDateTicket}
-            onChange={(e) => setEndDateTicket(e.target.value)}
+            onChange={(e) => {
+              setEndDateTicket(e.target.value);
+              // fetchTickets will be called by useEffect due to endDateTicket dependency change
+            }}
           />
 
           <Button variant="secondary" onClick={clearFilters}>
@@ -540,90 +506,48 @@ const handleApprovalConfirm = async () => {
 
       <KanbanBoard tickets={filteredTickets} onDragEnd={handleDragEnd} />
 
-      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Export Tickets</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            {ticketStatuses.map((status) => (
-              <Button
-                key={status}
-                variant="outline"
-                onClick={() => handleExportTickets(status)}
-              >
-                Export {status.replaceAll("_", " ")}
-              </Button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {hasMoreTickets && (
+        <div className="flex justify-center mt-4">
+          <Button onClick={handleLoadMore} variant="secondary">
+            Load More
+          </Button>
+        </div>
+      )}
 
-      <Dialog open={holdReasonModalOpen} onOpenChange={setHoldReasonModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Put Ticket On Hold</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="holdReason">Reason for Hold</Label>
-              <Textarea
-                id="holdReason"
-                value={holdReasonText}
-                onChange={(e) => setHoldReasonText(e.target.value)}
-                placeholder="Enter the reason for putting this ticket on hold"
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancelHold}>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmHold} disabled={isLoadingHold}>
-              {isLoadingHold ? "Holding..." : "Confirm Hold"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Suspense for lazy-loaded dialogs */}
+      <Suspense fallback={<div>Loading Dialog...</div>}>
+        {isNewTicketDialogOpen && <NewTicketDialog open={isNewTicketDialogOpen} onOpenChange={setIsNewTicketDialogOpen} />}
 
-      <Dialog open={approvalModalOpen} onOpenChange={setApprovalModalOpen}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>PO Missing - Approval Required</DialogTitle>
-    </DialogHeader>
-    <div className="grid gap-4 py-4">
-      <Label htmlFor="approver">Who guarantees this ticket completion?</Label>
-     <Select value={approverId} onValueChange={setApproverId}>
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Select Accountant" />
-  </SelectTrigger>
-  <SelectContent>
-    {accountants.map((acc) => (
-      <SelectItem key={acc.id} value={acc.id}>
-        {acc.name.toUpperCase()}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-<Label htmlFor="approvalNote">Message</Label>
-<Textarea
-  id="approvalNote"
-  placeholder="Enter message"
-  value={approvalNote}
-  onChange={(e) => setApprovalNote(e.target.value)}
-/>
+        {exportModalOpen && (
+          <ExportTicketsDialog
+            open={exportModalOpen}
+            onOpenChange={setExportModalOpen}
+            ticketStatuses={ticketStatuses}
+            startDateTicket={startDateTicket}
+            endDateTicket={endDateTicket}
+          />
+        )}
 
-    </div>
-    <DialogFooter>
-      <Button variant="outline" onClick={() => setApprovalModalOpen(false)}>
-        Cancel
-      </Button>
-      <Button onClick={handleApprovalConfirm}>Confirm Completion</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+        {holdReasonModalOpen && ticketToHold && (
+          <HoldReasonDialog
+            open={holdReasonModalOpen}
+            onOpenChange={setHoldReasonModalOpen}
+            ticketToHold={ticketToHold}
+            onConfirmHold={handleConfirmHoldCallback}
+            onCancelHold={handleCancelHoldCallback}
+          />
+        )}
 
+        {approvalModalOpen && ticketToApprove && (
+          <ApprovalDialog
+            open={approvalModalOpen}
+            onOpenChange={setApprovalModalOpen}
+            ticketToApprove={ticketToApprove}
+            accountants={accountants}
+            onConfirmApproval={handleApprovalConfirm}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

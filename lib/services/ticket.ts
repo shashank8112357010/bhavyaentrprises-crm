@@ -204,6 +204,8 @@ export async function getAllTickets(filters?: {
   endDate?: string;
   role?: string;
   userId?: string;
+  page?: number;
+  limit?: number;
 }) {
   try {
     const params = new URLSearchParams();
@@ -213,6 +215,8 @@ export async function getAllTickets(filters?: {
     if (filters?.endDate) params.append("endDate", filters.endDate);
     if (filters?.role) params.append("role", filters.role);
     if (filters?.userId) params.append("userId", filters.userId);
+    if (filters?.page) params.append("page", filters.page.toString());
+    if (filters?.limit) params.append("limit", filters.limit.toString());
 
     const response = await axios.get(`/ticket?${params.toString()}`, {
       withCredentials: true,

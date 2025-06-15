@@ -11,6 +11,14 @@ export async function GET(req: NextRequest) {
     const statusFilter = url.searchParams.get("status"); // optional status filter
     const role = url.searchParams.get("role");
     const userId = url.searchParams.get("userId");
+    const searchQuery = url.searchParams.get("searchQuery");
+    const clientId = url.searchParams.get("clientId");
+
+    const pageStr = url.searchParams.get("page") || "1";
+    const limitStr = url.searchParams.get("limit") || "10";
+    const page = parseInt(pageStr, 10);
+    const limit = parseInt(limitStr, 10);
+    const skip = (page - 1) * limit;
 
     // Default to today's date range (00:00 to 23:59)
     const today = new Date();
@@ -49,6 +57,21 @@ export async function GET(req: NextRequest) {
       whereConditions.AND.push({ status: statusFilter });
     }
 
+    if (clientId) {
+      whereConditions.AND.push({ clientId: clientId });
+    }
+
+    if (searchQuery) {
+      whereConditions.AND.push({
+        OR: [
+          { title: { contains: searchQuery, mode: "insensitive" } },
+          { ticketId: { contains: searchQuery, mode: "insensitive" } },
+          // If you also want to search by the UUID 'id' field:
+          // { id: { contains: searchQuery, mode: "insensitive" } },
+        ],
+      });
+    }
+
     // Role-based access control
     // If user is not ADMIN or ACCOUNTS, they should only see their assigned tickets
     if (role && userId && !["ADMIN", "ACCOUNTS"].includes(role)) {
@@ -57,6 +80,11 @@ export async function GET(req: NextRequest) {
 
     const tickets = await prisma.ticket.findMany({
       where: whereConditions,
+      skip: skip,
+      take: limit,
+      orderBy: { // Optional: define a default sort order
+        createdAt: 'desc',
+      },
       include: {
         assignee: {
           select: { id: true, name: true, avatar: true, initials: true },
@@ -169,7 +197,11 @@ export async function GET(req: NextRequest) {
       quotations: ticket.Quotation,
     }));
 
-    return NextResponse.json({ tickets: transformedTickets });
+    const totalCount = await prisma.ticket.count({
+      where: whereConditions,
+    });
+
+    return NextResponse.json({ tickets: transformedTickets, totalCount });
   } catch (error: any) {
     console.error("Error fetching tickets:", error);
     return NextResponse.json(

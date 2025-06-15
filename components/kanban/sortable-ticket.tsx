@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect, useRef, useMemo } from "react"; // Added useRef and useMemo
+import { useState, useEffect, useRef, useMemo, memo } from "react"; // Added memo, useRef and useMemo
 import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
@@ -37,29 +37,36 @@ import ReassignTicketDialog from "../tickets/reassign-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 import Link from "next/link";
-import { useTicketStore } from "@/store";
+// Remove useTicketStore if only fetchTickets was used and now handled by the hook
+// import { useTicketStore } from "@/store";
+import { useFileUpload } from "@/hooks/useFileUpload"; // Import the new hook
 
 interface SortableTicketProps {
   ticket: Ticket;
 }
 
-export function SortableTicket({ ticket }: SortableTicketProps) {
+// Wrap SortableTicket with React.memo
+const SortableTicketMemoized = memo(function SortableTicket({ ticket }: SortableTicketProps) {
   const router = useRouter();
   const { toast } = useToast(); // Initialized useToast
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
-  const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+  // const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD' - No longer needed here
+  // const [startDateTicket, setStartDateTicket] = useState<string>(today); // No longer needed here
+  // const [endDateTicket, setEndDateTicket] = useState<string>(today); // No longer needed here
 
-  const [startDateTicket, setStartDateTicket] = useState<string>(today);
-  const [endDateTicket, setEndDateTicket] = useState<string>(today);
-
-  const [isUploadingJcr, setIsUploadingJcr] = useState(false);
-  const [isUploadingPo, setIsUploadingPo] = useState(false);
-  const jcrInputRef = useRef<HTMLInputElement>(null);
-  const poInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthStore();
+  const {
+    isUploadingJcr,
+    isUploadingPo,
+    handleJcrUploadClick,
+    handlePoUploadClick,
+    jcrInputRef,
+    poInputRef,
+    handleJcrFileChange,
+    handlePoFileChange,
+  } = useFileUpload(ticket.id);
 
-  const { fetchTickets } = useTicketStore();
 
   // Memoize currentAssignee to prevent object recreation on every render
   const currentAssignee = useMemo(() => {
@@ -122,93 +129,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     }
   };
 
-  const handleJcrUploadClick = () => jcrInputRef.current?.click();
-  const handlePoUploadClick = () => poInputRef.current?.click();
-
-  const handleJcrFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingJcr(true);
-    const formData = new FormData();
-    formData.append("jcrFile", file);
-
-    try {
-      const response = await fetch(`/api/ticket/${ticket.id}/upload-jcr`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "JCR Upload failed");
-      }
-      toast({
-        title: "Success",
-        description: "JCR file uploaded successfully.",
-      });
-
-      await fetchTickets({
-        startDate: startDateTicket,
-        endDate: endDateTicket,
-      });
-      setIsUploadingJcr(false);
-    } catch (error: any) {
-      toast({
-        title: "Error uploading JCR file",
-        description: error.message || "An unknown error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingJcr(false);
-      if (jcrInputRef.current) {
-        jcrInputRef.current.value = ""; // Reset file input
-      }
-    }
-  };
-
-  const handlePoFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingPo(true);
-    const formData = new FormData();
-    formData.append("poFile", file);
-
-    try {
-      const response = await fetch(`/api/ticket/${ticket.id}/upload-po`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "PO Upload failed");
-      }
-      toast({
-        title: "Success",
-        description: "PO file uploaded successfully.",
-      });
-      await fetchTickets({
-        startDate: startDateTicket,
-        endDate: endDateTicket,
-      });
-      setIsUploadingPo(false);
-    } catch (error: any) {
-      toast({
-        title: "Error uploading PO file",
-        description: error.message || "An unknown error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingPo(false);
-      if (poInputRef.current) {
-        poInputRef.current.value = ""; // Reset file input
-      }
-    }
-  };
+  // Removed handleJcrUploadClick, handlePoUploadClick, handleJcrFileChange, handlePoFileChange
+  // as they are now part of useFileUpload hook.
 
   return (
     <>
@@ -538,4 +460,6 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
       />
     </>
   );
-}
+});
+
+export { SortableTicketMemoized as SortableTicket };

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -15,7 +16,8 @@ interface KanbanColumnProps {
   tickets: Ticket[];
 }
 
-export function KanbanColumn({ id, title, icon, tickets }: KanbanColumnProps) {
+// Wrap KanbanColumn with React.memo
+const KanbanColumnMemoized = memo(function KanbanColumn({ id, title, icon, tickets }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id });
 
   return (
@@ -54,4 +56,6 @@ export function KanbanColumn({ id, title, icon, tickets }: KanbanColumnProps) {
       </div>
     </div>
   );
-}
+});
+
+export { KanbanColumnMemoized as KanbanColumn };
