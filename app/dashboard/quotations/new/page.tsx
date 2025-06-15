@@ -773,7 +773,9 @@ export default function NewQuotationPage() {
                       <TableRow>
                         <TableHead>Description</TableHead>
                         <TableHead>Unit</TableHead>
+                        <TableHead>RC No</TableHead>
                         <TableHead>Rate</TableHead>
+
                         <TableHead>Qty</TableHead>
                         <TableHead>GST%</TableHead>
                         <TableHead>Total</TableHead>
@@ -787,6 +789,8 @@ export default function NewQuotationPage() {
                             {item.rateCard.description}
                           </TableCell>
                           <TableCell>{item.rateCard.unit}</TableCell>
+                          <TableCell>{item.rateCard.srNo}</TableCell>
+
                           <TableCell>
                             ₹{item.rateCard.rate.toFixed(2)}
                           </TableCell>

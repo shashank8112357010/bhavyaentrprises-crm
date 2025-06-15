@@ -9,20 +9,14 @@ import path from "path";
 
 export async function POST(req: NextRequest) {
   try {
-
-
     const body = await req.json();
-    console.log(
-      "Received quotation creation request:",
-      JSON.stringify(body, null, 2),
-    );
 
     const parsed = quotationSchema.safeParse(body);
     if (!parsed.success) {
       console.error("Quotation validation failed:", parsed.error);
       return NextResponse.json(
         { message: "Invalid input", errors: parsed.error.flatten() },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -35,9 +29,22 @@ export async function POST(req: NextRequest) {
       expectedExpense,
     } = parsed.data;
 
+    // Check if quotation for this ticketId already exists
+    if (ticketId) {
+      const existingQuotation = await prisma.quotation.findFirst({
+        where: { ticketId: ticketId },
+      });
+      if (existingQuotation) {
+        return NextResponse.json(
+          { message: "A quotation for this ticket already exists." },
+          { status: 409 }
+        );
+      }
+    }
+
     // Extract rateCardIds from rateCardDetails
     const rateCardIds = rateCardDetails.map(
-      (detail: { rateCardId: string }) => detail.rateCardId,
+      (detail: { rateCardId: string }) => detail.rateCardId
     );
 
     console.log("Looking for rate cards with IDs:", rateCardIds);
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest) {
       "Found rate cards:",
       rateCards.length,
       "out of",
-      rateCardIds.length,
+      rateCardIds.length
     );
 
     if (rateCards.length !== rateCardIds.length) {
@@ -66,7 +73,7 @@ export async function POST(req: NextRequest) {
           requestedIds: rateCardIds,
           foundIds: foundIds,
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -134,7 +141,7 @@ export async function POST(req: NextRequest) {
     if (!client) {
       return NextResponse.json(
         { message: "Client not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -255,7 +262,7 @@ export async function POST(req: NextRequest) {
       console.error("PDF generation error:", pdfError);
       return NextResponse.json(
         { message: "Failed to generate PDF", error: pdfError.message },
-        { status: 500 },
+        { status: 500 }
       );
     }
   } catch (error: any) {
@@ -265,7 +272,7 @@ export async function POST(req: NextRequest) {
         error: error.message,
         details: error.code || "Unknown error",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
