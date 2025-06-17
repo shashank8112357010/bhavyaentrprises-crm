@@ -61,6 +61,7 @@ import { createClient } from "@/lib/services/client";
 import { getAllRateCards } from "@/lib/services/rate-card";
 import { createQuotation } from "@/lib/services/quotations";
 import {
+  getAllTickets,
   getTicketsForSelection,
   TicketForSelection,
 } from "@/lib/services/ticket";
@@ -217,14 +218,7 @@ export default function NewQuotationPage() {
         );
 
         // Fallback to direct fetch
-        const response = await fetch("/api/tickets/selection", {
-          credentials: "include",
-          headers: {
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
-        });
+        const response = await getAllTickets()
 
         if (!response.ok) {
           const errorText = await response.text();
