@@ -12,7 +12,16 @@ const transporter = nodemailer.createTransport({
 });
 
 // Reusable mail sender
-export async function sendMail({
+/**
+ * Sends an email using nodemailer.
+ * @param {Object} params
+ * @param {string} params.to
+ * @param {string} params.subject
+ * @param {string} [params.text]
+ * @param {string} [params.html]
+ * @param {any} [params.attachments]
+ */
+export function sendMail({
   to,
   subject,
   text,
@@ -25,7 +34,7 @@ export async function sendMail({
   html?: string;
   attachments?: any;
 }) {
-  return await transporter.sendMail({
+  return transporter.sendMail({
     from: `"Admin" <${process.env.NEXT_PUBLIC_EMAIL_USER}>`,
     to,
     subject,
@@ -36,3 +45,5 @@ export async function sendMail({
 }
 
 export { transporter };
+
+
