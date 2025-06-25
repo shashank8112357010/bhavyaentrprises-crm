@@ -47,6 +47,8 @@ export async function PUT(
     }
 
     const updateData = validation.data;
+    console.log( updateData , "updateDataupdateDataupdateDataupdateData");
+    
 
     let newSubtotal = 0;
     let newGst = 0;

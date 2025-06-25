@@ -210,7 +210,7 @@ export default function EditQuotationPage() {
     setIsLoadingQuotation(true);
     try {
       const quotationData = await getQuotationById(quotationId);
-      console.log("Fetched quotation data:", quotationData);
+
 
       // Set client data
       if (quotationData.client) {
@@ -298,13 +298,13 @@ export default function EditQuotationPage() {
 
   // Fetch tickets for selection
   const fetchTicketsForSelection = useCallback(async () => {
-    console.log("Fetching tickets for selection...");
+
     setIsLoadingTickets(true);
     try {
       let tickets;
       try {
         tickets = await getTicketsForSelection();
-        console.log("Tickets fetched via service:", tickets);
+
       } catch (serviceError) {
         console.warn(
           "Service method failed, trying direct fetch:",
@@ -330,7 +330,7 @@ export default function EditQuotationPage() {
 
         const data = await response.json();
         tickets = data.tickets || data;
-        console.log("Tickets fetched via direct fetch:", tickets);
+
       }
 
       setTicketsForSelection(tickets || []);
@@ -341,7 +341,7 @@ export default function EditQuotationPage() {
           description: "No tickets available for quotation creation.",
         });
       } else {
-        console.log(`Successfully loaded ${tickets.length} tickets`);
+
       }
     } catch (error: any) {
       console.error("Error fetching tickets:", error);
@@ -365,9 +365,9 @@ export default function EditQuotationPage() {
           searchQuery,
         });
 
-        console.log("Fetched rate cards:", response.data);
-  
-        
+
+
+
         setRateCards(response.data || []);
       } catch (error) {
         console.error("Error fetching rate cards:", error);
@@ -418,17 +418,13 @@ export default function EditQuotationPage() {
   // Initial data fetch
   useEffect(() => {
     // Only fetch data if user is authorized
- 
-      fetchTicketsForSelection();
-      fetchQuotationData();
-  
+    fetchTicketsForSelection();
+    fetchQuotationData();
   }, [fetchTicketsForSelection, fetchQuotationData]);
 
   // Debounced rate card search
   useEffect(() => {
-   
-      searchRateCards(debouncedRateCardSearch);
-  
+    searchRateCards(debouncedRateCardSearch);
   }, [debouncedRateCardSearch, searchRateCards]);
 
   // Handle rate card selection
@@ -529,7 +525,7 @@ export default function EditQuotationPage() {
       const grandTotal = afterDiscount + gstAmount;
 
       const quotationData = {
-        name: formValues.quotationNumber.trim(), // Use quotation number as name
+        name: selectedClient.name, // Use quotation number as name
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
         expectedExpense: formValues.expectedExpense
@@ -546,10 +542,7 @@ export default function EditQuotationPage() {
         grandTotal: grandTotal,
       };
 
-      console.log(
-        "Sending quotation update data:",
-        JSON.stringify(quotationData, null, 2),
-      );
+
 
       await updateQuotation(quotationId, quotationData);
       toast({
@@ -624,10 +617,7 @@ export default function EditQuotationPage() {
         })),
       };
 
-      console.log(
-        "Sending PDF export data:",
-        JSON.stringify(quotationData, null, 2),
-      );
+
 
       const response = await fetch("/api/quotations/preview-pdf", {
         method: "POST",
@@ -799,6 +789,7 @@ export default function EditQuotationPage() {
             Export PDF
           </Button>
           <Button
+           variant="outline"
             onClick={handleSaveQuotation}
             disabled={
               isSavingQuotation ||
@@ -819,63 +810,11 @@ export default function EditQuotationPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Rate Card Selection */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Ticket Selection */}
+     
+
+
+          {/* Quotation Items */}
           <Card>
-            <CardHeader>
-              <CardTitle>Select Ticket</CardTitle>
-              <CardDescription>
-                Choose a ticket for which you want to edit a quotation. Client
-                will be auto-selected.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="ticketSelect">Ticket</Label>
-                </div>
-                <Select
-                  value={selectedTicketId}
-                  onValueChange={handleTicketSelect}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a ticket" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingTickets ? (
-                      <SelectItem value="loading" disabled>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading tickets...
-                      </SelectItem>
-                    ) : ticketsForSelection.length > 0 ? (
-                      ticketsForSelection.map((ticket) => (
-                        <SelectItem key={ticket.id} value={ticket.id}>
-                          {ticket.ticketId} - {ticket.title}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-tickets" disabled>
-                        No tickets available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-
-                {selectedClient && (
-                  <div className="p-3 bg-muted rounded-md">
-                    <h4 className="font-medium">Auto-selected Client:</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedClient.name} (
-                      {selectedClient.displayId || selectedClient.id})
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-
-              {/* Quotation Items */}
-              <Card>
             <CardHeader>
               <CardTitle>Quotation Items</CardTitle>
               <CardDescription>Items added to this quotation</CardDescription>
@@ -956,44 +895,44 @@ export default function EditQuotationPage() {
               )}
             </CardContent>
           </Card>
-<div>
-     {/* Add to Quotation Section */}
-     {selectedRateCard && (
-                  <div className="border-t pt-4 space-y-4">
-                    <div>
-                      <h4 className="font-medium">Selected Rate Card</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedRateCard.description}
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="quantity">Quantity</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) =>
-                          setQuantity(parseInt(e.target.value) || 1)
-                        }
-                      />
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>
-                        Rate: ₹{selectedRateCard.rate.toLocaleString()}
-                      </span>
-                      <span className="font-medium">
-                        Total: {quantity} �� ₹
-                        {selectedRateCard.rate.toLocaleString()} = ₹
-                        {(quantity * selectedRateCard.rate).toLocaleString()}
-                      </span>
-                    </div>
-                    <Button onClick={handleAddToQuotation} className="w-full">
-                      Add to Quotation
-                    </Button>
-                  </div>
-                )}
-</div>
+          <div>
+            {/* Add to Quotation Section */}
+            {selectedRateCard && (
+              <div className="border-t pt-4 space-y-4">
+                <div>
+                  <h4 className="font-medium">Selected Rate Card</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRateCard.description}
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) =>
+                      setQuantity(parseInt(e.target.value) || 1)
+                    }
+                  />
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>
+                    Rate: ₹{selectedRateCard.rate.toLocaleString()}
+                  </span>
+                  <span className="font-medium">
+                    Total: {quantity} �� ₹
+                    {selectedRateCard.rate.toLocaleString()} = ₹
+                    {(quantity * selectedRateCard.rate).toLocaleString()}
+                  </span>
+                </div>
+                <Button onClick={handleAddToQuotation} className="w-full">
+                  Add to Quotation
+                </Button>
+              </div>
+            )}
+          </div>
 
 
 
@@ -1035,15 +974,14 @@ export default function EditQuotationPage() {
                       {rateCards.map((rateCard) => (
                         <div
                           key={rateCard.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                            selectedRateCard?.id === rateCard.id
-                              ? "border-primary bg-primary/5"
-                              : "hover:bg-accent"
-                          }`}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedRateCard?.id === rateCard.id
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-accent"
+                            }`}
                           onClick={() => handleRateCardSelect(rateCard)}
                         >
                           <div className="flex justify-between items-start">
-                          <div>
+                            <div>
                               <div className="font-medium">
                                 {rateCard.description}
                               </div>
@@ -1081,12 +1019,12 @@ export default function EditQuotationPage() {
                   Create New Rate Card
                 </Button>
 
-             
+
               </div>
             </CardContent>
           </Card>
 
-      
+
         </div>
 
         {/* Right Column - Quotation Details and Summary */}
@@ -1099,7 +1037,7 @@ export default function EditQuotationPage() {
             <CardContent>
               <Form {...quotationForm}>
                 <form className="space-y-4">
-                  <FormField
+                  {/* <FormField
                     control={quotationForm.control}
                     name="date"
                     render={({ field }) => (
@@ -1111,7 +1049,16 @@ export default function EditQuotationPage() {
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                  /> */}
+
+                  <Label>Ticket</Label>
+                  <Input  disabled defaultValue={
+                    ticketsForSelection.find((ticket) => ticket.id === selectedTicketId)?.ticketId || ""
+                  } type="text" />
+
+                  <Label>Client Name</Label>
+                  <Input  disabled defaultValue={selectedClient?.name || ""} type="text" />
+
 
                   <FormField
                     control={quotationForm.control}

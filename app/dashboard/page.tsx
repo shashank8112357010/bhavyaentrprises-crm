@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -106,9 +107,13 @@ export default function Home() {
               {isAdminOrAccounts ? "Open Tickets" : "My Open Tickets"}
             </CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts
-                ? "Loading..."
-                : (openTicketsCount ?? "N/A")}
+              {isLoadingDashboardCounts ? (
+                <span>
+                  <Spinner size="5" />
+                  </span>
+              ) : (
+                openTicketsCount !== undefined && openTicketsCount !== null ? openTicketsCount : <span className="text-muted-foreground">N/A</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -127,9 +132,11 @@ export default function Home() {
               {isAdminOrAccounts ? "Scheduled Today" : "My Schedule Today"}
             </CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts
-                ? "Loading..."
-                : (scheduledTodayCount ?? "N/A")}
+              {isLoadingDashboardCounts ? (
+  <Spinner size="5" />
+) : (
+  scheduledTodayCount !== undefined && scheduledTodayCount !== null ? scheduledTodayCount : <span className="text-muted-foreground">N/A</span>
+)}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -152,9 +159,11 @@ export default function Home() {
                 : "My Updates Needed"}
             </CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts
-                ? "Loading..."
-                : (clientUpdatesNeededCount ?? "N/A")}
+              {isLoadingDashboardCounts ? (
+  <Spinner size="5" />
+) : (
+  clientUpdatesNeededCount !== undefined && clientUpdatesNeededCount !== null ? clientUpdatesNeededCount : <span className="text-muted-foreground">N/A</span>
+)}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -177,9 +186,11 @@ export default function Home() {
                 : "My Completed This Week"}
             </CardDescription>
             <CardTitle className="text-2xl">
-              {isLoadingDashboardCounts
-                ? "Loading..."
-                : (completedThisWeekCount ?? "N/A")}
+              {isLoadingDashboardCounts ? (
+  <Spinner size="5" />
+) : (
+  completedThisWeekCount !== undefined && completedThisWeekCount !== null ? completedThisWeekCount : <span className="text-muted-foreground">N/A</span>
+)}
             </CardTitle>
           </CardHeader>
           <CardContent>

@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import KanbanBoard from "@/components/kanban/kanban-board";
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import NewTicketDialog from "@/components/tickets/new-ticket-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { exportTicketsToExcel } from "@/lib/services/ticket";
@@ -57,6 +58,8 @@ interface ExportFilters {
 }
 
 export default function KanbanPage() {
+  // Add view mode state
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const {
     tickets,
     fetchTickets,
@@ -72,10 +75,10 @@ export default function KanbanPage() {
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   // NEW STATE
-const [approvalModalOpen, setApprovalModalOpen] = useState(false);
-const [ticketToApprove, setTicketToApprove] = useState<Ticket | null>(null);
-const [approverId, setApproverId] = useState("");
-const [approvalNote, setApprovalNote] = useState("");
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+  const [ticketToApprove, setTicketToApprove] = useState<Ticket | null>(null);
+  const [approverId, setApproverId] = useState("");
+  const [approvalNote, setApprovalNote] = useState("");
 
 
   const [startDate, setStartDate] = useState<string>("");
@@ -131,37 +134,37 @@ const [approvalNote, setApprovalNote] = useState("");
 
 
 
-// APPROVAL MODAL CONFIRMATION
-const handleApprovalConfirm = async () => {
-  if (!approverId.trim()) {
-    toast({
-      title: "Missing Accountant",
-      description: "Please enter the accountant guaranteeing this.",
-      variant: "destructive",
-    });
-    return;
-  }
-  if (!ticketToApprove) return;
+  // APPROVAL MODAL CONFIRMATION
+  const handleApprovalConfirm = async () => {
+    if (!approverId.trim()) {
+      toast({
+        title: "Missing Accountant",
+        description: "Please enter the accountant guaranteeing this.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!ticketToApprove) return;
 
-  try {
-    await updateTicket({
-      ...ticketToApprove,
-      approvedByAccountant: approverId,
-      status: "completed",
-    });
+    try {
+      await updateTicket({
+        ...ticketToApprove,
+        approvedByAccountant: approverId,
+        status: "completed",
+      });
 
-    toast({ title: "Ticket Completed", description: "Ticket marked as completed." });
-    setApprovalModalOpen(false);
-    setTicketToApprove(null);
-    setApproverId("");
-  } catch (err: any) {
-    toast({
-      title: "Update Failed",
-      description: err.message || "Could not complete the ticket.",
-      variant: "destructive",
-    });
-  }
-};
+      toast({ title: "Ticket Completed", description: "Ticket marked as completed." });
+      setApprovalModalOpen(false);
+      setTicketToApprove(null);
+      setApproverId("");
+    } catch (err: any) {
+      toast({
+        title: "Update Failed",
+        description: err.message || "Could not complete the ticket.",
+        variant: "destructive",
+      });
+    }
+  };
 
 
   const handleDragEnd = async (result: DragEndResult) => {
@@ -200,32 +203,32 @@ const handleApprovalConfirm = async () => {
           setHoldReasonModalOpen(true);
           return;
 
-          case "completed": {
-            if (!workStage || workStage.quoteNo === "N/A") {
-              toast({
-                title: "Order Violation",
-                description: "Attach a quotation before marking as completed.",
-                variant: "destructive",
-              });
-              return;
-            }
-            if (!workStage.jcrStatus) {
-              toast({
-                title: "Missing JCR",
-                description: "You cannot complete a ticket without JCR.",
-                variant: "destructive",
-              });
-              return;
-            }
-            if (!workStage.poStatus) {
-              // Show approval dialog
-              setTicketToApprove(ticket);
-              setApprovalModalOpen(true);
-              return;
-            }
-            break;
+        case "completed": {
+          if (!workStage || workStage.quoteNo === "N/A") {
+            toast({
+              title: "Order Violation",
+              description: "Attach a quotation before marking as completed.",
+              variant: "destructive",
+            });
+            return;
           }
-          
+          if (!workStage.jcrStatus) {
+            toast({
+              title: "Missing JCR",
+              description: "You cannot complete a ticket without JCR.",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (!workStage.poStatus) {
+            // Show approval dialog
+            setTicketToApprove(ticket);
+            setApprovalModalOpen(true);
+            return;
+          }
+          break;
+        }
+
         case "billing_pending":
           if (ticket.status !== "completed") {
             toast({
@@ -349,7 +352,7 @@ const handleApprovalConfirm = async () => {
       if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
         allowedStatuses.push("billing_pending", "billing_completed");
       }
-  
+
       if (allowedStatuses.includes(status as Status)) {
         acc[status as Status] = statusTickets
           .map((ticket: Ticket) => ({
@@ -359,38 +362,38 @@ const handleApprovalConfirm = async () => {
           .filter((ticket: Ticket) => {
             const clientId = ticket.client?.id?.toString() ?? "";
             const assigneeId = ticket.assignee?.id?.toString() ?? "";
-    console.log(clientId , "clientId" , clientFilter);
+            console.log(clientId, "clientId", clientFilter);
 
-    
+
             const matchesSearch =
               ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
               ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
-  
+
             const matchesClient =
               clientFilter === "all" || clientFilter === clientId;
-  
+
             const matchesAssignee =
               assigneeFilter === "all" || assigneeFilter === assigneeId;
-  
+
             const matchesRole =
               user?.role === "ADMIN" ||
               user?.role === "ACCOUNTS" ||
               assigneeId === user?.userId;
-  
+
             return (
               matchesSearch && matchesClient && matchesAssignee && matchesRole
             );
           });
       }
-  
+
       return acc;
     },
     {} as TicketsState
   );
-  
 
- 
-  
+
+
+
 
   const ticketStatuses: Status[] = [
     "new",
@@ -455,6 +458,22 @@ const handleApprovalConfirm = async () => {
           </p>
         </div>
         <NewTicketDialog />
+      </div>
+
+      {/* View toggle buttons */}
+      <div className="flex gap-2 mb-2">
+        <Button
+          variant={viewMode === 'kanban' ? 'default' : 'outline'}
+          onClick={() => setViewMode('kanban')}
+        >
+          Kanban View
+        </Button>
+        <Button
+          variant={viewMode === 'table' ? 'default' : 'outline'}
+          onClick={() => setViewMode('table')}
+        >
+          Table View
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-2 items-center justify-between">
@@ -538,7 +557,41 @@ const handleApprovalConfirm = async () => {
         </div>
       </div>
 
-      <KanbanBoard tickets={filteredTickets} onDragEnd={handleDragEnd} />
+      {/* Conditional rendering for Kanban/Table */}
+      {viewMode === 'kanban' ? (
+        <KanbanBoard tickets={filteredTickets} onDragEnd={handleDragEnd} />
+      ) : (
+        <div className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Assignee</TableHead>
+                <TableHead>Due Date</TableHead>
+                {/* <TableHead>Actions</TableHead> */}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(filteredTickets).flatMap(([status, tickets]) =>
+                (tickets as Ticket[]).map((ticket: Ticket) => (
+                  <TableRow key={ticket.ticketId}>
+                    <TableCell className="capitalize" >{ticket.ticketId}</TableCell>
+                    <TableCell className="capitalize">{ticket.title}</TableCell>
+                    <TableCell className="capitalize">{status}</TableCell>
+                    <TableCell className="capitalize">{ticket.client?.name || '-'}</TableCell>
+                    <TableCell className="capitalize">{ticket.assignee?.name || '-'}</TableCell>
+                    <TableCell>{ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell>{/* Actions can go here */}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
         <DialogContent>
@@ -550,9 +603,10 @@ const handleApprovalConfirm = async () => {
               <Button
                 key={status}
                 variant="outline"
+                className="capitalize"
                 onClick={() => handleExportTickets(status)}
               >
-                Export {status.replaceAll("_", " ")}
+                 {status.replaceAll("_", " ")}
               </Button>
             ))}
           </div>
@@ -588,41 +642,41 @@ const handleApprovalConfirm = async () => {
       </Dialog>
 
       <Dialog open={approvalModalOpen} onOpenChange={setApprovalModalOpen}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>PO Missing - Approval Required</DialogTitle>
-    </DialogHeader>
-    <div className="grid gap-4 py-4">
-      <Label htmlFor="approver">Who guarantees this ticket completion?</Label>
-     <Select value={approverId} onValueChange={setApproverId}>
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Select Accountant" />
-  </SelectTrigger>
-  <SelectContent>
-    {accountants.map((acc) => (
-      <SelectItem key={acc.id} value={acc.id}>
-        {acc.name.toUpperCase()}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-<Label htmlFor="approvalNote">Message</Label>
-<Textarea
-  id="approvalNote"
-  placeholder="Enter message"
-  value={approvalNote}
-  onChange={(e) => setApprovalNote(e.target.value)}
-/>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>PO Missing - Approval Required</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Label htmlFor="approver">Who guarantees this ticket completion?</Label>
+            <Select value={approverId} onValueChange={setApproverId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Accountant" />
+              </SelectTrigger>
+              <SelectContent>
+                {accountants.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    {acc.name.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Label htmlFor="approvalNote">Message</Label>
+            <Textarea
+              id="approvalNote"
+              placeholder="Enter message"
+              value={approvalNote}
+              onChange={(e) => setApprovalNote(e.target.value)}
+            />
 
-    </div>
-    <DialogFooter>
-      <Button variant="outline" onClick={() => setApprovalModalOpen(false)}>
-        Cancel
-      </Button>
-      <Button onClick={handleApprovalConfirm}>Confirm Completion</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApprovalModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleApprovalConfirm}>Confirm Completion</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

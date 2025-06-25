@@ -22,14 +22,14 @@ export async function middleware(request: NextRequest) {
     const hasAccess = pathRoleAccess[role]?.some((path) => pathname.startsWith(path));
 
     if (!hasAccess) {
-      console.log("hey you dont have access");
+      
       
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
     return NextResponse.next();
   } catch (err: any) {
-    console.error('JWT verification failed:', err.message);
+    
     return NextResponse.redirect(new URL('/', request.url));
   }
 }

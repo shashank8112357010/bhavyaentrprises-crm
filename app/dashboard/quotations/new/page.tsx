@@ -498,7 +498,7 @@ export default function NewQuotationPage() {
       );
 
       const quotationData = {
-        name: formValues.quotationNumber.trim(), // Use quotation number as name
+        name:selectedClient.name , 
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
         salesType: formValues.salesType,
@@ -507,7 +507,7 @@ export default function NewQuotationPage() {
         validUntil: formValues.validUntil,
         expectedExpense:
           formValues.expectedExpense &&
-          parseFloat(formValues.expectedExpense) !== 0
+            parseFloat(formValues.expectedExpense) !== 0
             ? parseFloat(formValues.expectedExpense)
             : totalFromRateCard,
         discount: formValues.discount,
@@ -736,7 +736,7 @@ export default function NewQuotationPage() {
                   </SelectContent>
                 </Select>
 
-                {selectedClient && (
+                {/* {selectedClient && (
                   <div className="p-3 bg-muted rounded-md">
                     <h4 className="font-medium">Auto-selected Client:</h4>
                     <p className="text-sm text-muted-foreground">
@@ -744,13 +744,13 @@ export default function NewQuotationPage() {
                       {selectedClient.displayId || selectedClient.id})
                     </p>
                   </div>
-                )}
+                )} */}
               </div>
             </CardContent>
           </Card>
 
-             {/* Quotation Items */}
-             <Card>
+          {/* Quotation Items */}
+          <Card>
             <CardHeader>
               <CardTitle>Quotation Items</CardTitle>
               <CardDescription>Items added to this quotation</CardDescription>
@@ -836,42 +836,42 @@ export default function NewQuotationPage() {
             </CardContent>
           </Card>
 
-              {/* Add to Quotation Section */}
-              {selectedRateCard && (
-                  <div className="border-t pt-4 space-y-4">
-                    <div>
-                      <h4 className="font-medium">Selected Rate Card</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedRateCard.description}
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="quantity">Quantity</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) =>
-                          setQuantity(parseInt(e.target.value) || 1)
-                        }
-                      />
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>
-                        Rate: ₹{selectedRateCard.rate.toLocaleString()}
-                      </span>
-                      <span className="font-medium">
-                        Total: {quantity} × ₹
-                        {selectedRateCard.rate.toLocaleString()} = ₹
-                        {(quantity * selectedRateCard.rate).toLocaleString()}
-                      </span>
-                    </div>
-                    <Button onClick={handleAddToQuotation} className="w-full">
-                      Add to Quotation
-                    </Button>
-                  </div>
-                )}
+          {/* Add to Quotation Section */}
+          {selectedRateCard && (
+            <div className="border-t pt-4 space-y-4">
+              <div>
+                <h4 className="font-medium">Selected Rate Card</h4>
+                <p className="text-sm text-muted-foreground">
+                  {selectedRateCard.description}
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) =>
+                    setQuantity(parseInt(e.target.value) || 1)
+                  }
+                />
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>
+                  Rate: ₹{selectedRateCard.rate.toLocaleString()}
+                </span>
+                <span className="font-medium">
+                  Total: {quantity} × ₹
+                  {selectedRateCard.rate.toLocaleString()} = ₹
+                  {(quantity * selectedRateCard.rate).toLocaleString()}
+                </span>
+              </div>
+              <Button onClick={handleAddToQuotation} className="w-full">
+                Add to Quotation
+              </Button>
+            </div>
+          )}
 
           {/* Rate Card Selection */}
           <Card>
@@ -911,11 +911,10 @@ export default function NewQuotationPage() {
                       {rateCards.map((rateCard) => (
                         <div
                           key={rateCard.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                            selectedRateCard?.id === rateCard.id
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedRateCard?.id === rateCard.id
                               ? "border-primary bg-primary/5"
                               : "hover:bg-accent"
-                          }`}
+                            }`}
                           onClick={() => handleRateCardSelect(rateCard)}
                         >
                           <div className="flex justify-between items-start">
@@ -957,12 +956,12 @@ export default function NewQuotationPage() {
                   Create New Rate Card
                 </Button>
 
-            
+
               </div>
             </CardContent>
           </Card>
 
-       
+
         </div>
 
         {/* Right Column - Quotation Details and Summary */}
@@ -975,19 +974,13 @@ export default function NewQuotationPage() {
             <CardContent>
               <Form {...quotationForm}>
                 <form className="space-y-4">
-                  <FormField
-                    control={quotationForm.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* shashank */}
+                  <Label>Client Name</Label>
+                  <Input className="text-white" disabled defaultValue={selectedClient?.name || ""} type="text" />
+
+
+
+
 
                   <FormField
                     control={quotationForm.control}
@@ -1018,7 +1011,7 @@ export default function NewQuotationPage() {
                     )}
                   />
 
-                  <FormField
+                  {/* <FormField
                     control={quotationForm.control}
                     name="quotationNumber"
                     render={({ field }) => (
@@ -1033,7 +1026,7 @@ export default function NewQuotationPage() {
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                  /> */}
 
                   <FormField
                     control={quotationForm.control}
