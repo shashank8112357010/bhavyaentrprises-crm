@@ -302,7 +302,7 @@ async function main() {
     const summaryHtml = `<h3>Business Insights Summary</h3><ul><li><b>Total Loss:</b> ₹${totalLoss}</li><li><b>Spend Today:</b> ₹${spendToday}</li></ul><b>Breakdown by Ticket:</b><ul>${ticketBreakdown.map(l => `<li>${l}</li>`).join('')}</ul>`;
 
     const mailOptions = {
-      to: 'ershashank05@gmail.com',
+      to: 'girish@bhavyaenterprises.com',
       subject: `Business Insights - ${new Date().toLocaleDateString('en-IN')}`,
       text: `Good Morning\n\n${summaryText}\n\nPlease find attached the latest business insight report.`,
       html: `<p>Good Morning</p>${summaryHtml}<p>Please find attached the latest business insight report.</p>`,
