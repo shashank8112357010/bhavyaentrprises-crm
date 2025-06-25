@@ -68,6 +68,7 @@ interface ExpenseItem {
   quotation: ExpenseQuotation | null;
   // If ticket can be directly on expense and not just via quotation:
   // ticket?: ExpenseQuotationTicket | null;
+  ticket?: ExpenseQuotationTicket | null;
 }
 
 interface PaginatedExpensesResponse {
@@ -256,7 +257,7 @@ export default function ExpensesPage() {
                     </TableCell>
                     <TableCell>{exp.quotation?.name || "N/A"}</TableCell>
                     <TableCell>
-                      {exp.quotation?.ticket?.title || "N/A"}
+                      {exp?.ticket?.title || "N/A"}
                     </TableCell>
                     <TableCell>
                       {exp.paymentType === "ONLINE"

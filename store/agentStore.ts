@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   getAllAgents,
+  getAllAgentsUnpaginated,
   getAgentById,
   createAgent,
   updateAgent,
@@ -34,6 +35,9 @@ interface AgentState {
   totalAgentCount: number | null; // Total count of all agents with specific roles
   isLoadingTotalAgentCount: boolean; // Loading state specifically for totalAgentCount
 
+  // Fetch all agents for dropdowns/forms (no pagination)
+  fetchAllAgents: () => Promise<void>;
+
   fetchAgents: (
     params?: {
       page?: number;
@@ -64,12 +68,18 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   totalAgentCount: null, // Initialize new state
   isLoadingTotalAgentCount: false, // Initialize new state
 
-  fetchAgents: async (params = {}, userRole?: Role) => {
-    // Only allow ADMIN and ACCOUNTS to fetch agents
-    if (userRole && userRole !== "ADMIN" && userRole !== "ACCOUNTS" && userRole !== "BACKEND") {
-      set({ loading: false, error: null });
-      return;
+  // Fetch all agents for dropdowns/forms (no pagination)
+  fetchAllAgents: async () => {
+    set({ loading: true, error: null });
+    try {
+      const allAgents = await getAllAgentsUnpaginated();
+      set({ agents: allAgents, loading: false });
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
     }
+  },
+
+  fetchAgents: async (params = {}) => {
 
     set({ loading: true, error: null }); // This loading is for the main agent list
     const S = get();

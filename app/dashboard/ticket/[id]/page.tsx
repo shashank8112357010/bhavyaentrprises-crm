@@ -586,7 +586,12 @@ export default function TicketDetailsPage() {
                     client: {
                       name: q?.client?.name || "N/A",
                       id: q?.client?.id || "",
-                    }, // Ensure that `client` is included in the mapping
+                    },
+                    ticket: {
+                      id: ticket.id,
+                      title: ticket.title,
+                    },
+                    displayId: q.displayId || q.id || "",
                   })) || []
                 }
               />

@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
+    const all = searchParams.get("all") === "true";
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const search = searchParams.get("search") || "";
@@ -37,13 +38,22 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    const total = await prisma.user.count({ where });
-    const users = await prisma.user.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { joinedDate: "desc" }, // Assuming joinedDate is a relevant sort field
-    });
+    let users, total;
+    if (all) {
+      users = await prisma.user.findMany({
+        where,
+        orderBy: { joinedDate: "desc" },
+      });
+      total = users.length;
+    } else {
+      total = await prisma.user.count({ where });
+      users = await prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { joinedDate: "desc" },
+      });
+    }
 
     const modifiedAgents = users.map((agent) => ({
       id: agent.displayId || agent.id, // Show displayId if available, otherwise UUID

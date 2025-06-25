@@ -27,15 +27,23 @@ import { getAllQuotations } from "@/lib/services/quotations";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "../ui/spinner";
 
+
 type PaymentType = "VCASH" | "REST" | "ONLINE";
 type ClientDetail = {
   name: string;
   id: string;
 };
+type TicketOBJ = {
+  id: string;
+  title: string;
+};
 interface QuotationForDialog {
   id: string;
   name: string;
   client: ClientDetail;
+  ticket: TicketOBJ;
+  displayId: string;
+
 }
 
 interface NewExpenseDialogProps {
@@ -48,6 +56,7 @@ export function NewExpenseDialog({
   onSuccess,
   ticketId,
   ticketQuotations,
+  
 }: NewExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [quotationsToDisplay, setQuotationsToDisplay] = useState<
@@ -273,7 +282,7 @@ export function NewExpenseDialog({
                 <SelectContent>
                   {quotationsToDisplay.map((q) => (
                     <SelectItem key={q.id} value={q.id}>
-                      {q.id}-{q?.client?.name}
+                      {q.displayId}-{q?.client?.name}-{q?.ticket?.title}
                       {/* Assuming 'name' is the display field */}
                     </SelectItem>
                   ))}

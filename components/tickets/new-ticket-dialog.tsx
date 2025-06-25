@@ -29,7 +29,7 @@ const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
 export default function NewTicketDialog() {
   const [open, setOpen] = useState(false);
-  const { agents, fetchAgents } = useAgentStore();
+  const { agents, fetchAllAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
   const { createTicket } = useTicketStore();
   const { toast } = useToast();
@@ -54,9 +54,9 @@ export default function NewTicketDialog() {
   const scheduledDateRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchAgents();
+    fetchAllAgents();
     fetchClients();
-  }, [fetchAgents, fetchClients]);
+  }, [fetchAllAgents, fetchClients]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

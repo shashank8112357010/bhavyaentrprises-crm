@@ -64,7 +64,7 @@ export default function KanbanPage() {
     updateTicket,
     fetchTicketById,
   } = useTicketStore();
-  const { agents, fetchAgents } = useAgentStore();
+  const { agents, fetchAllAgents } = useAgentStore();
   const { clients, fetchClients } = useClientStore();
   const { toast } = useToast();
 
@@ -103,7 +103,7 @@ const [approvalNote, setApprovalNote] = useState("");
           endDate: endDateTicket,
         });
         if (user) {
-          await fetchAgents({}, user.role);
+          await fetchAllAgents();
         }
 
         await fetchClients();
@@ -120,7 +120,7 @@ const [approvalNote, setApprovalNote] = useState("");
     loadData();
   }, [
     fetchTickets,
-    fetchAgents,
+    fetchAllAgents,
     fetchClients,
     startDateTicket,
     endDateTicket,

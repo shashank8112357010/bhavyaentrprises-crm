@@ -59,6 +59,28 @@ export async function getAllAgents(
   }
 }
 
+// Fetch all agents (no pagination, for dropdowns/forms)
+export async function getAllAgentsUnpaginated(): Promise<Agent[]> {
+  try {
+    const response = await axios.get("/agent", {
+      params: { all: true },
+      withCredentials: true,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+    return response.data.data;
+  } catch (error: any) {
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Failed to fetch all agents.";
+    throw new Error(message);
+  }
+}
+
 export async function deleteAgent(id: string) {
   try {
     const response = await axios.delete(`/agent/${id}`, {

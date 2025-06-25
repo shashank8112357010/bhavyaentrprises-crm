@@ -30,12 +30,12 @@ export function AssignTicketDialog({ ticketId }: { ticketId: string }) {
   const [assigneeId, setAssigneeId] = useState("");
 
   const router = useRouter();
-  const { agents, fetchAgents } = useAgentStore();
+  const { agents, fetchAllAgents } = useAgentStore();
   const { updateTicketStatus } = useTicketStore();
 
   useEffect(() => {
-    fetchAgents();
-  }, [fetchAgents]);
+    fetchAllAgents();
+  }, [fetchAllAgents]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

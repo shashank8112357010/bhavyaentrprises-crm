@@ -40,7 +40,7 @@ export default function ReassignTicketDialog({
   currentAssignee,
   onReassignSuccess,
 }: ReassignTicketDialogProps) {
-  const { agents, fetchAgents } = useAgentStore();
+  const { agents, fetchAllAgents } = useAgentStore();
   const { updateTicket } = useTicketStore();
   const { toast } = useToast();
 
@@ -53,12 +53,12 @@ export default function ReassignTicketDialog({
     setIsLoading(false);
   };
 
-  // Memoize fetchAgents call to prevent unnecessary re-renders
+  // Memoize fetchAllAgents call to prevent unnecessary re-renders
   const fetchAgentsList = useCallback(() => {
     if (open) {
-      fetchAgents();
+      fetchAllAgents();
     }
-  }, [open, fetchAgents]);
+  }, [open, fetchAllAgents]);
 
   useEffect(() => {
     fetchAgentsList();
