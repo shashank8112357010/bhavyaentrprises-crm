@@ -34,14 +34,15 @@ export async function POST(req: NextRequest) {
     }
 
     let data = parsed.data;
+    let clientDetails: { name: string; contactPerson?: string; contactEmail?: string; contactPhone?: string; gstn?: string } = { name: data.name };
 
-    // If quotationId is provided, fetch quotation and use its items
+    // If quotationId is provided, fetch quotation and use its items and client details
     if (data.quotationId) {
       // Dynamically import prisma to avoid SSR issues
       const { prisma } = await import("@/lib/prisma");
       const quotation = await prisma.quotation.findUnique({
         where: { id: data.quotationId },
-        // rateCardDetails is a JSON field, not a relation
+        include: { client: true } // Include full client object
       });
       if (!quotation) {
         return NextResponse.json(
@@ -49,6 +50,19 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         );
       }
+      if (quotation.client) {
+        clientDetails = {
+          name: quotation.client.name,
+          contactPerson: quotation.client.contactPerson,
+          contactEmail: quotation.client.contactEmail,
+          contactPhone: quotation.client.contactPhone,
+          gstn: quotation.client.gstn,
+        };
+      } else {
+        // Fallback if client is somehow not associated, though schema implies it should be
+        clientDetails.name = data.name; // Use name from input if client relation is missing
+      }
+
       // Parse rateCardDetails from JSON if present
       let rateCardDetailsArr: any[] = [];
       if (quotation.rateCardDetails) {
@@ -96,6 +110,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Ensure the 'data' object that will be passed as 'jcr' to the template includes the client details.
+    // The 'name' field in 'data' from parsed.data can serve as a fallback if client object is not fully populated.
+    (data as any).client = clientDetails;
+
 
     const templatePath = join(process.cwd(), "lib/pdf/templates/jcr.ejs");
     const html = await renderFile(templatePath, { jcr: data });

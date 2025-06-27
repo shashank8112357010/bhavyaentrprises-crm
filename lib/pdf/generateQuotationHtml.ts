@@ -15,13 +15,21 @@ interface RateCardDetail {
   quantity: number;
   gstPercentage: number;
 }
+interface ClientData { // Define a type for the client object
+  name: string;
+  contactPerson?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  gstn?: string | null;
+}
+
 interface QuotationPdfParams {
   quotationId: string;
-  clientId: string;
-  name: string;
+  client: ClientData; // Use the ClientData type
+  name: string; // This seems to be quotation name, clientName is in client object
   rateCards: RateCardEntry[];
   subtotal: number;
-  clientName: string;
+  // clientName: string; // Removed, as it's part of client object
   gst: number;
   grandTotal: number;
   rateCardDetails: RateCardDetail[];
@@ -88,14 +96,16 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
     const oneWeekLater = new Date(today.getTime() + 7 * 86400000); // 7 days from now
 
     const templateData = {
-      ...params,
+      ...params, // Spread existing params first
+      client: params.client, // Pass the full client object
+      clientName: params.client.name, // Keep clientName for direct use in template if needed
       quotationId: params.quotationId || params.quoteNo || "PREVIEW",
       quoteNo: params.quoteNo || params.quotationId || "PREVIEW",
       date: today.toLocaleDateString("en-GB"),
       validUntil: oneWeekLater.toLocaleDateString("en-GB"),
       amountInWords: amountToWords(params.grandTotal || 0),
       rateCards: params.rateCards || [],
-      name: params.name,
+      name: params.name, // This is the quotation name
       rateCardDetails: params.rateCardDetails || [],
       logoPath,
       upiQrPath,

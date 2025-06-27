@@ -51,7 +51,13 @@ export async function POST(req: NextRequest) {
     // Map data to JCR format with merged RC details
     const jcrData = {
       jcrNo: quotation.quoteNo,
-      name: quotation.client?.name || "",
+      client: quotation.client ? {
+        name: quotation.client.name,
+        contactPerson: quotation.client.contactPerson,
+        contactEmail: quotation.client.contactEmail,
+        contactPhone: quotation.client.contactPhone,
+        gstn: quotation.client.gstn,
+      } : { name: "Client N/A" }, // Fallback if client somehow not populated
       date: quotation.createdAt,
       jcrItems: (rateCardItems || []).map((item: any, idx: number) => {
         const rcDetail = rateCardDetailsMap[item.rateCardId] || {};

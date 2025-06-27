@@ -57,7 +57,14 @@ export async function POST(req: NextRequest) {
     // Fetch client data
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { name: true },
+      // Select all necessary client fields for the PDF
+      select: {
+        name: true,
+        contactPerson: true,
+        contactEmail: true,
+        contactPhone: true,
+        gstn: true,
+      },
     });
 
     if (!client) {
@@ -119,9 +126,8 @@ export async function POST(req: NextRequest) {
 
     const pdfBuffer = await generateQuotationPdf({
       quotationId: quotationNumber,
-      clientName: client.name,
-      clientId,
-      name,
+      client: client, // Pass the full client object
+      name, // This is the quotation name
       rateCards: hydratedRateCardsForPdf,
       subtotal,
       gst,
