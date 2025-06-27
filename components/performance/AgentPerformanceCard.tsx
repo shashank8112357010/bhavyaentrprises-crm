@@ -63,12 +63,12 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto bg-white shadow-lg rounded-lg border border-gray-200">
+    <div className="p-6 max-w-5xl mx-auto  shadow-lg rounded-lg border border-gray-200">
       <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">
         🎯 Agent Performance Summary ({performance.region})
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 bg-gray-50 rounded-md border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 rounded-md border border-gray-200">
         <div><p><strong>Agent:</strong> {performance.agent}</p></div>
         <div><p><strong>Tickets Handled:</strong> {performance.jobs}</p></div>
         <div><p><strong>Overall Score:</strong> {performance.score}/100</p></div>
@@ -81,8 +81,8 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
 
       {/* Daily Agent Notification Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4 text-gray-700">📩 Agent Action Items</h2>
-        <div className="bg-blue-50 p-6 rounded-md border border-blue-200 shadow-sm">
+        <h2 className="text-2xl font-semibold mb-4 ">📩 Agent Action Items</h2>
+        <div className=" p-6 rounded-md border border-blue-200 shadow-sm">
           <p className="text-lg mb-1"><strong>Agent:</strong> {performance.agent}</p>
 
           {performance.jcrPending.length > 0 && (
@@ -154,14 +154,21 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
       {/* Admin Notifications Section */}
       {performance.adminNotifications.length > 0 && (
         <div>
-          <h2 className="text-2xl font-semibold mb-4 text-gray-700">🛠️ Admin Watchlist & Planning</h2>
-          <div className="bg-red-50 p-6 rounded-md border border-red-300 shadow-sm">
+          <h2 className="text-2xl font-semibold mb-4 ">🛠️ Admin Watchlist & Planning</h2>
+          <div className=" p-6 rounded-md border border-red-300 shadow-sm">
             <ul className="space-y-3 text-sm">
               {performance.adminNotifications.map(note => (
-                <li key={note.ticketId} className="p-3 bg-white border border-red-200 rounded shadow-sm">
+                <li key={note.ticketId} className="p-3  border border-red-200 rounded shadow-sm">
                   <span className="font-semibold text-red-700">🔔 Ticket: {note.ticketId}</span> (Agent: {note.agent}, Region: {note.region})<br/>
-                  Status: {note.status} | Billing: {note.billingStage} | JCR: {note.jcrUploaded ? '✅ Done' : '❌ Pending'} | PO: {note.poUploaded ? '✅ Done' : '❌ Pending'}<br/>
-                  Feedback: {note.feedback} | Quotation: ₹{note.quotationAmount.toLocaleString()} | Expense: ₹{note.expenseAmount.toLocaleString()}
+                  <div className=''>
+                  Status: {note.status} | Billing: {note.billingStage} | JCR: {note.jcrUploaded ? '✅ Done' : '❌ Pending'} | PO: {note.poUploaded ? '✅ Done' : '❌ Pending'}
+
+                  </div>
+                <br/>
+                <div className=''>
+                Feedback: {note.feedback} | Quotation: ₹{note.quotationAmount.toLocaleString()} | Expense: ₹{note.expenseAmount.toLocaleString()}
+                </div>
+                
                 </li>
               ))}
             </ul>
@@ -172,7 +179,7 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
          <div>
           <h2 className="text-2xl font-semibold mb-4 text-gray-700">🛠️ Admin Watchlist & Planning</h2>
             <div className="bg-green-50 p-6 rounded-md border border-green-300 shadow-sm">
-                <p className="text-green-700">No items currently on the admin watchlist from this agent's tickets.</p>
+                <p className="text-green-700">No items currently on the admin watchlist from this agent&apos;s tickets.</p>
             </div>
         </div>
        )}

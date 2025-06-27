@@ -29,7 +29,7 @@ import UpcomingSchedule from "@/components/dashboard/upcoming-schedule";
 import { useTicketStore } from "@/store/ticketStore";
 import { useClientStore } from "@/store/clientStore";
 import { useAgentStore } from "@/store/agentStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import TotalAgentsCard from "@/components/dashboard/total-agents-card";
 import TotalClientsCard from "@/components/dashboard/total-clients-card";
@@ -71,7 +71,7 @@ export default function Home() {
   } = useTicketStore();
 
   const { fetchClients } = useClientStore();
-  const { agents: agentListFromStore, fetchAgents } = useAgentStore(); // Get agents list
+  const { agents: agentListFromStore, fetchAgents } = useAgentStore(); 
   const { user, isLoading: isAuthLoading } = useAuthStore();
 
   // Performance Card State
@@ -147,8 +147,9 @@ export default function Home() {
   };
 
   // Filtered list of agents for dropdown (e.g., only RM and MST roles)
-  const displayableAgents = agentListFromStore.filter(agent => agent.role === 'RM' || agent.role === 'MST' || agent.role === 'ADMIN');
+  const displayableAgents = agentListFromStore.filter(agent => agent.role === 'BACKEND');
 
+console.log(agentListFromStore, "Agent List from Store");
 
   return (
     <div className="flex flex-col gap-6 pb-10"> {/* Added pb-10 for spacing */}
@@ -178,7 +179,7 @@ export default function Home() {
               <SelectContent>
                 {displayableAgents.length > 0 ? (
                   displayableAgents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
+                    <SelectItem key={agent.id} value={agent.userId}>
                       {agent.name} ({agent.role})
                     </SelectItem>
                   ))
