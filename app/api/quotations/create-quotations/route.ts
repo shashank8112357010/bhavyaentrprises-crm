@@ -10,6 +10,8 @@ import path from "path";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("reaching here in create-quotation route");
+    
 
     const parsed = quotationSchema.safeParse(body);
     if (!parsed.success) {
@@ -128,7 +130,7 @@ export async function POST(req: NextRequest) {
     // Fetch client name for PDF
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { name: true },
+      
     });
     if (!client) {
       return NextResponse.json(
@@ -137,13 +139,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+console.log(client);
 
     // Generate PDF buffer
     try {
       const pdfBuffer = await generateQuotationPdf({
         quotationId: newSequentialId,
-        clientName: client.name,
-        clientId,
+        client: client,
         name,
         rateCards,
         subtotal,

@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
         return acc;
       }, {});
     }
+    
 
     // Map data to JCR format with merged RC details
     const jcrData = {

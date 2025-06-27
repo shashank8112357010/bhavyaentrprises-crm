@@ -177,10 +177,13 @@ export async function PUT(
       });
     }
 
+    console.log(updatedQuotation , "updatedQuotation");
+    
+
     const pdfBuffer = await generateQuotationPdf({
       quotationId: updatedQuotation.quoteNo, // Use quoteNo for display in PDF
-      clientName: updatedQuotation.client.name, // Client name from included relation
-      clientId: updatedQuotation.clientId,
+      client: updatedQuotation.client, // Client name from included relation
+     
       name: updatedQuotation.name,
       rateCards: fullRateCardsForPdf,
       subtotal: updatedQuotation.subtotal,

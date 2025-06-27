@@ -54,9 +54,9 @@ export async function POST(req: NextRequest) {
         clientDetails = {
           name: quotation.client.name,
           contactPerson: quotation.client.contactPerson,
-          contactEmail: quotation.client.contactEmail,
+          contactEmail: quotation.client.contactEmail || undefined,
           contactPhone: quotation.client.contactPhone,
-          gstn: quotation.client.gstn,
+          gstn: quotation.client.gstn || undefined,
         };
       } else {
         // Fallback if client is somehow not associated, though schema implies it should be
