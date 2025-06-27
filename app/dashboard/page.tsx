@@ -50,13 +50,12 @@ export default function Home() {
 
   const { fetchClients } = useClientStore();
   const { fetchAgents } = useAgentStore();
-  const { user } = useAuthStore();
+  const { user, isLoading: isAuthLoading } = useAuthStore(); // Get user and auth loading state
 
   // Check if user has admin privileges
   const isAdminOrAccounts = user?.role === "ADMIN" || user?.role === "ACCOUNTS";
 
   useEffect(() => {
-    // Fetch all dashboard data from Zustand stores instead of individual API calls
     const loadDashboardData = async () => {
       try {
         // Fetch tickets with role-based access
@@ -64,7 +63,8 @@ export default function Home() {
         await fetchDashboardCounts();
 
         // Only fetch clients and agents data if user is admin
-        if (isAdminOrAccounts) {
+        // This check is now more reliable as it runs after user is confirmed.
+        if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
           await fetchClients();
           await fetchAgents();
         }
@@ -73,13 +73,18 @@ export default function Home() {
       }
     };
 
-    loadDashboardData();
+    // Only load data if authentication is not loading and user is present
+    if (!isAuthLoading && user) {
+      loadDashboardData();
+    }
   }, [
-    fetchTickets,
+    user, // Primary dependency: run when user object is available/changes
+    isAuthLoading, // Run when auth loading state changes
+    fetchTickets, // Assuming these are stable references from Zustand
     fetchDashboardCounts,
     fetchClients,
     fetchAgents,
-    isAdminOrAccounts,
+    // isAdminOrAccounts is derived from user, so user is sufficient here
   ]);
 
   return (
