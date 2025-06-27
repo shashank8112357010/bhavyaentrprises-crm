@@ -1,5 +1,15 @@
 // lib/validations/ticketSchema.ts
 import { z } from "zod";
+
+// Manually defining TicketFeedback enum for Zod validation
+// This should ideally be aligned with Prisma's enum definition
+export const TicketFeedbackEnum = z.enum([
+  "POSITIVE",
+  "NEUTRAL",
+  "NEGATIVE",
+  "PENDING",
+]);
+
 const commentSchema = z.object({
   text: z.string(),
   ticketId: z.string().min(1),
@@ -27,6 +37,8 @@ export const createTicketSchema = z.object({
   holdReason: z.string().optional(),
   assigneeId: z.string().min(1, "Assignee ID is required"),
   clientId: z.string().min(1, "Client ID is required"),
+  feedback: TicketFeedbackEnum.optional(),
+  photosUploaded: z.boolean().optional(),
 });
 
 export const updateTicketSchema = z.object({
@@ -51,6 +63,8 @@ export const updateTicketSchema = z.object({
   holdReason: z.string().optional(),
   assigneeId: z.string().min(1, "Assignee ID is required").optional(),
   clientId: z.string().min(1, "Client ID is required").optional(),
+  feedback: TicketFeedbackEnum.optional(),
+  photosUploaded: z.boolean().optional(),
 });
 
 export const updateTicketStatusSchema = z.object({

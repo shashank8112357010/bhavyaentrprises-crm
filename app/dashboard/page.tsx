@@ -33,6 +33,28 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import TotalAgentsCard from "@/components/dashboard/total-agents-card";
 import TotalClientsCard from "@/components/dashboard/total-clients-card";
+import AgentPerformanceCard from "@/components/performance/AgentPerformanceCard"; // Import the new component
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // For admin dropdown
+
+
+// Define PerformanceData interface (can be moved to a types file later)
+interface PerformanceData {
+  region: string;
+  agent: string;
+  score: string;
+  rating: string;
+  jobs: number;
+  incentivePerJob: number;
+  bonus: number;
+  totalIncentive: number;
+  jcrPending: Array<{ ticketId: string; title?: string; Quotation?: any[]; expenses?: any[] }>;
+  poPending: Array<{ ticketId: string; title?: string; Quotation?: any[]; expenses?: any[] }>;
+  billingReadyNotSubmitted: Array<{ ticketId: string; title?: string; Quotation?: any[]; expenses?: any[]; status?: string }>;
+  pendingClientAction: Array<{ ticketId: string; title?: string; feedback?: string }>;
+  expectedExpenses: number;
+  adminNotifications: Array<any>; // Simplified for brevity, use specific type if needed
+}
+
 
 import dynamic from "next/dynamic";
 const ProfitLossChart = dynamic(() => import('./finances/ProfitLossChart'), { ssr: false });
@@ -49,65 +71,149 @@ export default function Home() {
   } = useTicketStore();
 
   const { fetchClients } = useClientStore();
-  const { fetchAgents } = useAgentStore();
-  const { user, isLoading: isAuthLoading } = useAuthStore(); // Get user and auth loading state
+  const { agents: agentListFromStore, fetchAgents } = useAgentStore(); // Get agents list
+  const { user, isLoading: isAuthLoading } = useAuthStore();
 
-  // Check if user has admin privileges
-  const isAdminOrAccounts = user?.role === "ADMIN" || user?.role === "ACCOUNTS";
+  // Performance Card State
+  const [selectedAgentIdForPerformance, setSelectedAgentIdForPerformance] = useState<string | null>(null);
+  const [agentPerformanceData, setAgentPerformanceData] = useState<PerformanceData | null>(null);
+  const [isPerformanceLoading, setIsPerformanceLoading] = useState<boolean>(false);
+  const [performanceError, setPerformanceError] = useState<string | null>(null);
+
+
+  // Check user roles
+  const isAdmin = user?.role === "ADMIN";
+  const isAgent = user?.role === "RM" || user?.role === "MST"; // Define your agent roles
+  const isAdminOrAccounts = isAdmin || user?.role === "ACCOUNTS";
+
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        // Fetch tickets with role-based access
+    const loadInitialData = async () => {
+      if (!isAuthLoading && user) {
+        // Common data for all logged-in users
         await fetchTickets();
         await fetchDashboardCounts();
 
-        // Only fetch clients and agents data if user is admin
-        // This check is now more reliable as it runs after user is confirmed.
-        if (user?.role === "ADMIN" || user?.role === "ACCOUNTS") {
+        if (isAdminOrAccounts) {
           await fetchClients();
-          await fetchAgents();
+          await fetchAgents(); // Fetches agents for the dropdown if admin
         }
-      } catch (error) {
-        console.error("Error loading dashboard data:", error);
+
+        // Setup for performance card
+        if (isAdmin && user.id) {
+          // Admin: set self as initial selected, or first from list, or null
+          // For simplicity, let's wait for user to select or set it to their own if they are also an agent.
+          // setSelectedAgentIdForPerformance(user.id); // Or null to force selection
+        } else if (isAgent && user.id) {
+          setSelectedAgentIdForPerformance(user.id); // Agent sees their own performance
+        }
       }
     };
+    loadInitialData();
+  }, [user, isAuthLoading, fetchTickets, fetchDashboardCounts, fetchClients, fetchAgents, isAdmin, isAgent, isAdminOrAccounts]);
 
-    // Only load data if authentication is not loading and user is present
-    if (!isAuthLoading && user) {
-      loadDashboardData();
+
+  // Fetch performance data when selectedAgentIdForPerformance changes
+  useEffect(() => {
+    if (selectedAgentIdForPerformance) {
+      const fetchPerformance = async () => {
+        setIsPerformanceLoading(true);
+        setPerformanceError(null);
+        try {
+          const response = await fetch(`/api/performance/agent/${selectedAgentIdForPerformance}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Failed to fetch performance: ${response.statusText}`);
+          }
+          const data: PerformanceData = await response.json();
+          setAgentPerformanceData(data);
+        } catch (err: any) {
+          setPerformanceError(err.message);
+          console.error("Error fetching agent performance on dashboard:", err);
+        } finally {
+          setIsPerformanceLoading(false);
+        }
+      };
+      fetchPerformance();
+    } else {
+      // Clear performance data if no agent is selected (e.g. admin hasn't selected one yet)
+      setAgentPerformanceData(null);
     }
-  }, [
-    user, // Primary dependency: run when user object is available/changes
-    isAuthLoading, // Run when auth loading state changes
-    fetchTickets, // Assuming these are stable references from Zustand
-    fetchDashboardCounts,
-    fetchClients,
-    fetchAgents,
-    // isAdminOrAccounts is derived from user, so user is sufficient here
-  ]);
+  }, [selectedAgentIdForPerformance]);
+
+
+  const handleAgentSelectionChange = (agentId: string) => {
+    setSelectedAgentIdForPerformance(agentId);
+  };
+
+  // Filtered list of agents for dropdown (e.g., only RM and MST roles)
+  const displayableAgents = agentListFromStore.filter(agent => agent.role === 'RM' || agent.role === 'MST' || agent.role === 'ADMIN');
+
 
   return (
-    <div className="flex flex-col gap-6 h-[100px]">
+    <div className="flex flex-col gap-6 pb-10"> {/* Added pb-10 for spacing */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             {user && user.name ? `Welcome, ${user.name}` : "Dashboard"}
           </h1>
           <p className="text-muted-foreground">
-            Monitor repairs, track progress, and manage client requests
+            Monitor repairs, track progress, and manage client requests.
           </p>
         </div>
-        {/* <div className="flex items-center gap-2">
-          {isAdminOrAccounts && (
-            <Button variant="outline">
-              <Plus className="mr-2 h-4 w-4" />
-              New Ticket
-            </Button>
-          )}
-        </div> */}
       </div>
 
+      {/* Performance Card Section */}
+      {isAdmin && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Agent Performance Overview</CardTitle>
+            <CardDescription>Select an agent to view their performance details.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Select onValueChange={handleAgentSelectionChange} defaultValue={selectedAgentIdForPerformance || undefined}>
+              <SelectTrigger className="w-full md:w-1/2 lg:w-1/3">
+                <SelectValue placeholder="Select an Agent" />
+              </SelectTrigger>
+              <SelectContent>
+                {displayableAgents.length > 0 ? (
+                  displayableAgents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.name} ({agent.role})
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-muted-foreground">No agents available to select.</div>
+                )}
+              </SelectContent>
+            </Select>
+            {selectedAgentIdForPerformance && (
+              <AgentPerformanceCard
+                performanceData={agentPerformanceData}
+                isLoading={isPerformanceLoading}
+                error={performanceError}
+              />
+            )}
+            {!selectedAgentIdForPerformance && !isPerformanceLoading && (
+                 <p className="text-muted-foreground p-4 text-center">Please select an agent to view their performance.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {isAgent && !isAdmin && selectedAgentIdForPerformance && ( // Non-admin agent sees their own card
+        <div className="mb-6">
+           <h2 className="text-2xl font-semibold mb-3">My Performance</h2>
+          <AgentPerformanceCard
+            performanceData={agentPerformanceData}
+            isLoading={isPerformanceLoading}
+            error={performanceError}
+          />
+        </div>
+      )}
+
+
+      {/* Existing Dashboard Cards */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">

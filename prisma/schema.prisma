@@ -15,6 +15,13 @@ enum Role {
   ACCOUNTS
 }
 
+enum TicketFeedback {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  PENDING
+}
+
 enum PerformanceTrend {
   UP
   DOWN
@@ -153,8 +160,11 @@ model Ticket {
   Quotation     Quotation[]
   comments      Comment[]
   approvedByAccountant   String?
-   approvalNote         String?
+  approvalNote         String?
   notifications Notification[]   @relation("TicketNotifications")
+
+  feedback       TicketFeedback? @default(PENDING)
+  photosUploaded Boolean         @default(false)
 }
 
 model Comment {
