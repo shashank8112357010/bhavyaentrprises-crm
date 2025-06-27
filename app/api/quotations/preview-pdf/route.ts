@@ -29,7 +29,6 @@ const previewPdfSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log("Preview PDF request body:", JSON.stringify(body, null, 2));
 
     const parsed = previewPdfSchema.safeParse(body);
 

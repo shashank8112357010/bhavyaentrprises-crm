@@ -15,14 +15,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    console.log(payload);
-    
-
- 
-
     const userId = payload.userId;
     const userRole = payload.role as User['role']; // Cast to the Role type
-
     const user = await prisma.user.findUnique({
       where: { id: userId as any },
       select: {

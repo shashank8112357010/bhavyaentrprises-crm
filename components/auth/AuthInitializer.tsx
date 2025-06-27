@@ -18,11 +18,10 @@ export function AuthInitializer({ children }: AuthInitializerProps) {
     if (!initialized && !user) {
       fetchCurrentUser().finally(() => {
         setInitialized(true);
-        console.log("AuthInitializer: fetchCurrentUser completed.");
       });
     } else {
       setInitialized(true) // Already initialized or user exists
-      if(user) console.log("AuthInitializer: User already in store.");
+     
     }
   }, [fetchCurrentUser, initialized, user]);
 

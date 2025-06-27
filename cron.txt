@@ -1,0 +1,4 @@
+
+
+npx tsc -p tsconfig.server.json
+pm2 start dist-server/scripts/business-insights-cron.js --name business-cron

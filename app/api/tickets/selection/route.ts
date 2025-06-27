@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.log("[TICKETS_SELECTION] Found tickets count:", tickets.length);
 
     return NextResponse.json({
       tickets,

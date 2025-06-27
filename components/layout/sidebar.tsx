@@ -40,8 +40,10 @@ export default function Sidebar({ className }: SidebarProps) {
     { name: "Kanban Board", href: "/dashboard/kanban", icon: <ListTodo className="h-5 w-5" /> },
     { name: "Clients", href: "/dashboard/clients", icon: <Users className="h-5 w-5" /> },
     { name: "Agents", href: "/dashboard/agents", icon: <UserCheck2 className="h-5 w-5" /> },
+    { name: "Finances", href: "/dashboard/finances", icon: <IndianRupee className="h-5 w-5" /> },
     { name: "Quotations", href: "/dashboard/quotations", icon: <FileText className="h-5 w-5" /> },
     { name: "Expenses", href: "/dashboard/expenses", icon: <Receipt className="h-5 w-5" /> },
+
     { name: "Rate Card", href: "/dashboard/rate-card", icon: <NotebookTabsIcon className="h-5 w-5" /> },
     { name: "Calls", href: "/dashboard/calls", icon: <Phone className="h-5 w-5" /> },
     { name: "Email Templates", href: "/dashboard/email-template", icon: <Mail className="h-5 w-5" /> },

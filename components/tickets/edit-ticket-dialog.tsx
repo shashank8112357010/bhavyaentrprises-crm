@@ -67,9 +67,6 @@ export default function EditTicketDialog({
   const { clients, fetchClients } = useClientStore();
   const { updateTicket } = useTicketStore();
   const { toast } = useToast();
-  console.log(ticket , "Edit tviekt ");
-  
-
   const [formData, setFormData] = useState<EditTicketInput>({
     id: ticket.id,
     title: ticket.title,
@@ -87,9 +84,6 @@ export default function EditTicketDialog({
   });
 
   const [isLoading, setIsLoading] = useState(false);
-
-  console.log(agents , "agents to reassign");
-  
 
   useEffect(() => {
     fetchAgents();
@@ -110,8 +104,6 @@ export default function EditTicketDialog({
   }, [agents, ticket.assignee]);
 
   const handleChange = (field: string, value: string) => {
-    console.log(`Updating field: ${field} with value: ${value}`);
-    
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -137,7 +129,6 @@ export default function EditTicketDialog({
 
     setIsLoading(true);
     try {
-      console.log("Submitting ticket update with data:", formData);
       const ticketData = {
         id: ticket.id,
         title: formData.title,

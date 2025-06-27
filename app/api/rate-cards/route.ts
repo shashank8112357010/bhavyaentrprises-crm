@@ -22,9 +22,6 @@ export async function GET(req: NextRequest) {
       : {};
 
     const total = await prisma.rateCard.count({ where });
-    console.log(total , "total");
-    
-
     const rateCards = await prisma.rateCard.findMany({
       where,
       orderBy: { uploadedAt: "asc" },

@@ -47,9 +47,6 @@ export async function PUT(
     }
 
     const updateData = validation.data;
-    console.log( updateData , "updateDataupdateDataupdateDataupdateData");
-    
-
     let newSubtotal = 0;
     let newGst = 0;
     let newGrandTotal = 0;
@@ -210,7 +207,6 @@ export async function PUT(
       if (fs.existsSync(oldPdfPath)) {
         try {
           fs.unlinkSync(oldPdfPath);
-          console.log("Deleted old PDF file:", oldPdfPath);
         } catch (deleteError) {
           console.warn("Could not delete old PDF file:", deleteError);
         }
@@ -220,7 +216,6 @@ export async function PUT(
     // newPdfFilename already defined based on sanitized quoteNo
     const filePath = path.join(folderPath, newPdfFilename);
     writeFileSync(filePath, pdfBuffer);
-    console.log("PDF saved to:", filePath);
 
     // The updatedQuotation object already has the correct pdfUrl due to the earlier dataToUpdate.pdfUrl assignment
 
@@ -247,14 +242,13 @@ export async function GET(
 ) {
   try {
 
-
     const { id } = params;
     const quotation = await prisma.quotation.findUnique({
       where: { id },
       include: {
         client: true,
-        // ticket: true, // Only include if ticket details are needed on the edit page directly
-        // Otherwise, ticketId is usually sufficient and ticket details can be fetched separately if needed.
+        // Only include relation fields here. rateCardDetails is a scalar (JSON) field and should not be included.
+        // ticket: true, // Uncomment if ticket details are needed
       },
     });
 

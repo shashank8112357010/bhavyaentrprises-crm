@@ -18,6 +18,7 @@ import {
   UploadCloud,
   Check, // Added for upload buttons
   UserPlus,
+  FileText, // Document icon for quotation upload
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,10 +92,10 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
     ticket.priority === "Critical"
       ? "bg-destructive"
       : ticket.priority === "High"
-      ? "bg-orange-500"
-      : ticket.priority === "Medium"
-      ? "bg-yellow-500"
-      : "bg-blue-500";
+        ? "bg-orange-500"
+        : ticket.priority === "Medium"
+          ? "bg-yellow-500"
+          : "bg-blue-500";
 
   const formatDateString = (date: string) => {
     return date === "N/A"
@@ -232,8 +233,20 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
         className={`relative mb-3 transition-all duration-200`}
         {...attributes}
       >
-        {/* Edit/Delete/Reassign buttons */}
-        <div className="absolute top-4 right-1 flex gap-1 z-10">
+        <div className="absolute top-2 right-1 flex gap-1 z-10">
+          {/* Quotation Document Icon */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 p-0 text-blue-500 hover:text-blue-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/dashboard/quotations/new?ticketId=${ticket.id}&clientId=${ticket.client?.id}`);
+            }}
+            title="Go to Quotations"
+          >
+            <FileText className="h-3 w-3" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -273,9 +286,10 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           )}
         </div>
 
-        <CardContent className="p-3 pb-0">
+
+        <CardContent className="p-3 pt-6">
           <Link
-            className="hover:cursor-wait"
+            className="hover:cursor-wait "
             href={`/dashboard/ticket/${ticket.id}`}
             key={ticket.id}
             legacyBehavior
@@ -284,11 +298,11 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
           </Link>
 
           <div {...listeners}>
-            <h3 className="font-medium mt-2 line-clamp-2">{ticket.title}</h3>
+            <h3 className="font-medium mt-2 line-clamp-2 capitalize">{ticket.title}</h3>
 
             <div className="flex items-center mt-2 text-sm text-muted-foreground">
               <Building className="mr-1 h-4 w-4" />
-              <span className="truncate">
+              <span className="truncate cursor-pointer hover:underline">
                 {ticket.client.name} - {ticket.branch}
               </span>
             </div>
@@ -303,14 +317,14 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                         Quote:{" "}
                         {ticket?.quotations && ticket?.quotations?.length > 0
                           ? ticket?.quotations
-                              .map((i) => i.quoteNo || i.name)
-                              .join(", ")
-                          : "N/A"}
+                            .map((i) => i.quoteNo || i.name)
+                            .join(", ")
+                          : "Pending"}
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Amount: ₹{ticket.workStage?.quoteAmount || "N/A"}</p>
-                      <p>Taxable: ₹{ticket.workStage?.quoteTaxable || "N/A"}</p>
+                      <p>Amount: ₹{ticket.workStage?.quoteAmount || "0"}</p>
+                      <p>Taxable: ₹{ticket.workStage?.quoteTaxable || "0"}</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -321,7 +335,7 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                     <span>
                       {formatDateString(
                         ticket.workStage?.dateReceived ||
-                          new Date().toISOString()
+                        new Date().toISOString()
                       )}
                     </span>
                   </div>
@@ -371,22 +385,20 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
             <div className="flex flex-wrap gap-2 mt-3">
               <Badge
                 variant="outline"
-                className={`text-xs ${
-                  ticket?.workStage?.poStatus
+                className={`text-xs ${ticket?.workStage?.poStatus
                     ? "bg-green-500 text-white"
                     : "bg-yellow-400 text-black"
-                }`}
+                  }`}
               >
                 PO: {ticket?.workStage?.poStatus ? "Submitted" : "Pending"}
               </Badge>
 
               <Badge
                 variant="outline"
-                className={`text-xs ${
-                  ticket.workStage?.jcrStatus
+                className={`text-xs ${ticket.workStage?.jcrStatus
                     ? "bg-green-500 text-white"
                     : "bg-yellow-400 text-black"
-                }`}
+                  }`}
               >
                 JCR: {ticket.workStage?.jcrStatus ? "Done" : "Pending"}
               </Badge>
@@ -420,33 +432,32 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
                   (sum, e) => sum + (Number(e.amount) || 0),
                   0
                 ) !==
-                  ticket?.quotations?.reduce(
-                    (total: any, exp: any) =>
-                      total + (Number(exp.grandTotal) || 0),
-                    0
-                  ) && (
+                ticket?.quotations?.reduce(
+                  (total: any, exp: any) =>
+                    total + (Number(exp.grandTotal) || 0),
+                  0
+                ) && (
                   <Badge
                     variant="secondary"
-                    className={`text-xs ${
-                      ticket.expenses &&
-                      ticket.expenses.reduce(
-                        (sum, e) => sum + (Number(e.amount) || 0),
-                        0
-                      ) <
+                    className={`text-xs ${ticket.expenses &&
+                        ticket.expenses.reduce(
+                          (sum, e) => sum + (Number(e.amount) || 0),
+                          0
+                        ) <
                         ticket?.quotations?.reduce(
                           (total: any, exp: any) =>
                             total + (Number(exp.grandTotal) || 0),
                           0
                         )
-                        ? "bg-green-500 text-white"
+                        ? "bg-orange-500 text-white"
                         : "bg-red-400 text-white"
-                    }`}
+                      }`}
                   >
                     {ticket.expenses &&
-                    ticket.expenses.reduce(
-                      (sum, e) => sum + (Number(e.amount) || 0),
-                      0
-                    ) <
+                      ticket.expenses.reduce(
+                        (sum, e) => sum + (Number(e.amount) || 0),
+                        0
+                      ) <
                       ticket?.quotations?.reduce(
                         (total: any, exp: any) =>
                           total + (Number(exp.grandTotal) || 0),
@@ -484,8 +495,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               {isUploadingJcr
                 ? "Uploading JCR..."
                 : ticket.workStage?.jcrFilePath
-                ? "JCR Uploaded"
-                : "Upload JCR"}
+                  ? "JCR Uploaded"
+                  : "Upload JCR"}
             </Button>
             <Button
               variant="outline"
@@ -507,8 +518,8 @@ export function SortableTicket({ ticket }: SortableTicketProps) {
               {isUploadingPo
                 ? "Uploading PO..."
                 : ticket.workStage?.poFilePath
-                ? "PO Uploaded"
-                : "Upload PO"}
+                  ? "PO Uploaded"
+                  : "Upload PO"}
             </Button>
           </div>
         </CardFooter>

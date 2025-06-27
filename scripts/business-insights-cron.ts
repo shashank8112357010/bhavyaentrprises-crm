@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const ExcelJS = require('exceljs');
 const { sendMail } = require('../lib/mailer');
 const fs = require('fs');
+const cron = require('node-cron');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
@@ -302,7 +303,11 @@ async function main() {
     const summaryHtml = `<h3>Business Insights Summary</h3><ul><li><b>Total Loss:</b> ₹${totalLoss}</li><li><b>Spend Today:</b> ₹${spendToday}</li></ul><b>Breakdown by Ticket:</b><ul>${ticketBreakdown.map(l => `<li>${l}</li>`).join('')}</ul>`;
 
     const mailOptions = {
+<<<<<<< HEAD
       to: 'girish@bhavyaenterprises.com',
+=======
+      to: 'girish@bhavyaentrprises.com',
+>>>>>>> bbf780d014edbcfa5794ba2e9c9c2f813b27b0b6
       subject: `Business Insights - ${new Date().toLocaleDateString('en-IN')}`,
       text: `Good Morning\n\n${summaryText}\n\nPlease find attached the latest business insight report.`,
       html: `<p>Good Morning</p>${summaryHtml}<p>Please find attached the latest business insight report.</p>`,
@@ -325,7 +330,7 @@ async function main() {
   }
 }
 
-const cron = require('node-cron');
+
 
 // Schedule for 6 AM IST every day
 cron.schedule('0 6 * * *', async () => {

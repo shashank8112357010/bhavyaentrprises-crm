@@ -10,12 +10,9 @@ const ITEMS_PER_PAGE = 10;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("Received client data:", body);
-
     const parsed = createClientSchema.safeParse(body);
 
     if (!parsed.success) {
-      console.error("Validation error:", parsed.error);
       return NextResponse.json(
         {
           error: "Validation failed",
@@ -46,7 +43,6 @@ export async function POST(req: Request) {
       }
 
       customDisplayId = `CLIENT-${clientNumber.toString().padStart(4, "0")}`;
-      console.log("Generated client display ID:", customDisplayId);
     } catch (idError) {
       console.error("Error generating client display ID:", idError);
       // Don't fail the entire request, but log the error
@@ -75,13 +71,11 @@ export async function POST(req: Request) {
           .toUpperCase(),
     };
 
-    console.log("Creating client with data:", clientCreateData);
 
     const client = await prisma.client.create({
       data: clientCreateData,
     });
 
-    console.log("Client created successfully:", client);
     return NextResponse.json(client, { status: 201 });
   } catch (error: any) {
     console.error("Client creation error:", error);

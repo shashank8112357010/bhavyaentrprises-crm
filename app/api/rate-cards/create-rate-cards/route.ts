@@ -9,7 +9,6 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File;
-  console.log(file);
 
   if (!file)
     return NextResponse.json(
@@ -19,7 +18,6 @@ export async function POST(req: NextRequest) {
 
   const text = await file.text();
   const records = parse(text, { columns: true, skip_empty_lines: true });
-  console.log(records);
 
   let successCount = 0;
   let duplicateCount = 0;
@@ -41,7 +39,6 @@ export async function POST(req: NextRequest) {
 
       
       if (!parsed.success) {
-        console.log("Validation failed:", parsed.error);
         duplicateCount++;
         continue;
       }
@@ -57,7 +54,6 @@ export async function POST(req: NextRequest) {
       });
 
       if (exists) {
-        console.log("Duplicate found:", exists);
         duplicateCount++;
         continue;
       }
@@ -74,7 +70,6 @@ export async function POST(req: NextRequest) {
       createdEntries.push(newEntry);
       successCount++;
     } catch (error) {
-      console.log("Error creating entry:", error);
       duplicateCount++;
     }
   }

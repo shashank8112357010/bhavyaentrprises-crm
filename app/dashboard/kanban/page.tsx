@@ -362,9 +362,6 @@ export default function KanbanPage() {
           .filter((ticket: Ticket) => {
             const clientId = ticket.client?.id?.toString() ?? "";
             const assigneeId = ticket.assignee?.id?.toString() ?? "";
-            console.log(clientId, "clientId", clientFilter);
-
-
             const matchesSearch =
               ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
               ticket.id.toLowerCase().includes(searchQuery.toLowerCase());

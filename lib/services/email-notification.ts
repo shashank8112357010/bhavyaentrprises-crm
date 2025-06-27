@@ -113,7 +113,6 @@ Bhavya Enterprises CRM
       text,
       html,
     });
-    console.log(`Ticket assignment email sent to ${assigneeEmail}`);
   } catch (error) {
     console.error(
       `Failed to send assignment email to ${assigneeEmail}:`,
@@ -206,7 +205,6 @@ Bhavya Enterprises CRM
       text,
       html,
     });
-    console.log(`Status change email sent to ${assigneeEmail}`);
   } catch (error) {
     console.error(
       `Failed to send status change email to ${assigneeEmail}:`,

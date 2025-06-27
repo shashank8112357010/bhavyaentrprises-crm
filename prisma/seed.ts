@@ -81,7 +81,6 @@ async function seedUsers() {
       });
     }
 
-    console.log('✅ Users seeded successfully');
   } catch (error) {
     console.error('Error seeding users:', error);
   } finally {

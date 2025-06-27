@@ -9,13 +9,10 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("Login API called");
     const body = await req.json();
     const { email, password } = body;
-    console.log("Login attempt for email:", email);
 
     if (!email || !password) {
-      console.log("Missing email or password");
       return NextResponse.json(
         { message: "Email and password are required" },
         { status: 400 },
@@ -34,24 +31,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      console.log("User not found for email:", email);
       return NextResponse.json(
         { message: "Invalid credentials" },
         { status: 401 },
       );
     }
 
-    console.log("User found:", {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      hasPassword: !!user.password,
-    });
+
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.log("Invalid password for user:", email);
       return NextResponse.json(
         { message: "Invalid credentials" },
         { status: 401 },
@@ -81,7 +70,6 @@ export async function POST(req: NextRequest) {
         .setExpirationTime("1d") // 1 day
         .sign(JWT_SECRET);
 
-      console.log("JWT created successfully, length:", token.length);
     } catch (jwtError) {
       console.error("JWT creation failed:", jwtError);
       return NextResponse.json(
@@ -89,7 +77,6 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
-
     const userResponse = {
       userId: user.id,
       email: user.email,
@@ -97,14 +84,6 @@ export async function POST(req: NextRequest) {
       name: user.name,
       initials,
     };
-
-    console.log(
-      "Login successful for user:",
-      email,
-      "User data:",
-      userResponse,
-    );
-
     // Validate that we have all required data before sending response
     if (!token) {
       console.error("Token generation failed");
@@ -128,11 +107,6 @@ export async function POST(req: NextRequest) {
       token,
       user: userResponse,
     };
-
-    console.log("Sending response:", responseData);
-    console.log("Response keys:", Object.keys(responseData));
-    console.log("User keys:", Object.keys(responseData.user));
-    console.log("Token length:", token.length);
 
     const response = NextResponse.json(responseData);
 
