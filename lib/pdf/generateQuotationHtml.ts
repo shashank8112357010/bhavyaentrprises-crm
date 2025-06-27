@@ -57,7 +57,7 @@ async function getBrowserInstance(): Promise<Browser> {
   }
 
   if (!browserInstance) {
-    console.log("Launching new browser instance for PDF generation...");
+   
     try {
       browserInstance = await puppeteer.launch({
         headless: true,
@@ -201,7 +201,7 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
       },
     });
 
-    return pdfBuffer; // page.pdf already returns a Buffer
+    return Buffer.from(pdfBuffer); // Convert Uint8Array to Buffer
 
   } catch (error: any) {
     console.error("Error in PDF generation:", error.message, error.stack);

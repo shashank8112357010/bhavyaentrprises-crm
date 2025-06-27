@@ -73,7 +73,7 @@ export async function PUT(
     // If rateCardDetails are being updated, recalculate totals
     if (updateData.rateCardDetails && updateData.rateCardDetails.length > 0) {
       const rateCardIds = updateData.rateCardDetails.map(item => item.rateCardId);
-      const uniqueRateCardIds = [...new Set(rateCardIds)];
+      const uniqueRateCardIds = Array.from(new Set(rateCardIds));
 
       const fetchedRateCards = await prisma.rateCard.findMany({
         where: { id: { in: uniqueRateCardIds } },
