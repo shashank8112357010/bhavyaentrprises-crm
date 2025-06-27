@@ -15,10 +15,6 @@ export async function PATCH(
 ) {
   try {
     const body = await req.json();
-
-    console.log(body , "Request body for ticket update");
-    
-
     // Handle status updates
     if (body.status) {
       const validatedData = updateTicketStatusSchema.parse(body);
@@ -88,7 +84,6 @@ export async function PATCH(
 
     // Handle non-status updates
     const validatedData = updateTicketSchema.safeParse(body);
-    console.log(validatedData , "validatedData");
     
     if (validatedData.error) {
       const fieldErrors = validatedData.error.flatten().fieldErrors;
@@ -108,14 +103,12 @@ export async function PATCH(
       validatedData.data.assigneeId &&
       validatedData.data.assigneeId.trim() !== ""
     ) {
-      console.log( validatedData.data , "reaching here to validate assigneeId");
       
       const assigneeExists = await prisma.user.findUnique({
         where: { id: validatedData.data.assigneeId },
         select: { id: true, role: true },
       });
 
-      console.log(assigneeExists , "Assignee exists check");
       
       if (!assigneeExists) {
         return NextResponse.json(
@@ -306,7 +299,6 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  console.log(params);
 
   try {
     const ticket = await prisma.ticket.findUnique({
@@ -357,10 +349,6 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-
-    // Log the ID to ensure it's correctly captured
-    console.log(`Fetching ticket with ID: ${id}`);
-
     // Fetch the ticket from the database
     const ticket = await prisma.ticket.findUnique({
       where: { id },
@@ -402,7 +390,6 @@ export async function GET(
     });
 
     if (!ticket) {
-      console.log(`Ticket with ID ${id} not found`);
       return NextResponse.json(
         { message: "Ticket not found" },
         { status: 404 },

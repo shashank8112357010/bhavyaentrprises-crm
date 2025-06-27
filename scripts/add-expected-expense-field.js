@@ -1,10 +1,9 @@
-const { PrismaClient } = require("@prisma/client");
 
-const prisma = new PrismaClient();
+
+import { prisma } from "@/lib/prisma";
 
 async function addExpectedExpenseField() {
   try {
-    console.log("🚀 Adding expectedExpense field to existing quotations...");
     console.log("");
 
     // First, let's check how many quotations exist without expectedExpense

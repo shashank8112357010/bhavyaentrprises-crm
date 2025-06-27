@@ -150,7 +150,6 @@ export async function POST(req: NextRequest) {
       return ticket;
     });
 
-    console.log(`Ticket creation (core): ${Date.now() - startTime}ms`);
 
     // Format the ticket response to match the expected structure
     const formattedTicket = {
@@ -228,7 +227,6 @@ export async function POST(req: NextRequest) {
             result.title,
             result.ticketId,
           );
-          console.log("Notification created successfully");
         } catch (notificationError) {
           console.error(
             "Failed to create assignment notification:",
@@ -253,7 +251,6 @@ export async function POST(req: NextRequest) {
               validatedData.priority,
               validatedData.dueDate,
             );
-            console.log("Assignment email sent successfully");
           }
         } catch (emailError) {
           console.error("Failed to send assignment email:", emailError);
@@ -261,13 +258,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    console.log(
-      `Total ticket creation response time: ${Date.now() - startTime}ms`,
-    );
+
     return response;
   } catch (error: any) {
     console.error("Ticket creation error:", error);
-    console.log(`Failed ticket creation time: ${Date.now() - startTime}ms`);
 
     return NextResponse.json(
       { message: "Failed to create ticket", error: error.message },

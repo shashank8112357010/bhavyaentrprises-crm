@@ -17,6 +17,7 @@ export interface Assignee {
 }
 
 export interface WorkStage {
+  id: string;
   stateName: string;
   adminName: string;
   clientName: string;
@@ -75,6 +76,7 @@ export interface Ticket {
   ticketId: string;
   branch: string;
   priority: string;
+  approvedByAccountant : string ;
   assignee: Assignee;
   workStage?: WorkStage | null;
   due?: number;

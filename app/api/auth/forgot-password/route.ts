@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     // If user not found, return a success message to prevent email enumeration
     // It's important not to reveal whether an email address is registered or not
     if (!user) {
-      console.log(`Forgot password attempt for non-existent email: ${email}`);
       return NextResponse.json({ message: 'If your email is registered, you will receive a password reset link.' }, { status: 200 });
     }
 

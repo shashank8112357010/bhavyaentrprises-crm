@@ -82,7 +82,6 @@ export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
 
       setOpen(false);
       reset();
-      console.log("Upload successful", response);
     } catch (err: any) {
       const errorMessage = err.message || "Failed to upload file";
       toast({

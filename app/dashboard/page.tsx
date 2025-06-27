@@ -34,6 +34,9 @@ import { useAuthStore } from "@/store/authStore";
 import TotalAgentsCard from "@/components/dashboard/total-agents-card";
 import TotalClientsCard from "@/components/dashboard/total-clients-card";
 
+import dynamic from "next/dynamic";
+const ProfitLossChart = dynamic(() => import('./finances/ProfitLossChart'), { ssr: false });
+
 export default function Home() {
   const {
     fetchTickets,
@@ -110,7 +113,7 @@ export default function Home() {
               {isLoadingDashboardCounts ? (
                 <span>
                   <Spinner size="5" />
-                  </span>
+                </span>
               ) : (
                 openTicketsCount !== undefined && openTicketsCount !== null ? openTicketsCount : <span className="text-muted-foreground">N/A</span>
               )}
@@ -133,10 +136,10 @@ export default function Home() {
             </CardDescription>
             <CardTitle className="text-2xl">
               {isLoadingDashboardCounts ? (
-  <Spinner size="5" />
-) : (
-  scheduledTodayCount !== undefined && scheduledTodayCount !== null ? scheduledTodayCount : <span className="text-muted-foreground">N/A</span>
-)}
+                <Spinner size="5" />
+              ) : (
+                scheduledTodayCount !== undefined && scheduledTodayCount !== null ? scheduledTodayCount : <span className="text-muted-foreground">N/A</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -160,10 +163,10 @@ export default function Home() {
             </CardDescription>
             <CardTitle className="text-2xl">
               {isLoadingDashboardCounts ? (
-  <Spinner size="5" />
-) : (
-  clientUpdatesNeededCount !== undefined && clientUpdatesNeededCount !== null ? clientUpdatesNeededCount : <span className="text-muted-foreground">N/A</span>
-)}
+                <Spinner size="5" />
+              ) : (
+                clientUpdatesNeededCount !== undefined && clientUpdatesNeededCount !== null ? clientUpdatesNeededCount : <span className="text-muted-foreground">N/A</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -187,10 +190,10 @@ export default function Home() {
             </CardDescription>
             <CardTitle className="text-2xl">
               {isLoadingDashboardCounts ? (
-  <Spinner size="5" />
-) : (
-  completedThisWeekCount !== undefined && completedThisWeekCount !== null ? completedThisWeekCount : <span className="text-muted-foreground">N/A</span>
-)}
+                <Spinner size="5" />
+              ) : (
+                completedThisWeekCount !== undefined && completedThisWeekCount !== null ? completedThisWeekCount : <span className="text-muted-foreground">N/A</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -238,6 +241,9 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
+
+
+      <ProfitLossChart />
 
       <Tabs defaultValue="metrics" className="w-full">
         <TabsList>
@@ -334,7 +340,7 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Add top clients component here if needed */}
+
                 <p className="text-muted-foreground">
                   Top clients data coming soon.
                 </p>

@@ -84,6 +84,44 @@ interface PaginatedQuotationsResponse {
 }
 
 export default function QuotationsPage() {
+  const [downloadingJcrId, setDownloadingJcrId] = useState<string | null>(null);
+
+  const handleDownloadJcrPdf = async (quotationId: string, quoteNo: string) => {
+    setDownloadingJcrId(quotationId);
+    try {
+      const response = await fetch("/api/quotations/jcr-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quotationId }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to generate JCR PDF: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `JCR-${quoteNo.replace(/\//g, "-")}.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Success", description: "JCR PDF downloaded successfully!" });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to export JCR PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingJcrId(null);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0); // 0-based for react-paginate
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -352,6 +390,13 @@ Bhavya Enterprises Team`;
                               </DropdownMenuItem>
                             </>
                           )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDownloadJcrPdf(q.id, q.quoteNo)}
+                          >
+                            <Download className="mr-2 h-4 w-4" /> Download JCR
+                            PDF
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <Link
                             href={`/dashboard/quotations/${q.id}/edit`}

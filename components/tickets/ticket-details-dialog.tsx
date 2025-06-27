@@ -57,6 +57,7 @@ type Ticket = {
   description: string;
   comments: number;
   holdReason?: string;
+  approvedByAccountant : string ;
 };
 
 interface TicketDetailsDialogProps {

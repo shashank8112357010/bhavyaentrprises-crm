@@ -9,6 +9,7 @@ export const navRoleAccess: Record<Role, string[]> = {
     "Kanban Board",
     "Clients",
     "Agents",
+    "Finances",
     "Quotations",
     "Expenses",
     "Rate Card",

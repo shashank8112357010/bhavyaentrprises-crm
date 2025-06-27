@@ -6,6 +6,7 @@ import {
   updateTicket as updateTicketService,
   getTicketById,
 } from "../lib/services/ticket";
+import type { TicketsState, WorkStage } from '../components/kanban/types';
 
 // Core types
 export type Status =
@@ -25,24 +26,6 @@ export interface Assignee {
   role?: string;
 }
 
-export interface WorkStage {
-  stateName: string;
-  adminName: string;
-  clientName: string;
-  siteName: string;
-  quoteNo: string;
-  dateReceived: string;
-  quoteTaxable: number;
-  quoteAmount: number;
-  workStatus: string;
-  approval: string;
-  poStatus: boolean;
-  poNumber: string;
-  jcrStatus: boolean;
-  agentName: string;
-  jcrFilePath?: string;
-  poFilePath?: string;
-}
 
 export interface Expense {
   id: string;
@@ -73,7 +56,7 @@ export interface Ticket {
   approvedByAccountant : string ;
   priority: string;
   assignee: Assignee;
-  workStage?: WorkStage;
+  workStage?: WorkStage | null;
   expenses: Expense[];
   due?: number;
   paid?: boolean;
@@ -86,6 +69,7 @@ export interface Ticket {
   comments: Comment[];
   holdReason?: string;
   status: Status;
+
   Quotation: QuotationTicketStore[]; // Add required property for compatibility
 }
 
@@ -102,14 +86,7 @@ export interface QuotationTicketStore {
   grandTotal: number;
 }
 
-export interface TicketsState {
-  new: Ticket[];
-  inProgress: Ticket[];
-  onHold: Ticket[];
-  completed: Ticket[];
-  billing_pending: Ticket[];
-  billing_completed: Ticket[];
-}
+
 
 export interface CreateTicketInput {
   title: string;

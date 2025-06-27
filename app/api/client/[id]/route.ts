@@ -63,7 +63,6 @@ export async function PATCH(
 
 
     const body = await req.json();
-    console.log("Received update data:", body);
 
     const parsed = updateClientSchema.safeParse(body);
 
@@ -104,7 +103,6 @@ export async function PATCH(
       data: updateData,
     });
 
-    console.log("Client updated successfully:", updatedClient);
     return NextResponse.json(updatedClient);
   } catch (error: any) {
     console.error("Client update error:", error);

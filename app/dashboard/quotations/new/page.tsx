@@ -203,14 +203,12 @@ export default function NewQuotationPage() {
 
   // Fetch tickets for selection
   const fetchTicketsForSelection = useCallback(async () => {
-    console.log("Fetching tickets for selection...");
     setIsLoadingTickets(true);
     try {
       // Try using the service function first
       let tickets;
       try {
         tickets = await getTicketsForSelection();
-        console.log("Tickets fetched via service:", tickets);
       } catch (serviceError) {
         console.warn(
           "Service method failed, trying direct fetch:",
@@ -229,7 +227,6 @@ export default function NewQuotationPage() {
 
         const data = await response.json();
         tickets = data.tickets || data;
-        console.log("Tickets fetched via direct fetch:", tickets);
       }
 
       setTicketsForSelection(tickets || []);
@@ -239,8 +236,6 @@ export default function NewQuotationPage() {
           title: "No Tickets",
           description: "No tickets available for quotation creation.",
         });
-      } else {
-        console.log(`Successfully loaded ${tickets.length} tickets`);
       }
     } catch (error: any) {
       console.error("Error fetching tickets:", error);
@@ -263,8 +258,6 @@ export default function NewQuotationPage() {
           limit: 3,
           searchQuery,
         });
-        console.log(response);
-
         setRateCards(response.data || []);
       } catch (error) {
         console.error("Error fetching rate cards:", error);
@@ -434,10 +427,7 @@ export default function NewQuotationPage() {
         })),
       };
 
-      console.log(
-        "Sending quotation data:",
-        JSON.stringify(quotationData, null, 2)
-      );
+
 
       await createQuotation(quotationData);
       toast({
@@ -519,11 +509,6 @@ export default function NewQuotationPage() {
           totalValue: item.totalValue,
         })),
       };
-
-      console.log(
-        "Sending PDF export data:",
-        JSON.stringify(quotationData, null, 2)
-      );
 
       const response = await fetch("/api/quotations/preview-pdf", {
         method: "POST",

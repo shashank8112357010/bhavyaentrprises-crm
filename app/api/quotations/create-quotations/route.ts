@@ -47,19 +47,13 @@ export async function POST(req: NextRequest) {
       (detail: { rateCardId: string }) => detail.rateCardId
     );
 
-    console.log("Looking for rate cards with IDs:", rateCardIds);
 
     // Fetch rate cards to get full details
     const rateCards = await prisma.rateCard.findMany({
       where: { id: { in: rateCardIds } },
     });
 
-    console.log(
-      "Found rate cards:",
-      rateCards.length,
-      "out of",
-      rateCardIds.length
-    );
+
 
     if (rateCards.length !== rateCardIds.length) {
       const foundIds = rateCards.map((rc) => rc.id);
@@ -86,7 +80,6 @@ export async function POST(req: NextRequest) {
     const gst = subtotal * 0.18; // Assuming GST is 18%
     const grandTotal = subtotal + gst;
 
-    console.log("Calculated totals:", { subtotal, gst, grandTotal });
 
     // Generate new displayId (e.g., BE/January/0001)
     const currentDate = new Date();
@@ -131,7 +124,6 @@ export async function POST(req: NextRequest) {
     // Keep the original quoteNo logic for backward compatibility
     const newSequentialId = newDisplayId;
 
-    console.log("Generated new display ID:", newDisplayId);
 
     // Fetch client name for PDF
     const client = await prisma.client.findUnique({
@@ -145,7 +137,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("Found client:", client.name);
 
     // Generate PDF buffer
     try {
@@ -164,7 +155,6 @@ export async function POST(req: NextRequest) {
         validUntil: parsed.data.validUntil,
       });
 
-      console.log("PDF generated successfully");
 
       // Save PDF to disk
       const folderPath = path.join(process.cwd(), "public", "quotations");
@@ -175,7 +165,6 @@ export async function POST(req: NextRequest) {
       const filePath = path.join(folderPath, filename);
       writeFileSync(filePath, pdfBuffer);
 
-      console.log("PDF saved to:", filePath);
 
       // Save in DB
       const quotation = await prisma.quotation.create({
@@ -195,7 +184,6 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      console.log("Quotation saved to database with ID:", quotation.id);
 
       // Update ticket work stage if ticketId is provided
       if (ticketId) {
@@ -215,7 +203,6 @@ export async function POST(req: NextRequest) {
                 quoteAmount: grandTotal,
               },
             });
-            console.log("Updated existing work stage");
           } else {
             // Create new workStage and link to ticket
             const newWorkStage = await prisma.workStage.create({
@@ -243,7 +230,6 @@ export async function POST(req: NextRequest) {
               where: { id: ticketId },
               data: { workStageId: newWorkStage.id },
             });
-            console.log("Created new work stage and linked to ticket");
           }
         } catch (workStageError) {
           console.error("Error updating work stage:", workStageError);
