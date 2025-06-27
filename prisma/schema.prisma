@@ -86,6 +86,8 @@ model Quotation {
   salesType       String
   validUntil      DateTime?
   expectedExpense Float?    @default(0)
+
+  @@index([createdAt])
 }
 
 

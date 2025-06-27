@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer";
+import puppeteer, { Browser } from "puppeteer"; // Import Browser type
 import ejs from "ejs";
 import path from "path";
 
@@ -25,19 +25,67 @@ interface ClientData { // Define a type for the client object
 
 interface QuotationPdfParams {
   quotationId: string;
-  client: ClientData; // Use the ClientData type
-  name: string; // This seems to be quotation name, clientName is in client object
+  client: ClientData | null; // Allow client to be null
+  name: string;
   rateCards: RateCardEntry[];
   subtotal: number;
-  // clientName: string; // Removed, as it's part of client object
   gst: number;
   grandTotal: number;
   rateCardDetails: RateCardDetail[];
   expectedExpense?: number;
   quoteNo?: string;
   validUntil?: string;
-  validUpto?: string;
+  // validUpto?: string; // This seemed redundant with validUntil
 }
+
+// Global variable to cache the browser instance
+let browserInstance: Browser | null = null;
+
+async function getBrowserInstance(): Promise<Browser> {
+  if (browserInstance && browserInstance.isConnected()) {
+    try {
+      await browserInstance.version(); // Quick check if browser is still responsive
+    } catch (e) {
+      console.warn("Cached browser instance seems unresponsive, attempting to close and relaunch.", e);
+      try {
+        if (browserInstance) await browserInstance.close();
+      } catch (closeError) {
+        console.error("Error closing unresponsive browser instance:", closeError);
+      }
+      browserInstance = null; // Force relaunch
+    }
+  }
+
+  if (!browserInstance) {
+    console.log("Launching new browser instance for PDF generation...");
+    try {
+      browserInstance = await puppeteer.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage", // Often recommended for serverless/containerized environments
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--single-process", // May reduce memory usage in some environments, test impact
+          "--disable-gpu"
+        ],
+      });
+      browserInstance.on('disconnected', () => {
+        console.log('Browser instance disconnected event received.');
+        browserInstance = null; // Clear instance on disconnect
+      });
+      console.log("New browser instance launched successfully.");
+    } catch (launchError) {
+        console.error("Failed to launch browser:", launchError);
+        browserInstance = null; // Ensure no broken instance is cached
+        throw launchError;
+    }
+  }
+  return browserInstance;
+}
+
 
 // Converts number to words
 function numberToWords(num: number): string {
@@ -56,74 +104,87 @@ function numberToWords(num: number): string {
       n %= 10;
     } else if (n >= 10) {
       result += teens[n - 10] + " ";
-      return result;
+      return result.trim(); // Return early for teens
     }
     if (n > 0) {
       result += ones[n] + " ";
     }
-    return result;
+    return result.trim();
   }
 
   if (num === 0) return "Zero";
+  let numStr = "";
   const crores = Math.floor(num / 10000000);
-  const lakhs = Math.floor((num % 10000000) / 100000);
-  const thousands = Math.floor((num % 100000) / 1000);
-  const hundreds = num % 1000;
+  num %= 10000000;
+  const lakhs = Math.floor(num / 100000);
+  num %= 100000;
+  const thousands = Math.floor(num / 1000);
+  num %= 1000;
+  const hundreds = num;
 
-  let result = "";
-  if (crores > 0) result += convertHundreds(crores) + "Crore ";
-  if (lakhs > 0) result += convertHundreds(lakhs) + "Lakh ";
-  if (thousands > 0) result += convertHundreds(thousands) + "Thousand ";
-  if (hundreds > 0) result += convertHundreds(hundreds);
-  return result.trim();
+  if (crores > 0) numStr += convertHundreds(crores) + " Crore ";
+  if (lakhs > 0) numStr += convertHundreds(lakhs) + " Lakh ";
+  if (thousands > 0) numStr += convertHundreds(thousands) + " Thousand ";
+  if (hundreds > 0) numStr += convertHundreds(hundreds);
+
+  return numStr.trim();
 }
 
 function amountToWords(amount: number): string {
+  if (amount == null || isNaN(amount)) return "Invalid Amount";
   const rupees = Math.floor(amount);
   const paise = Math.round((amount - rupees) * 100);
   let result = numberToWords(rupees) + " Rupees";
-  if (paise > 0) result += " and " + numberToWords(paise) + " Paise";
+  if (paise > 0) {
+    result += " and " + numberToWords(paise) + " Paise";
+  }
   return result + " Only";
 }
 
 export async function generateQuotationPdf(params: QuotationPdfParams): Promise<Buffer> {
+  let page;
   try {
     const templatePath = path.join(process.cwd(), "lib", "pdf", "templates", "quotation.ejs");
     const logoPath = `file://${path.join(process.cwd(), "public", "logo.png")}`;
     const upiQrPath = `file://${path.join(process.cwd(), "public", "upi.png")}`;
 
     const today = new Date();
-    const oneWeekLater = new Date(today.getTime() + 7 * 86400000); // 7 days from now
+    let validUntilDateStr = new Date(today.getTime() + 7 * 86400000).toLocaleDateString("en-GB"); // Default: one week
+    if (params.validUntil) {
+        const validUntilDate = new Date(params.validUntil);
+        if (!isNaN(validUntilDate.getTime())) {
+            validUntilDateStr = validUntilDate.toLocaleDateString("en-GB");
+        }
+    }
 
     const templateData = {
-      ...params, // Spread existing params first
-      client: params.client, // Pass the full client object
-      clientName: params.client.name, // Keep clientName for direct use in template if needed
+      ...params,
+      client: params.client,
+      clientName: params.client?.name || "N/A",
       quotationId: params.quotationId || params.quoteNo || "PREVIEW",
       quoteNo: params.quoteNo || params.quotationId || "PREVIEW",
       date: today.toLocaleDateString("en-GB"),
-      validUntil: oneWeekLater.toLocaleDateString("en-GB"),
+      validUntil: validUntilDateStr,
       amountInWords: amountToWords(params.grandTotal || 0),
       rateCards: params.rateCards || [],
-      name: params.name, // This is the quotation name
+      name: params.name,
       rateCardDetails: params.rateCardDetails || [],
       logoPath,
       upiQrPath,
     };
 
     const html = await ejs.renderFile(templatePath, templateData);
+    const browser = await getBrowserInstance();
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    page = await browser.newPage();
+    await page.setCacheEnabled(false); // Try disabling cache for the page
 
-    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 }); // Added timeout
 
-    // Set page title for the PDF metadata
-    await page.setContent(html, { waitUntil: "networkidle0" });
     await page.evaluate((title) => {
-      document.title = title;
+      if (document && document.title != null) { // Check if document and document.title exist
+         document.title = title;
+      }
     }, templateData.quotationId);
 
     const pdfBuffer = await page.pdf({
@@ -131,6 +192,7 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: false,
+      timeout: 30000, // Added timeout
       margin: {
         top: "20px",
         bottom: "20px",
@@ -139,10 +201,32 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
       },
     });
 
-    await browser.close();
-    return Buffer.from(pdfBuffer);
-  } catch (error) {
-    console.error("Error in PDF generation:", error);
-    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    return pdfBuffer; // page.pdf already returns a Buffer
+
+  } catch (error: any) {
+    console.error("Error in PDF generation:", error.message, error.stack);
+    // If error is related to browser launch/connection, try to close and nullify browserInstance
+    if (error.message.includes("Protocol error") ||
+        error.message.includes("Target closed") ||
+        error.message.includes("Browser.newPage") ||
+        error.message.includes("puppeteer.launch")) {
+        if (browserInstance) {
+            console.log("Attempting to close potentially problematic browser instance due to error.");
+            try { await browserInstance.close(); } catch (closeErr: any) {
+              console.error("Error closing browser instance during error handling:", closeErr.message);
+            }
+            browserInstance = null;
+        }
+    }
+    throw new Error(`PDF generation failed: ${error.message}`);
+  } finally {
+    if (page) {
+      try {
+        await page.close();
+      } catch (pageCloseError: any) {
+        console.error("Error closing page:", pageCloseError.message);
+      }
+    }
+    // DO NOT call browser.close() here if we are caching the instance
   }
 }
