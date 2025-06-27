@@ -100,7 +100,10 @@ export async function POST(req: NextRequest) {
     const templatePath = join(process.cwd(), "lib/pdf/templates/jcr.ejs");
     const html = await renderFile(templatePath, { jcr: data });
 
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
