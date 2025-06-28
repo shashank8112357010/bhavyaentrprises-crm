@@ -188,7 +188,6 @@ export async function calculateAgentPerformance(agentId: string) {
     if (
       ticket.status === TicketStatus.inProgress ||
       ticket.status === TicketStatus.billing_pending || // If completed but not billed
-      (ticket.status === TicketStatus.completed && ticket.status !== TicketStatus.billing_completed) || // another way for not billed
       (ticket.status === TicketStatus.completed && (!jcrUploaded || !poUploaded)) // completed but docs missing
     ) {
       adminNotifications.push({

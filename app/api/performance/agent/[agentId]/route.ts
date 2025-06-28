@@ -1,34 +1,31 @@
 // app/api/performance/agent/[agentId]/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { calculateAgentPerformance } from '@/lib/services/performance'; // Adjust path as necessary
-import { verifyAuth } from '@/lib/services/auth'; // Assuming you have an auth verification service
+import { verifyToken } from '@/lib/services/auth'; // Use verifyToken for authentication
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { agentId: string } }
 ) {
   try {
     // 1. Authentication and Authorization (Example)
-    // const { user, error: authError } = await verifyAuth(request); // Your actual auth check
-    // if (authError || !user) {
-    //   return NextResponse.json({ error: authError || 'Unauthorized' }, { status: 401 });
-    // }
-    //
-    // // Authorization: Check if the logged-in user can access this agent's performance
-    // // For example, an admin can access any, an agent can only access their own.
-    // if (user.role !== 'ADMIN' && user.id !== params.agentId) {
-    //    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    // }
-
+    // Example: Extract token from headers (adjust as per your implementation)
+    const token = request.cookies.get("token")?.value;
+  
+    const user = token ? await verifyToken(token) : null;
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // Authorization: Check if the logged-in user can access this agent's performance
+    if (user.role !== 'ADMIN' && user.userId !== params.agentId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const agentId = params.agentId;
     if (!agentId) {
       return NextResponse.json({ error: 'Agent ID is required' }, { status: 400 });
     }
 
-    // Ensure DATABASE_URL is available for prisma client in performance service
-    // This should be handled by the environment where the Next.js server runs.
-    // If running locally and .env is used, it should be picked up.
     // For Vercel/other deployments, environment variables need to be set.
     if (!process.env.DATABASE_URL) {
         // THIS IS A FALLBACK FOR THE SANDBOX AND SHOULD BE REMOVED OR SECURED IN PRODUCTION

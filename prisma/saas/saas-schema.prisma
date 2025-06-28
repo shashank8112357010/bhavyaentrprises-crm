@@ -1,3 +1,6 @@
+// SaaS-ready Prisma schema for multi-tenant (company-aware) applications
+// This schema is designed to isolate data per company (tenant) and support a super admin role
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +11,7 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   BACKEND
   RM
@@ -34,6 +38,18 @@ enum Status {
   PENDING
 }
 
+model Company {
+  id          String   @id @default(uuid())
+  name        String
+  industry    String?
+  createdAt   DateTime @default(now())
+  users       User[]
+  clients     Client[]
+  rateCards   RateCard[]
+  quotations  Quotation[]
+  tickets     Ticket[]
+}
+
 model User {
   id                   String           @id @default(uuid())
   displayId            String?          @unique
@@ -43,7 +59,7 @@ model User {
   mobile               String           @unique
   role                 Role
   createdAt            DateTime         @default(now())
-  tickets              Ticket[] // relation
+  tickets              Ticket[]
   department           String?
   specialization       String?
   status               Status           @default(ACTIVE)
@@ -62,11 +78,32 @@ model User {
   notifications        Notification[]   @relation("UserNotifications")
   resetPasswordToken   String?          @unique
   resetPasswordExpires DateTime?
+  companyId            String?
+  company              Company?         @relation(fields: [companyId], references: [id])
 
   @@index([status])
   @@index([role])
   @@index([department])
   @@index([createdAt])
+  @@index([companyId])
+}
+
+model Client {
+  id              String      @id @default(uuid())
+  displayId       String?     @unique
+  name            String
+  type            String
+  totalBranches   Int
+  contactPerson   String
+  contactEmail    String?
+  contactPhone    String
+  contractStatus  String
+  lastServiceDate DateTime
+  avatar          String?
+  companyId       String
+  company         Company     @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
 }
 
 model RateCard {
@@ -77,8 +114,11 @@ model RateCard {
   rate        Float
   bankName    String
   uploadedAt  DateTime @default(now())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
 
   @@index([description])
+  @@index([companyId])
 }
 
 model Quotation {
@@ -100,32 +140,13 @@ model Quotation {
   salesType       String
   validUntil      DateTime?
   expectedExpense Float?    @default(0)
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
 
   @@index([clientId])
   @@index([ticketId])
   @@index([createdAt])
-}
-
-model Client {
-  id              String      @id @default(uuid())
-  displayId       String?     @unique
-  name            String
-  type            String
-  totalBranches   Int
-  contactPerson   String
-  contactEmail    String?
-  contactPhone    String
-  contractStatus  String
-  lastServiceDate DateTime
-  avatar          String?
-  initials        String
-  gstn            String?
-  tickets         Ticket[]
-  Quotation       Quotation[]
-
-  @@index([type])
-  @@index([contactEmail])
-  @@index([contactPhone])
+  @@index([companyId])
 }
 
 model Expense {
@@ -145,10 +166,13 @@ model Expense {
   pdfUrl        String?
   screenshotUrl String? // For online payment screenshots
   approvalName  String? // For offline payment approvals
+  companyId     String
+  company       Company         @relation(fields: [companyId], references: [id])
 
   @@index([ticketId])
   @@index([quotationId])
   @@index([createdAt])
+  @@index([companyId])
 }
 
 model Ticket {
@@ -178,6 +202,8 @@ model Ticket {
   approvedByAccountant String?
   approvalNote         String?
   notifications        Notification[] @relation("TicketNotifications")
+  companyId            String
+  company              Company        @relation(fields: [companyId], references: [id])
 
   feedback       TicketFeedback? @default(PENDING)
   photosUploaded Boolean         @default(false)
@@ -187,6 +213,7 @@ model Ticket {
   @@index([clientId])
   @@index([createdAt])
   @@index([completedDate])
+  @@index([companyId])
 }
 
 model Comment {
@@ -197,9 +224,12 @@ model Comment {
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation("UserAuthoredComments", fields: [userId], references: [id])
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
 
   @@index([ticketId])
   @@index([userId])
+  @@index([companyId])
 }
 
 model Notification {
@@ -214,40 +244,13 @@ model Notification {
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
   actionUrl String?
+  companyId String
+  company   Company          @relation(fields: [companyId], references: [id])
 
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
-}
-
-enum ExpenseCategory {
-  LABOR
-  TRANSPORT
-  MATERIAL
-  OTHER
-}
-
-enum PaymentType {
-  VCASH
-  ONLINE
-  REST
-}
-
-enum TicketStatus {
-  new
-  inProgress
-  onHold
-  completed
-  billing_pending
-  billing_completed
-}
-
-enum NotificationType {
-  TICKET_ASSIGNED
-  TICKET_STATUS_CHANGED
-  TICKET_COMMENTED
-  TICKET_DUE_DATE_APPROACHING
-  WORK_STAGE_UPDATED
+  @@index([companyId])
 }
 
 model WorkStage {
@@ -270,6 +273,9 @@ model WorkStage {
   ticket       Ticket?  @relation(name: "TicketToWorkStage")
   jcrFilePath  String? // New field
   poFilePath   String? // New field
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
 
   @@unique([ticketId])
+  @@index([companyId])
 }
