@@ -1,1 +1,0 @@
-ALL roles will appear as assignee when creating ticket in kanban 

@@ -306,6 +306,70 @@ export default function TicketDetailsPage() {
 
   return (
     <div className="space-y-4 mt-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium flex items-center">
+            <FileText className="h-4 w-4 mr-2" />
+            Documents
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">JCR Document</span>
+              {ticket.workStage?.jcrStatus ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Add JCR download logic here
+                    window.open(`/api/ticket/${ticketId}/jcr-pdf`, '_blank');
+                  }}
+                >
+                  Download JCR
+                </Button>
+              ) : (
+                <span className="text-gray-500">JCR not available</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Quotation</span>
+              {ticket.Quotation && ticket.Quotation.length > 0 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Add quotation download logic here
+                    window.open(`/api/quotations/${ticket.Quotation[0].id}/preview-pdf`, '_blank');
+                  }}
+                >
+                  Download Quotation
+                </Button>
+              ) : (
+                <span className="text-gray-500">Quotation not available</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">PO Document</span>
+              {ticket.workStage?.poStatus ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Add PO download logic here
+                    window.open(`/api/ticket/${ticketId}/upload-po`, '_blank');
+                  }}
+                >
+                  Download PO
+                </Button>
+              ) : (
+                <span className="text-gray-500">PO not available</span>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>

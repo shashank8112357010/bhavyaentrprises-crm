@@ -4,7 +4,11 @@ import { PDFDocument, rgb } from "pdf-lib";
 interface RateCardDetail {
   rateCardId: string;
   quantity: number;
-  gstPercentage: number; // Changed from gstType to gstPercentage
+  gstPercentage: number;
+  description: string;
+  unit: string;
+  rate: number;
+  bankName: string;
 }
 
 interface QuotationData {
@@ -58,21 +62,35 @@ export async function generatePdf(data: QuotationData): Promise<Uint8Array> {
       color: rgb(0, 0, 0),
     });
     yPosition -= 20;
-    page.drawText(`Rate Card ID: ${detail.rateCardId}`, {
+    page.drawText(`Description: ${detail.description}`, {
       x: 70,
       y: yPosition,
       size: 10,
       color: rgb(0, 0, 0),
     });
     yPosition -= 20;
-    page.drawText(`Quantity: ${detail.quantity}`, {
+    page.drawText(`Quantity: ${detail.quantity} ${detail.unit}`, {
       x: 70,
       y: yPosition,
       size: 10,
       color: rgb(0, 0, 0),
     });
     yPosition -= 20;
-    page.drawText(`GST Percentage: ${detail.gstPercentage}%`, {
+    page.drawText(`Rate: ₹${detail.rate.toFixed(2)}`, {
+      x: 70,
+      y: yPosition,
+      size: 10,
+      color: rgb(0, 0, 0),
+    });
+    yPosition -= 20;
+    page.drawText(`GST: ${detail.gstPercentage}%`, {
+      x: 70,
+      y: yPosition,
+      size: 10,
+      color: rgb(0, 0, 0),
+    });
+    yPosition -= 20;
+    page.drawText(`Bank: ${detail.bankName}`, {
       x: 70,
       y: yPosition,
       size: 10,
