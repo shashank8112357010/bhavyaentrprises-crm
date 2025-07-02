@@ -433,7 +433,7 @@ export default function TicketDetailsPage() {
               expenses={ticket.expenses}
               canManageFinancials={canEdit}
               onCreateQuotation={handleCreateQuotation}
-              onAddExpense={handleAddExpense}
+             
             />
           </TabsContent>
 
