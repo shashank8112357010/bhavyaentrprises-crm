@@ -272,11 +272,12 @@ export default function NewQuotationPage() {
 
         if (response.ok) {
           const ticketData = await response.json();
-          if (ticketData.client) {
-            setSelectedClient(ticketData.client);
+          if (ticketData.ticket.client) {
+         
+            setSelectedClient(ticketData.ticket.client);
             toast({
               title: "Success",
-              description: `Client "${ticketData.client.name}" auto-selected from ticket.`,
+              description: `Client "${ticketData.ticket.client.name}" auto-selected from ticket.`,
             });
           }
         }
