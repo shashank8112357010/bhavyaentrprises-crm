@@ -349,10 +349,7 @@ export default function TicketDetailsPage() {
       "_blank"
     );
   };
-  const handleAddExpense = () => {
-    // You can open your expense dialog here
-    // For example: setExpenseDialogOpen(true);
-  };
+
 
   return (
     <div className="">

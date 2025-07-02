@@ -75,7 +75,7 @@ interface Client {
   name: string;
   type: string;
   contactPerson: string;
-  contactPhone: string;
+  contactNumber: string;
   contactEmail?: string;
   totalBranches: number;
   gstn?: string;
@@ -399,7 +399,7 @@ export default function NewQuotationPage() {
           name: selectedClient.name,
           contactPerson: selectedClient.contactPerson,
           contactEmail: selectedClient.contactEmail,
-          contactPhone: selectedClient.contactPhone,
+          contactPhone: selectedClient.contactNumber,
           gstn: selectedClient.gstn,
         },
         name: formValues.quotationNumber.trim(), // Use quotation number as name

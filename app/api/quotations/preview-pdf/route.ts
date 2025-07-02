@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (dbRateCards.length !== rateCardIds.length) {
-      const foundDbIds = dbRateCards.map((rc) => rc.id);
+      const foundDbIds = dbRateCards.map((rc:any) => rc.id);
       const missingIds = rateCardIds.filter((id) => !foundDbIds.includes(id));
       console.error(
         "Some RateCard entries not found for PDF preview:",
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Calculate totals
     const subtotal = rateCardDetails.reduce((sum, detail) => {
-      const rateCard = dbRateCards.find((rc) => rc.id === detail.rateCardId);
+      const rateCard = dbRateCards.find((rc:any) => rc.id === detail.rateCardId);
       return sum + (rateCard ? rateCard.rate * detail.quantity : 0);
     }, 0);
 
@@ -103,13 +103,13 @@ export async function POST(req: NextRequest) {
       : 0;
     const afterDiscount = subtotal - discountAmount;
     const gst = rateCardDetails.reduce((sum, detail) => {
-      const rateCard = dbRateCards.find((rc) => rc.id === detail.rateCardId);
+      const rateCard = dbRateCards.find((rc:any) => rc.id === detail.rateCardId);
       const itemTotal = rateCard ? rateCard.rate * detail.quantity : 0;
       return sum + (itemTotal * detail.gstPercentage) / 100;
     }, 0);
     const grandTotal = afterDiscount + gst;
 
-    const rateCardsMap = new Map(dbRateCards.map((rc) => [rc.id, rc]));
+    const rateCardsMap = new Map(dbRateCards.map((rc:any) => [rc.id, rc]));
 
     const hydratedRateCardsForPdf = rateCardDetails.map((detail) => {
       const baseRateCard = rateCardsMap.get(detail.rateCardId);
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
       }
       return {
         ...baseRateCard,
-        rate: Number(baseRateCard.rate),
+        rate: Number(2),
       };
     });
 
