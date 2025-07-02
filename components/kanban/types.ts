@@ -51,11 +51,7 @@ export interface Client {
   contactPerson: string;
 }
 
-export interface Comment {
-  text: string;
-  ticketId: string;
-  userId: string;
-}
+import type { Comment } from "@/types/comment";
 
 export interface Quotation {
   id: string;
@@ -88,7 +84,7 @@ export interface Ticket {
   completedDate?: string;
   createdAt: string;
   description: string;
-  comments: Comment[];
+  comments: Comment[]; // uses imported type from @/types/comment
   holdReason?: string;
   status: TicketStatus;
   quotations?: Quotation[];

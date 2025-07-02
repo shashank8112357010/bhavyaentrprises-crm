@@ -63,6 +63,8 @@ export async function PATCH(
         existingTicket.status !== validatedData.status
       ) {
         try {
+      // Will aggregate document links here
+
           await createTicketStatusChangeNotification(
             existingTicket.assigneeId,
             params.id,
@@ -84,7 +86,7 @@ export async function PATCH(
 
     // Handle non-status updates
     const validatedData = updateTicketSchema.safeParse(body);
-    
+
     if (validatedData.error) {
       const fieldErrors = validatedData.error.flatten().fieldErrors;
       const firstFieldKey = Object.keys(fieldErrors)[0];
@@ -103,13 +105,11 @@ export async function PATCH(
       validatedData.data.assigneeId &&
       validatedData.data.assigneeId.trim() !== ""
     ) {
-      
       const assigneeExists = await prisma.user.findUnique({
         where: { id: validatedData.data.assigneeId },
         select: { id: true, role: true },
       });
 
-      
       if (!assigneeExists) {
         return NextResponse.json(
           { message: "Assignee not found. Please select a valid assignee." },
@@ -257,10 +257,9 @@ export async function PATCH(
   }
 }
 
-
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const body = await req.json();
@@ -275,7 +274,7 @@ export async function POST(
 
       return NextResponse.json(
         { message: `${firstFieldKey}: ${firstErrorMessage}` },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -290,16 +289,15 @@ export async function POST(
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to add quotation", error: error.message },
-      { status: 400 },
+      { status: 400 }
     );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
-
   try {
     const ticket = await prisma.ticket.findUnique({
       where: { id: params.id },
@@ -309,7 +307,7 @@ export async function DELETE(
     if (!ticket) {
       return NextResponse.json(
         { message: "Ticket not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -338,14 +336,24 @@ export async function DELETE(
   } catch (error: any) {
     return NextResponse.json(
       { message: "Failed to delete ticket", error: error.message },
-      { status: 400 },
+      { status: 400 }
     );
   }
 }
 
+function toPublicUrl(filePath: string) {
+  // Adjust this to match your actual public folder structure
+  const publicIndex = filePath.indexOf('/public/');
+  if (publicIndex !== -1) {
+    return filePath.substring(publicIndex + '/public'.length); // includes the leading slash
+  }
+  return filePath; // fallback, but ideally never hit
+}
+
+
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
@@ -389,19 +397,154 @@ export async function GET(
       },
     });
 
+    
+
     if (!ticket) {
       return NextResponse.json(
         { message: "Ticket not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
+  
+    // Aggregate all document links
+    const documents: Array<{ type: string; label: string; url: string }> = [];
+    // Quotation PDFs
+    if (Array.isArray(ticket.Quotation)) {
+      ticket.Quotation.forEach((q: any, idx: number) => {
+        if (q.pdfUrl) {
+          documents.push({
+            type: "quotation",
+            label: `Quotation PDF${ticket.Quotation.length > 1 ? ` #${idx + 1}` : ''}`,
+            url: q.pdfUrl,
+          });
+        }
+      });
+    }
+    // WorkStage PO/JCR files
+    if (ticket.workStage) {
+      if (ticket.workStage.poFilePath) {
+        documents.push({
+          type: "po",
+          label: "PO Document",
+          url: ticket.workStage.poFilePath,
+        });
+      }
+      if (ticket.workStage.jcrFilePath) {
+        documents.push({
+          type: "jcr",
+          label: "JCR Document",
+          url: toPublicUrl(ticket.workStage.jcrFilePath),
+        });
+      }
+     
+    }
+    // Expense PDFs
+    if (Array.isArray(ticket.expenses)) {
+      ticket.expenses.forEach((expense: any, idx: number) => {
+        if (expense.pdfUrl) {
+          documents.push({
+            type: "expense",
+            label: `Expense PDF${ticket.expenses.length > 1 ? ` #${idx + 1}` : ''}`,
+            url: expense.pdfUrl,
+          });
+        } else if (expense.attachmentUrl) {
+          documents.push({
+            type: "expense",
+            label: `Expense Attachment${ticket.expenses.length > 1 ? ` #${idx + 1}` : ''}`,
+            url: expense.attachmentUrl,
+          });
+        }
+      });
+    }
 
-    return NextResponse.json(ticket);
+
+
+    // Format the ticket object for frontend consumption
+    const formattedTicket = {
+      id: ticket.id,
+      title: ticket.title || "N/A",
+      ticketId: ticket.ticketId || "NA",
+      client: ticket.client
+        ? {
+            id: ticket.client.id || "",
+            name: ticket.client.name || "N/A",
+            type: ticket.client.type || "N/A",
+            contactPerson: ticket.client.contactPerson || "N/A",
+            contactEmail : ticket.client.contactEmail,
+            contactNumber : ticket.client.contactPhone,
+            initials : ticket.client.initials,
+            gstn : ticket.client.gstn
+
+          }
+        : { id: "", name: "N/A", type: "N/A", contactPerson: "N/A" },
+      branch: ticket.branch || "N/A",
+      priority: ticket.priority || "N/A",
+      assignee: ticket.assignee
+        ? {
+            id: ticket.assignee.id,
+            name: ticket.assignee.name,
+            email: ticket.assignee.email,
+            avatar: ticket.assignee.avatar,
+            initials: ticket.assignee.initials,
+            role: ticket.assignee.role,
+          }
+        : { id: "N/A", name: "N/A", email: "N/A", avatar: "N/A", initials: "N/A", role: "N/A" },
+      workStage: ticket.workStage
+        ? {
+            quoteNo: ticket.workStage.quoteNo || "N/A",
+            quoteTaxable: ticket.workStage.quoteTaxable ?? "N/A",
+            quoteAmount: ticket.workStage.quoteAmount ?? "N/A",
+            dateReceived: ticket.workStage.dateReceived || "N/A",
+            agentName: ticket.workStage.agentName || "N/A",
+            stateName: ticket.workStage.stateName || "N/A",
+            adminName: ticket.workStage.adminName || "N/A",
+            clientName: ticket.workStage.clientName || "N/A",
+            siteName: ticket.workStage.siteName || "N/A",
+            approval: ticket.workStage.approval || "N/A",
+            poStatus: ticket.workStage.poStatus || false,
+            poNumber: ticket.workStage.poNumber || "N/A",
+            jcrStatus: ticket.workStage.jcrStatus || false,
+            poFilePath: ticket.workStage.poFilePath || "",
+            jcrFilePath: ticket.workStage.jcrFilePath || "",
+          }
+        : undefined,
+      Quotation: Array.isArray(ticket.Quotation)
+        ? ticket.Quotation : [],
+      dueDate: ticket.dueDate ?? "N/A",
+      scheduledDate: ticket.scheduledDate ?? "N/A",
+      completedDate: ticket.completedDate ?? "N/A",
+      createdAt: ticket.createdAt || "N/A",
+      description: ticket.description || "N/A",
+      comments: Array.isArray(ticket.comments)
+        ? ticket.comments.map((c: any) => ({
+            id: c.id,
+            content: c.content || "",
+            createdAt: c.createdAt,
+            user: c.user
+              ? {
+                  id: c.user.id,
+                  name: c.user.name,
+                  avatar: c.user.avatar,
+                  initials: c.user.initials,
+                }
+              : null,
+          }))
+        : [],
+      commentsCount: Array.isArray(ticket.comments) ? ticket.comments.length : 0,
+      holdReason: ticket.holdReason || "N/A",
+      status: ticket.status || "new",
+      expenses: Array.isArray(ticket.expenses)
+        ? ticket.expenses: [],
+      due: ticket.due,
+      paid: ticket.paid,
+    };
+
+    return NextResponse.json({ ticket: formattedTicket , documents });
   } catch (error) {
     console.error("Error fetching ticket:", error);
     return NextResponse.json(
       { message: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

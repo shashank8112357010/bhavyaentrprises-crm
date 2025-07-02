@@ -1,5 +1,14 @@
 // lib/services/performance.ts
-import { Prisma, PrismaClient, Ticket, WorkStage, Expense, Quotation, User, TicketStatus, TicketFeedback } from '@prisma/client';
+import { Prisma, PrismaClient, Ticket, WorkStage, Expense, Quotation, User, TicketStatus } from '@prisma/client';
+
+// TicketFeedback enum matches the one in schema.prisma
+enum TicketFeedback {
+  POSITIVE = 'POSITIVE',
+  NEUTRAL = 'NEUTRAL',
+  NEGATIVE = 'NEGATIVE',
+  PENDING = 'PENDING',
+}
+
 
 // Initialize Prisma Client
 // It should automatically pick up DATABASE_URL from the environment if set,

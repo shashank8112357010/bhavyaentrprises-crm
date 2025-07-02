@@ -42,11 +42,7 @@ export interface Client {
   contactPerson: string;
 }
 
-export interface Comment {
-  text: string;
-  ticketId: string;
-  userId: string;
-}
+import type { Comment } from "@/types/comment";
 
 export interface Ticket {
   id: string;

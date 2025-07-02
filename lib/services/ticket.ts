@@ -1,23 +1,7 @@
 // lib/services/ticket.ts
 import axios from "../axios";
 
-// Type for User details within a Comment
-interface CommentUser {
-  id: string;
-  name: string | null;
-  avatar: string | null;
-  initials: string | null;
-}
-
-// Type for Comment
-interface Comment {
-  id: string;
-  text: string;
-  createdAt: string; // Assuming ISO string date
-  userId: string;
-  user: CommentUser;
-  // ticketId is implicitly known
-}
+import type { Comment, CommentUser } from "@/types/comment";
 
 
 // Type for Client

@@ -42,7 +42,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -104,7 +103,7 @@ const createSingleRateCard = async (data: any) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-    },
+    },                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
     credentials: "include",
     body: JSON.stringify(data),
   });
@@ -156,6 +155,7 @@ export default function NewQuotationPage() {
   // State for save/export operations
   const [isSavingQuotation, setIsSavingQuotation] = useState<boolean>(false);
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  type CreateRateCardFormData = z.infer<typeof inlineRateCardFormSchema>;
 
   // Form for Quotation Details - ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL LOGIC
   const quotationForm = useForm<z.infer<typeof quotationFormSchema>>({
@@ -175,22 +175,9 @@ export default function NewQuotationPage() {
     },
   });
 
-  // Client form for creating new clients
-  const clientForm = useForm<CreateClientFormData>({
-    resolver: zodResolver(createClientSchema),
-    defaultValues: {
-      name: "",
-      contactPerson: "",
-      contactPhone: "",
-      contactEmail: "",
-      totalBranches: 1,
-      gstn: "",
-      initials: "",
-    },
-  });
 
   // Rate card form for creating new rate cards
-  type CreateRateCardFormData = z.infer<typeof inlineRateCardFormSchema>;
+
   const rateCardForm = useForm<CreateRateCardFormData>({
     resolver: zodResolver(inlineRateCardFormSchema),
     defaultValues: {
@@ -407,6 +394,13 @@ export default function NewQuotationPage() {
       }
 
       const quotationData = {
+        client: {
+          name: selectedClient.name,
+          contactPerson: selectedClient.contactPerson,
+          contactEmail: selectedClient.contactEmail,
+          contactPhone: selectedClient.contactPhone,
+          gstn: selectedClient.gstn,
+        },
         name: formValues.quotationNumber.trim(), // Use quotation number as name
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
@@ -424,10 +418,16 @@ export default function NewQuotationPage() {
           quantity: item.quantity,
           gstPercentage: item.gstPercentage,
           totalValue: item.totalValue,
+          srNo: item.srNo,
+          description: item.description,
+          unit: item.unit,
+          rate: item.rate,
+          bankName: item.bankName,
         })),
+        subtotal,
+        gst : 18,
+        grandTotal,
       };
-
-
 
       await createQuotation(quotationData);
       toast({
@@ -649,7 +649,8 @@ export default function NewQuotationPage() {
             variant="outline"
             onClick={handleExportPdf}
             disabled={
-              isExportingPdf || !selectedClient || quotationItems.length === 0
+              true
+              // isExportingPdf || !selectedClient || quotationItems.length === 0
             }
           >
             {isExportingPdf ? (
@@ -838,7 +839,7 @@ export default function NewQuotationPage() {
                   min="1"
                   value={quantity}
                   onChange={(e) =>
-                    setQuantity(parseInt(e.target.value) || 1)
+                    setQuantity(parseInt(e.target.value))
                   }
                 />
               </div>

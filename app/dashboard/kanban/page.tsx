@@ -5,7 +5,6 @@ import {
   useTicketStore,
   type Ticket,
   type Status,
-  type Comment,
 } from "@/store/ticketStore";
 import { useAgentStore } from "@/store/agentStore";
 import { useClientStore } from "@/store/clientStore";
@@ -51,12 +50,6 @@ interface DragEndResult {
   ticketId: string;
 }
 
-interface ExportFilters {
-  status?: Status;
-  startDate: string;
-  endDate: string;
-}
-
 export default function KanbanPage() {
   // Add view mode state
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
@@ -79,10 +72,6 @@ export default function KanbanPage() {
   const [ticketToApprove, setTicketToApprove] = useState<Ticket | null>(null);
   const [approverId, setApproverId] = useState("");
   const [approvalNote, setApprovalNote] = useState("");
-
-
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
 
   const [exportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'

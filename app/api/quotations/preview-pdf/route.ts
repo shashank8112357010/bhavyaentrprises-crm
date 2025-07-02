@@ -128,7 +128,6 @@ export async function POST(req: NextRequest) {
       quotationId: quotationNumber,
       client: client, // Pass the full client object
       name, // This is the quotation name
-      rateCards: hydratedRateCardsForPdf,
       subtotal,
       gst,
       grandTotal,

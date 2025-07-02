@@ -2,14 +2,7 @@ import puppeteer, { Browser } from "puppeteer"; // Import Browser type
 import ejs from "ejs";
 import path from "path";
 
-interface RateCardEntry {
-  id: string;
-  srNo: number;
-  description: string;
-  unit: string;
-  rate: number;
-  bankName: string;
-}
+
 interface RateCardDetail {
   rateCardId: string;
   quantity: number;
@@ -27,8 +20,8 @@ interface QuotationPdfParams {
   quotationId: string;
   client: ClientData | null; // Allow client to be null
   name: string;
-  rateCards: RateCardEntry[];
   subtotal: number;
+
   gst: number;
   grandTotal: number;
   rateCardDetails: RateCardDetail[];
@@ -59,16 +52,17 @@ async function getBrowserInstance(): Promise<Browser> {
   if (!browserInstance) {
    
     try {
+      // Launch Puppeteer browser only once and reuse (singleton pattern)
       browserInstance = await puppeteer.launch({
         headless: true,
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage", // Often recommended for serverless/containerized environments
+          "--disable-dev-shm-usage",
           "--disable-accelerated-2d-canvas",
           "--no-first-run",
           "--no-zygote",
-          "--single-process", // May reduce memory usage in some environments, test impact
+          "--single-process",
           "--disable-gpu"
         ],
       });
@@ -145,8 +139,20 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
   let page;
   try {
     const templatePath = path.join(process.cwd(), "lib", "pdf", "templates", "quotation.ejs");
-    const logoPath = `file://${path.join(process.cwd(), "public", "logo.png")}`;
-    const upiQrPath = `file://${path.join(process.cwd(), "public", "upi.png")}`;
+    // Preload local images as base64 to avoid network/disk fetches during PDF gen
+    const fs = require('fs');
+    const logoFile = path.join(process.cwd(), "public", "logo.png");
+    const upiQrFile = path.join(process.cwd(), "public", "upi.png");
+    let logoBase64 = null, upiQrBase64 = null;
+    try {
+      logoBase64 = fs.readFileSync(logoFile, { encoding: 'base64' });
+    } catch (e) { logoBase64 = null; }
+    try {
+      upiQrBase64 = fs.readFileSync(upiQrFile, { encoding: 'base64' });
+    } catch (e) { upiQrBase64 = null; }
+    const logoPath = logoBase64 ? `data:image/png;base64,${logoBase64}` : '';
+    const upiQrPath = upiQrBase64 ? `data:image/png;base64,${upiQrBase64}` : '';
+
 
     const today = new Date();
     let validUntilDateStr = new Date(today.getTime() + 7 * 86400000).toLocaleDateString("en-GB"); // Default: one week
@@ -166,9 +172,9 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
       date: today.toLocaleDateString("en-GB"),
       validUntil: validUntilDateStr,
       amountInWords: amountToWords(params.grandTotal || 0),
-      rateCards: params.rateCards || [],
       name: params.name,
       rateCardDetails: params.rateCardDetails || [],
+      // Use inlined base64 for images to avoid network/disk fetches
       logoPath,
       upiQrPath,
     };
@@ -179,7 +185,7 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
     page = await browser.newPage();
     await page.setCacheEnabled(false); // Try disabling cache for the page
 
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 }); // Added timeout
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30000 }); // Faster since no network resources
 
     await page.evaluate((title) => {
       if (document && document.title != null) { // Check if document and document.title exist

@@ -43,7 +43,7 @@ model User {
   mobile               String           @unique
   role                 Role
   createdAt            DateTime         @default(now())
-  tickets              Ticket[] // relation
+  tickets              Ticket[] 
   department           String?
   specialization       String?
   status               Status           @default(ACTIVE)

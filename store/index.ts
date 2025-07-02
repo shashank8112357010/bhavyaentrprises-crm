@@ -18,5 +18,5 @@ export type {
   
   Expense,
   Client,
-  Comment,
+
 } from "./ticketStore";

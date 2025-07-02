@@ -10,9 +10,17 @@ import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
 
 // Define the schema for rateCardDetails item
 const rateCardDetailItemSchema = z.object({
-  rateCardId: z.string().uuid(),
-  quantity: z.number().min(0),
-  gstPercentage: z.number().min(0), // GST percentage (e.g., 18 for 18%)
+  rateCardId: z.string(),
+  quantity: z.coerce.number().min(1), // Accept string or number
+  gstPercentage: z.coerce.number().min(0).max(100), // Accept string or number
+  totalValue: z.coerce.number().optional(), // Accept string or number
+  srNo: z.coerce.number(), // Accept string or number
+  description: z.string(),
+  unit: z.string(),
+  rate: z.coerce.number(), // Accept string or number
+  bankName: z.string(),
+
+
 });
 
 // Define the schema for the quotation update request body
@@ -25,7 +33,8 @@ const updateQuotationSchema = z.object({
   gst: z.number().optional(), // Make optional since it's calculated
   subtotal: z.number().optional(), // Make optional since it's calculated
   expectedExpense: z.number().min(0).optional(), // Add expectedExpense field
-  validUntil: z.string().datetime().optional(), // Add validUntil field
+  validUntil: z.union([z.string(), z.null()]).optional(), // Allow string, null, or undefined
+
   // Add other fields that can be updated here
 });
 
@@ -45,10 +54,32 @@ export async function PUT(
       );
     }
 
+    // Sanitize incoming data for robust backend validation
+    if (typeof body.validUntil === 'string' && body.validUntil.trim() === '') {
+      body.validUntil = null;
+    }
+    // Coerce number fields in root
+    if (typeof body.subtotal === 'string') body.subtotal = Number(body.subtotal);
+    if (typeof body.gst === 'string') body.gst = Number(body.gst);
+    if (typeof body.grandTotal === 'string') body.grandTotal = Number(body.grandTotal);
+    if (typeof body.expectedExpense === 'string') body.expectedExpense = Number(body.expectedExpense);
+    // Coerce number fields in rateCardDetails
+    if (Array.isArray(body.rateCardDetails)) {
+      body.rateCardDetails = body.rateCardDetails.map((item:any) => ({
+        ...item,
+        quantity: typeof item.quantity === 'string' ? Number(item.quantity) : item.quantity,
+        gstPercentage: typeof item.gstPercentage === 'string' ? Number(item.gstPercentage) : item.gstPercentage,
+        totalValue: typeof item.totalValue === 'string' ? Number(item.totalValue) : item.totalValue,
+        srNo: typeof item.srNo === 'string' ? Number(item.srNo) : item.srNo,
+        rate: typeof item.rate === 'string' ? Number(item.rate) : item.rate,
+      }));
+    }
     const updateData = validation.data;
-    let newSubtotal = 0;
-    let newGst = 0;
-    let newGrandTotal = 0;
+    // Ensure Prisma never receives an empty string for validUntil
+    if (updateData.validUntil === "") {
+      updateData.validUntil = null;
+    }
+
 
     // Fetch the existing quotation (minimal data needed for pre-update logic)
     const existingQuotation = await prisma.quotation.findUnique({
@@ -59,7 +90,7 @@ export async function PUT(
         pdfUrl: true,
         grandTotal: true,
         ticketId: true,
-        // rateCardDetails are not strictly needed here if they are always recalculated or taken from payload
+
       },
     });
 
@@ -70,43 +101,8 @@ export async function PUT(
       );
     }
 
-    // If rateCardDetails are being updated, recalculate totals
-    if (updateData.rateCardDetails && updateData.rateCardDetails.length > 0) {
-      const rateCardIds = updateData.rateCardDetails.map(item => item.rateCardId);
-      const uniqueRateCardIds = Array.from(new Set(rateCardIds));
 
-      const fetchedRateCards = await prisma.rateCard.findMany({
-        where: { id: { in: uniqueRateCardIds } },
-      });
-
-      const rateCardsMap = new Map(fetchedRateCards.map(rc => [rc.id, rc]));
-
-      for (const item of updateData.rateCardDetails) {
-        const rateCard = rateCardsMap.get(item.rateCardId);
-        if (!rateCard) {
-          return NextResponse.json(
-            { message: `Rate card with ID ${item.rateCardId} not found in fetched batch.` },
-            { status: 404 },
-          );
-        }
-        const itemSubtotal = rateCard.rate * item.quantity;
-        newSubtotal += itemSubtotal;
-        newGst += itemSubtotal * (item.gstPercentage / 100); // Assuming gstPercentage is like 18 for 18%
-      }
-      newGrandTotal = newSubtotal + newGst;
-
-      updateData.subtotal = newSubtotal;
-      updateData.gst = newGst;
-      updateData.grandTotal = newGrandTotal;
-    } else if (
-      updateData.rateCardDetails &&
-      updateData.rateCardDetails.length === 0
-    ) {
-      updateData.subtotal = 0;
-      updateData.gst = 0;
-      updateData.grandTotal = 0;
-    }
-    // If totals are provided directly in payload and no rateCardDetails, those will be used.
+    // Otherwise, trust frontend payload for all totals and rateCardDetails fields (including description, unit, rate, etc)
 
     let clientForPdf: Awaited<ReturnType<typeof prisma.client.findUnique>> | null = null;
 
@@ -183,57 +179,57 @@ export async function PUT(
       }
     }
 
-    // Regenerate PDF
-    let fullRateCardsForPdf: any[] = [];
-    if (
-      updatedQuotationPrisma.rateCardDetails &&
-      Array.isArray(updatedQuotationPrisma.rateCardDetails) &&
-      updatedQuotationPrisma.rateCardDetails.length > 0
-    ) {
-      const rateCardIds = (
-        updatedQuotationPrisma.rateCardDetails as Array<{ rateCardId: string }>
-      ).map((detail) => detail.rateCardId);
-      fullRateCardsForPdf = await prisma.rateCard.findMany({
-        where: { id: { in: rateCardIds } },
-      });
-    }
-    
-    console.log(updatedQuotationPrisma , "updatedQuotationPrisma for PDF gen");
-    console.log(clientForPdf, "clientForPdf for PDF gen");
-
-    const pdfBuffer = await generateQuotationPdf({
-      quotationId: updatedQuotationPrisma.quoteNo,
-      client: clientForPdf, // Use the fully fetched client object (or null)
-      name: updatedQuotationPrisma.name, // This is quotation name
-      rateCards: fullRateCardsForPdf,
-      subtotal: updatedQuotationPrisma.subtotal,
-      gst: updatedQuotationPrisma.gst,
-      grandTotal: updatedQuotationPrisma.grandTotal,
-      rateCardDetails: updatedQuotationPrisma.rateCardDetails as any[],
-      expectedExpense: updatedQuotationPrisma.expectedExpense || 0,
-      quoteNo: updatedQuotationPrisma.quoteNo,
-      validUntil: updatedQuotationPrisma.validUntil?.toISOString(),
-    });
-
-    const folderPath = path.join(process.cwd(), "public", "quotations");
-    if (!existsSync(folderPath)) {
-      mkdirSync(folderPath, { recursive: true });
-    }
-
-    if (existingQuotation.pdfUrl && existingQuotation.pdfUrl !== dataToUpdate.pdfUrl) {
-      const oldPdfPath = path.join(process.cwd(), "public", existingQuotation.pdfUrl);
-      if (fs.existsSync(oldPdfPath)) {
-        try { fs.unlinkSync(oldPdfPath); } catch (deleteError) { console.warn("Could not delete old PDF file:", deleteError); }
-      }
-    }
-
-    const filePath = path.join(folderPath, newPdfFilename);
-    writeFileSync(filePath, pdfBuffer);
-
+    // Respond immediately after DB update
     const responseQuotation = {
         ...updatedQuotationPrisma,
         client: clientForPdf // Add the client data to the response
     };
+
+    // PDF generation and file write in background (non-blocking)
+    (async () => {
+      try {
+        let fullRateCardsForPdf: any[] = [];
+        if (
+          updatedQuotationPrisma.rateCardDetails &&
+          Array.isArray(updatedQuotationPrisma.rateCardDetails) &&
+          updatedQuotationPrisma.rateCardDetails.length > 0
+        ) {
+          const rateCardIds = (
+            updatedQuotationPrisma.rateCardDetails as Array<{ rateCardId: string }>
+          ).map((detail) => detail.rateCardId);
+          fullRateCardsForPdf = await prisma.rateCard.findMany({
+            where: { id: { in: rateCardIds } },
+          });
+        }
+        const pdfBuffer = await generateQuotationPdf({
+          quotationId: updatedQuotationPrisma.quoteNo,
+          client: clientForPdf, // Use the fully fetched client object (or null)
+          name: updatedQuotationPrisma.name, // This is quotation name
+ 
+          subtotal: updatedQuotationPrisma.subtotal,
+          gst: updatedQuotationPrisma.gst,
+          grandTotal: updatedQuotationPrisma.grandTotal,
+          rateCardDetails: updatedQuotationPrisma.rateCardDetails as any[],
+          expectedExpense: updatedQuotationPrisma.expectedExpense || 0,
+          quoteNo: updatedQuotationPrisma.quoteNo,
+          validUntil: updatedQuotationPrisma.validUntil?.toISOString(),
+        });
+        const folderPath = path.join(process.cwd(), "public", "quotations");
+        if (!existsSync(folderPath)) {
+          mkdirSync(folderPath, { recursive: true });
+        }
+        if (existingQuotation.pdfUrl && existingQuotation.pdfUrl !== dataToUpdate.pdfUrl) {
+          const oldPdfPath = path.join(process.cwd(), "public", existingQuotation.pdfUrl);
+          if (fs.existsSync(oldPdfPath)) {
+            try { fs.unlinkSync(oldPdfPath); } catch (deleteError) { console.warn("Could not delete old PDF file:", deleteError); }
+          }
+        }
+        const filePath = path.join(folderPath, newPdfFilename);
+        writeFileSync(filePath, pdfBuffer);
+      } catch (pdfError) {
+        console.error("PDF generation or file write failed (background):", pdfError);
+      }
+    })();
 
     return NextResponse.json(responseQuotation);
   } catch (error: any) {

@@ -176,20 +176,6 @@ export default function EditQuotationPage() {
     },
   });
 
-  // Client form for creating new clients
-  const clientForm = useForm<CreateClientFormData>({
-    resolver: zodResolver(createClientSchema),
-    defaultValues: {
-      name: "",
-      type: "Bank",
-      contactPerson: "",
-      contactPhone: "",
-      contactEmail: "",
-      totalBranches: 1,
-      gstn: "",
-      initials: "",
-    },
-  });
 
   // Rate card form for creating new rate cards
   type CreateRateCardFormData = z.infer<typeof inlineRateCardFormSchema>;
@@ -503,18 +489,57 @@ export default function EditQuotationPage() {
       const formValues = quotationForm.getValues();
 
       // Validate that we have a quotation number
-      if (
-        !formValues.quotationNumber ||
-        formValues.quotationNumber.trim() === ""
-      ) {
-        throw new Error("Quotation number is required");
+      if (!formValues.quotationNumber || formValues.quotationNumber.trim() === "") {
+        toast({
+          title: "Missing Field",
+          description: "Quotation number is required.",
+          variant: "destructive",
+        });
+        setIsSavingQuotation(false);
+        return;
       }
-
+      // Validate required fields for payload completeness
+      if (!selectedClient || !selectedClient.id) {
+        toast({
+          title: "Missing Field",
+          description: "Client selection is required.",
+          variant: "destructive",
+        });
+        setIsSavingQuotation(false);
+        return;
+      }
+      if (!selectedTicketId) {
+        toast({
+          title: "Missing Field",
+          description: "Ticket selection is required.",
+          variant: "destructive",
+        });
+        setIsSavingQuotation(false);
+        return;
+      }
+      if (!quotationItems.length) {
+        toast({
+          title: "Missing Items",
+          description: "At least one rate card item is required.",
+          variant: "destructive",
+        });
+        setIsSavingQuotation(false);
+        return;
+      }
+      // Check for required fields in each rate card detail
+      for (const item of quotationItems) {
+        if (!item.id || item.quantity == null || item.gstPercentage == null) {
+          toast({
+            title: "Missing Rate Card Detail",
+            description: "Each item must have rateCardId, quantity, and gstPercentage.",
+            variant: "destructive",
+          });
+          setIsSavingQuotation(false);
+          return;
+        }
+      }
       // Calculate totals
-      const subtotal = quotationItems.reduce(
-        (sum, item) => sum + item.totalValue,
-        0,
-      );
+      const subtotal = quotationItems.reduce((sum, item) => sum + item.totalValue, 0);
       const discount = parseFloat(formValues.discount || "0");
       const discountAmount = (subtotal * discount) / 100;
       const afterDiscount = subtotal - discountAmount;
@@ -524,25 +549,38 @@ export default function EditQuotationPage() {
       }, 0);
       const grandTotal = afterDiscount + gstAmount;
 
+      // Build the payload, mirroring the create flow
       const quotationData = {
-        name: selectedClient.name, // Use quotation number as name
+        name: selectedClient.name, // Use client name as fallback
         clientId: selectedClient.id,
         ticketId: selectedTicketId,
-        expectedExpense: formValues.expectedExpense
-          ? parseFloat(formValues.expectedExpense) || 0
-          : 0,
+        expectedExpense: formValues.expectedExpense ? parseFloat(formValues.expectedExpense) || 0 : 0,
+        discount: formValues.discount,
+        client: {
+          name: selectedClient.name,
+          contactPerson: selectedClient.contactPerson,
+          contactEmail: selectedClient.contactEmail,
+          contactPhone: selectedClient.contactPhone,
+          gstn: selectedClient.gstn,
+        },
+        salesType: formValues.salesType,
+        quotationNumber: formValues.quotationNumber,
+        validUntil: formValues.validUntil,
         rateCardDetails: quotationItems.map((item) => ({
           rateCardId: item.id,
           quantity: item.quantity,
           gstPercentage: item.gstPercentage,
+          totalValue: item.totalValue,
+          srNo: item.srNo,
+          description: item.description,
+          unit: item.unit,
+          rate: item.rate,
+          bankName: item.bankName,
         })),
-        // Add required totals for the API
-        subtotal: subtotal,
+        subtotal,
         gst: gstAmount,
-        grandTotal: grandTotal,
+        grandTotal,
       };
-
-
 
       await updateQuotation(quotationId, quotationData);
       toast({

@@ -96,21 +96,23 @@ export default function QuotationsPage() {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to generate JCR PDF: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `Failed to generate JCR PDF: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute(
-        "download",
-        `JCR-${quoteNo.replace(/\//g, "-")}.pdf`
-      );
+      link.setAttribute("download", `JCR-${quoteNo.replace(/\//g, "-")}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
-      toast({ title: "Success", description: "JCR PDF downloaded successfully!" });
+      toast({
+        title: "Success",
+        description: "JCR PDF downloaded successfully!",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -236,9 +238,6 @@ Bhavya Enterprises Team`;
   const pageCount = Math.ceil(totalQuotations / itemsPerPage);
   const currentPageStart = totalQuotations > 0 ? page * itemsPerPage + 1 : 0;
   const currentPageEnd = Math.min((page + 1) * itemsPerPage, totalQuotations);
-
-
-
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 pt-6">
@@ -392,7 +391,9 @@ Bhavya Enterprises Team`;
                           )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDownloadJcrPdf(q.id, q.quoteNo)}
+                            onClick={() =>
+                              handleDownloadJcrPdf(q.id, q.quoteNo)
+                            }
                           >
                             <Download className="mr-2 h-4 w-4" /> Download JCR
                             PDF
