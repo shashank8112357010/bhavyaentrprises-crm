@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--http-timeout=60000 --http-keep-alive-timeout=30000' next dev",
-    "build": "NODE_OPTIONS='--http-timeout=60000 --http-keep-alive-timeout=30000' next build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
