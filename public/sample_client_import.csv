@@ -1,2 +1,2 @@
-Name,Type,TotalBranches,ContactPerson,ContactEmail,ContactPhone,ContractStatus,LastServiceDate,GSTN
-Example Inc,Bank,5,John Doe,john.doe@example.com,1234567890,Active,2023-10-26,29AABCU9560F0Z5
+Name,Type,TotalBranches,ContactPerson,ContactEmail,ContactPhone,ContractStatus,LastServiceDate,GSTN,State
+Example Inc,Bank,5,John Doe,john.doe@example.com,1234567890,Active,2023-10-26,29AABCU9560F0Z5,chandigarh

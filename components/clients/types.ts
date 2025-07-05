@@ -14,6 +14,7 @@ export interface Client {
   avatar?: string;
   gstn: string;
   initials: string;
+  state?: string;
 }
 
 export interface CreateClientPayload {
@@ -27,4 +28,5 @@ export interface CreateClientPayload {
   lastServiceDate: string;
   avatar?: string;
   initials: string;
+  state?: string;
 }

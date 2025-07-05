@@ -1,7 +1,7 @@
 // pages/api/tickets/create.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createTicketSchema } from "@/lib/validations/ticketSchema";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { createTicketAssignmentNotification } from "@/lib/services/notification-helpers";
 import { sendTicketAssignmentEmail } from "@/lib/services/email-notification";
 

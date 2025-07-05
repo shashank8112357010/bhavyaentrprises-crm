@@ -95,13 +95,13 @@ export default function ExpensesPage() {
     setLoading(true);
     setError(null);
     try {
-      const response: PaginatedExpensesResponse = await getAllExpenses({
+      const response = await getAllExpenses({
         page: page + 1, // API is 1-based
         limit: itemsPerPage,
         searchQuery: debouncedSearchQuery,
       });
-      setExpenses(response.expenses || []);
-      setTotalCount(response.pagination.total || 0);
+      setExpenses((response as any).data || []);
+      setTotalCount((response as any).total || 0);
     } catch (err: any) {
       console.error("Error fetching expenses:", err);
       setError(err.message || "Failed to fetch expenses.");

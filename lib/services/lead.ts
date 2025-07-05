@@ -1,4 +1,4 @@
-import axios from "@/lib/axios";
+import APIService from "@/lib/services/api-service";
 
 // ------------ 1. Create Lead --------------
 export interface CreateLeadPayload {
@@ -13,30 +13,12 @@ export interface CreateLeadPayload {
 }
 
 export async function createLead(payload: CreateLeadPayload) {
-  try {
-    const response = await axios.post("/lead/create-lead", payload, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to create lead.";
-    throw new Error(message);
-  }
+  return APIService.createLead(payload);
 }
 
 // ------------ 2. Get All Leads --------------
 export async function getAllLeads() {
-  try {
-    const response = await axios.get("/lead", {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to fetch leads.";
-    throw new Error(message);
-  }
+  return APIService.getLeads();
 }
 
 // ------------ 3. Reassign Lead --------------
@@ -46,14 +28,10 @@ export interface ReassignLeadPayload {
 }
 
 export async function reassignLead(payload: ReassignLeadPayload) {
-  try {
-    const response = await axios.patch("/lead/reassign", payload, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to reassign lead.";
-    throw new Error(message);
-  }
+  return APIService.reassignLead(payload);
 }
+
+// Wrapper exports for consistency with APIService pattern
+export const getLeads = () => APIService.getLeads();
+export const createLeadViaAPI = (data: any) => APIService.createLead(data);
+export const reassignLeadViaAPI = (data: any) => APIService.reassignLead(data);

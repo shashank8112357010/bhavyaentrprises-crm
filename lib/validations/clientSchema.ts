@@ -23,6 +23,7 @@ export const createClientSchema = z.object({
   }),
   avatar: z.string().optional(),
   initials: z.string().optional().default(""),
+  state: z.string().optional(),
 });
 
 export const updateClientSchema = z.object({
@@ -50,4 +51,5 @@ export const updateClientSchema = z.object({
     .optional(),
   avatar: z.string().optional(),
   initials: z.string().optional(),
+  state: z.string().optional(),
 });

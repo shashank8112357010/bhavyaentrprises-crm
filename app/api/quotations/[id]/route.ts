@@ -1,12 +1,17 @@
 // app/api/quotation/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
 import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 // Define the schema for rateCardDetails item
 const rateCardDetailItemSchema = z.object({

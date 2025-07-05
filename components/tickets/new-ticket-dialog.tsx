@@ -30,7 +30,7 @@ const formatDate = (date: Date) => date.toISOString().split("T")[0];
 export default function NewTicketDialog() {
   const [open, setOpen] = useState(false);
   const { agents, fetchAllAgents } = useAgentStore();
-  const { clients, fetchClients } = useClientStore();
+  const { allClients: clients, fetchClients } = useClientStore();
   const { createTicket } = useTicketStore();
   const { toast } = useToast();
 

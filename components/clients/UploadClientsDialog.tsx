@@ -61,9 +61,9 @@ export function UploadClientsDialog({ onUploadComplete }: UploadClientsDialogPro
       const response = await importClientsFromExcel(file);
       // Expected response: { message: string, successCount: number, skippedCount: number, errorCount: number, errors: Array<{ row: number, name?: string, error: string|object }> }
 
-      const successCount = response.successCount || 0;
-      const skippedCount = response.skippedCount || 0;
-      const errorCount = response.errorCount || 0;
+      const successCount = (response as any).successCount || 0;
+      const skippedCount = (response as any).skippedCount || 0;
+      const errorCount = (response as any).errorCount || 0;
 
       let toastDescription = `Successfully imported ${successCount} clients.`;
       if (skippedCount > 0) {
@@ -71,7 +71,7 @@ export function UploadClientsDialog({ onUploadComplete }: UploadClientsDialogPro
       }
       if (errorCount > 0) {
         toastDescription += ` ${errorCount} row${errorCount > 1 ? 's' : ''} had errors.`;
-        console.error("Client Import Errors:", response.errors);
+        console.error("Client Import Errors:", (response as any).errors);
          // Optionally, display some errors in the dialog or a more detailed toast
         // For now, logging to console as per plan.
       }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { createClientSchema } from "@/lib/validations/clientSchema";
 import Papa from "papaparse";
 
@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
         lastServiceDate: lastServiceDateRaw,
         gstn: String(row.GSTN || "").trim() || undefined,
         initials: String(row.Initials || generateInitials(name)).trim() || "",
+        state: String(row.State || "chandigarh").trim() || "chandigarh",
       };
 
       const validationResult = createClientSchema.safeParse(clientData);

@@ -79,9 +79,9 @@ export default function RateCardPage() {
         searchQuery: debouncedSearchQuery,
       };
 
-      const response: PaginatedResponse = await getAllRateCards(params);
+      const response = await getAllRateCards(params);
 
-      setRateCards(response.data || []);
+      setRateCards((response.data as RateCard[]) || []);
       setTotalCount(response.total || 0);
     } catch (err: any) {
       const errorMessage = err.message || "Failed to load rate cards";

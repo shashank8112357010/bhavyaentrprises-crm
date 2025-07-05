@@ -1,4 +1,4 @@
-import axios from "@/lib/axios";
+import APIService from "@/lib/services/api-service";
 import { verify } from "jsonwebtoken";
 
 export interface LoginPayload {
@@ -16,11 +16,7 @@ export interface TokenPayload {
 
 export async function login(payload: LoginPayload) {
   try {
-    const response = await axios.post("/login", payload, {
-      withCredentials: true, // ✅ important for setting HttpOnly cookies
-      maxRedirects: 0, // ✅ disable auto-following redirects
-      validateStatus: (status) => status < 400 || status === 302, // allow manual redirect
-    });
+    const response = await APIService.login(payload);
 
     // If the backend redirects manually (e.g., via 302), do it on client
     if (response.status === 302) {
@@ -39,9 +35,7 @@ export async function login(payload: LoginPayload) {
 
 export async function logout() {
   try {
-    await axios.get("/logout", {
-      withCredentials: true, // Required to clear HttpOnly cookie
-    });
+    await APIService.logout();
 
     // Optional: Clear any localStorage/sessionStorage
     if (typeof window !== "undefined") {

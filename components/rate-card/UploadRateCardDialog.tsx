@@ -63,7 +63,7 @@ export function UploadRateCardDialog({ onUploadSuccess }: UploadRateCardProps) {
       setIsUploading(true);
       setError(null);
 
-      const response: UploadResponse = await createRateCard(file);
+      const response = await createRateCard(file) as UploadResponse;
 
       const { successCount, duplicateCount } = response;
 

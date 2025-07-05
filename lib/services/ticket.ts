@@ -1,6 +1,5 @@
 // lib/services/ticket.ts
-import axios from "../axios";
-
+import APIService from "@/lib/services/api-service";
 import type { Comment, CommentUser } from "@/types/comment";
 
 
@@ -145,15 +144,7 @@ interface CreateTicketInput {
 }
 
 export async function createTicket(payload: CreateTicketInput) {
-  try {
-    const response = await axios.post("/ticket/create-ticket", payload, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to create ticket.";
-    throw new Error(message);
-  }
+  return APIService.createTicket(payload);
 }
 
 export interface TicketForSelection {
@@ -163,23 +154,8 @@ export interface TicketForSelection {
 }
 
 export async function getTicketsForSelection(): Promise<TicketForSelection[]> {
-  try {
-    const response = await axios.get("/tickets/selection", {
-      // Using /api prefix implicitly from axios config
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data.tickets || response.data;
-  } catch (error: any) {
-    console.error("Error fetching tickets for selection:", error);
-    const message =
-      error.response?.data?.error || "Failed to fetch tickets for selection.";
-    throw new Error(message);
-  }
+  const response = await APIService.getTicketsForSelection();
+  return (response as any).tickets || response;
 }
 
 export async function getAllTickets(filters?: {
@@ -189,29 +165,7 @@ export async function getAllTickets(filters?: {
   role?: string;
   userId?: string;
 }) {
-  try {
-    const params = new URLSearchParams();
-
-    if (filters?.status) params.append("status", filters.status);
-    if (filters?.startDate) params.append("startDate", filters.startDate);
-    if (filters?.endDate) params.append("endDate", filters.endDate);
-    if (filters?.role) params.append("role", filters.role);
-    if (filters?.userId) params.append("userId", filters.userId);
-
-    const response = await axios.get(`/ticket?${params.toString()}`, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch tickets.";
-    throw new Error(message);
-  }
+  return APIService.getAllTickets(filters || {});
 }
 
 export async function exportTicketsToExcel(filters: {
@@ -220,17 +174,9 @@ export async function exportTicketsToExcel(filters: {
   endDate: string;
 }) {
   try {
-    const params = new URLSearchParams();
-    if (filters.status) params.append("status", filters.status);
-    params.append("startDate", filters.startDate);
-    params.append("endDate", filters.endDate);
+    const response = await APIService.exportTicketsToExcel(filters);
 
-    const response = await axios.get(`/ticket/export?${params.toString()}`, {
-      withCredentials: true,
-      responseType: "blob",
-    });
-
-    const blob = new Blob([response.data], {
+    const blob = new Blob([response as BlobPart], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
@@ -244,82 +190,25 @@ export async function exportTicketsToExcel(filters: {
     link.click();
     document.body.removeChild(link);
   } catch (error: any) {
-    const message =
-      error.response?.data?.message || "Failed to export tickets.";
+    const message = error.response?.data?.message || "Failed to export tickets.";
     throw new Error(message);
   }
 }
 
 export async function deleteTicket(id: string) {
-  try {
-    const response = await axios.delete(`/ticket/${id}`, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to delete ticket.";
-    throw new Error(message);
-  }
+  return APIService.deleteTicket(id);
 }
 
 export async function getTicketById(id: string) {
-  try {
-    const response = await axios.get(`/ticket/${id}`, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch ticket.";
-    throw new Error(message);
-  }
+  return APIService.getTicketById(id);
 }
 
 export async function updateTicketStatus(id: string, status: Status) {
-  try {
-    const response = await axios.patch(
-      `/ticket/${id}`,
-      { status },
-      {
-        withCredentials: true,
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      },
-    );
-    return response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to update ticket status.";
-    throw new Error(message);
-  }
+  return APIService.updateTicketStatus(id, status);
 }
 
 export async function updateTicket(updatedTicket: any) {
-  try {
-    const response = await axios.patch(
-      `/ticket/${updatedTicket.id}`,
-      updatedTicket,
-      {
-        withCredentials: true,
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      },
-    );
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to update ticket.";
-    throw new Error(message);
-  }
+  return APIService.updateTicket(updatedTicket.id, updatedTicket);
 }
 
 /**
@@ -331,15 +220,7 @@ export async function getComments(id: string) {
   if (!id) {
     throw new Error("Ticket ID is required to fetch comments.");
   }
-  try {
-    const response = await axios.get(`/ticket/${id}/comment`);
-    return response.data;
-  } catch (error: any) {
-    console.error("Error fetching comments:", error);
-    const message =
-      error.response?.data?.message || "Failed to fetch comments.";
-    throw new Error(message);
-  }
+  return APIService.getComments(id);
 }
 
 /**
@@ -353,15 +234,12 @@ export async function addComment(id: string, text: string, userId: string) {
   if (!id || !text || !userId) {
     throw new Error("Ticket ID, comment text, and user ID are required.");
   }
-  try {
-    const response = await axios.post(`/ticket/${id}/comment`, {
-      text,
-      userId,
-    });
-    return response.data;
-  } catch (error: any) {
-    console.error("Error adding comment:", error);
-    const message = error.response?.data?.message || "Failed to add comment.";
-    throw new Error(message);
-  }
+  return APIService.addComment(id, text, userId);
 }
+
+// Wrapper exports for consistency with APIService pattern
+export const getTickets = (params: any) => APIService.getTickets(params);
+export const createTicketViaAPI = (data: any) => APIService.createTicket(data);
+export const updateTicketViaAPI = (id: string, data: any) => APIService.updateTicket(id, data);
+export const deleteTicketViaAPI = (id: string) => APIService.deleteTicket(id);
+export const getTicketByIdViaAPI = (id: string) => APIService.getTicketById(id);

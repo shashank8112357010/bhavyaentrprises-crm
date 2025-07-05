@@ -1,8 +1,13 @@
 // app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
-import { prisma } from '@/lib/prisma';
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { User } from '@/store/authStore'; // Assuming User type is exported or can be defined here
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
 

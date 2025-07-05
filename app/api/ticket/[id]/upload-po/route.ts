@@ -1,6 +1,6 @@
 // app/api/ticket/[id]/upload-po/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import fs from "fs/promises";
 import path from "path";
 

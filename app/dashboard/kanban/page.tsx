@@ -61,7 +61,7 @@ export default function KanbanPage() {
     fetchTicketById,
   } = useTicketStore();
   const { agents, fetchAllAgents } = useAgentStore();
-  const { clients, fetchClients } = useClientStore();
+  const { allClients: clients, fetchClients } = useClientStore();
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState<string>("");

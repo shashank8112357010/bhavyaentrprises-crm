@@ -202,18 +202,9 @@ export default function NewQuotationPage() {
           serviceError
         );
 
-        // Fallback to direct fetch
-        const response = await getAllTickets()
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `HTTP ${response.status}: ${response.statusText} - ${errorText}`
-          );
-        }
-
-        const data = await response.json();
-        tickets = data.tickets || data;
+        // Fallback to direct fetch using getAllTickets service
+        const data = await getAllTickets();
+        tickets = (data as any).tickets || data;
       }
 
       setTicketsForSelection(tickets || []);
@@ -245,7 +236,7 @@ export default function NewQuotationPage() {
           limit: 3,
           searchQuery,
         });
-        setRateCards(response.data || []);
+        setRateCards((response.data as RateCard[]) || []);
       } catch (error) {
         console.error("Error fetching rate cards:", error);
         toast({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/prisma';
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { getQuotationById } from "@/lib/services/quotations";
 import { getTicketById } from "@/lib/services/ticket";
 import { renderFile } from "ejs";
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch quotation and related ticket
-    const quotation = await getQuotationById(quotationId);
+    const quotation: any = await getQuotationById(quotationId);
     if (!quotation) {
       return NextResponse.json({ error: "Quotation not found" }, { status: 404 });
     }
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
           gstPercentage: item.gstPercentage || rcDetail.gstPercentage || '',
         };
       }),
-      ticketTitle: ticket?.title || "",
+      ticketTitle: (ticket as any)?.title || "",
     };
 
 

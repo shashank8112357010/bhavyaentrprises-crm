@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcryptjs from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parse } from "csv-parse/sync";
 import { rateCardSchema } from "@/lib/validations/rateCardSchema";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
 

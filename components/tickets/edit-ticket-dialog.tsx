@@ -64,7 +64,7 @@ export default function EditTicketDialog({
   onOpenChange,
 }: EditTicketDialogProps) {
   const { agents, fetchAgents } = useAgentStore();
-  const { clients, fetchClients } = useClientStore();
+  const { allClients: clients, fetchClients } = useClientStore();
   const { updateTicket } = useTicketStore();
   const { toast } = useToast();
   const [formData, setFormData] = useState<EditTicketInput>({

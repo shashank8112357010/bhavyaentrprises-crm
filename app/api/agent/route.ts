@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { prisma } from "@/lib/prisma"; // Added Prisma import for types
+import { prismaWithReconnect as prisma } from "@/lib/prisma"; // Added Prisma import for types
 import { Prisma } from "@prisma/client";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET /api/agents
 export async function GET(req: NextRequest) {
@@ -15,7 +19,8 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     let where: Prisma.UserWhereInput = {
-      role: { in: ["BACKEND", "RM", "MST", "ACCOUNTS"] },
+      role: { in: ["ADMIN", "BACKEND", "RM", "MST", "ACCOUNTS"] },
+      status: "ACTIVE",
     };
 
     if (search) {

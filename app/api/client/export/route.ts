@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import ExcelJS from "exceljs";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 
 
 

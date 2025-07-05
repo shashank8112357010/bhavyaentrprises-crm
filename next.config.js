@@ -1,3 +1,6 @@
+// Import process handler to fix SIGINT error
+require('./lib/process-handler.js');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {

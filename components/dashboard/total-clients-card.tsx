@@ -1,30 +1,17 @@
 // components/dashboard/total-clients-card.tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 import { useClientStore } from "@/store/clientStore";
+import { useDashboardStore } from "@/store/dashboardStore";
 
 export default function TotalClientsCard() {
-  const { clients, fetchClients } = useClientStore();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadClients = async () => {
-      try {
-        await fetchClients();
-      } catch (error) {
-        console.error("Failed to fetch clients:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadClients();
-  }, [fetchClients]);
-
-  const totalClients = clients.length;
+  const { allClients: clients, loading } = useClientStore();
+  const { data: dashboardData } = useDashboardStore();
+  
+  // Use counts from dashboard data API if available, otherwise fallback to client store count
+  const totalClients = dashboardData?.counts?.totalClients ?? clients.length;
   const activeClients = clients.filter(
     (client) => client.contractStatus?.toLowerCase() === "active",
   ).length;

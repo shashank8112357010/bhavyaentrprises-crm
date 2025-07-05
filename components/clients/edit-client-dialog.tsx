@@ -43,6 +43,7 @@ interface Client {
   initials: string;
   activeTickets?: number;
   gstn?: string;
+  state?: string;
   tickets: any[];
 }
 
@@ -72,6 +73,7 @@ export function EditClientDialog({
     contractStatus: "Active",
     lastServiceDate: "",
     gstn: "",
+    state: "chandigarh",
   });
 
   // Update form data when client changes
@@ -87,6 +89,7 @@ export function EditClientDialog({
         contractStatus: client.contractStatus || "Active",
         lastServiceDate: client.lastServiceDate || "",
         gstn: client.gstn || "",
+        state: client.state || "chandigarh",
       });
     }
   }, [client]);
@@ -238,6 +241,16 @@ export function EditClientDialog({
                 value={formData.gstn}
                 onChange={(e) => handleInputChange("gstn", e.target.value)}
                 placeholder="Enter GSTN"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => handleInputChange("state", e.target.value)}
+                placeholder="Enter state"
               />
             </div>
 

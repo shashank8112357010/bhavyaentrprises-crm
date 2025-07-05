@@ -1,7 +1,7 @@
 // app/api/quotation/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { quotationSchema } from "@/lib/validations/quotationSchema";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import path from "path";
@@ -41,6 +41,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         message: "Missing required fields: name, clientId, client, and rateCardDetails (non-empty) are required."
       }, { status: 400 });
+    }
+
+    // Check if ticket already has a quotation (only one quotation per ticket allowed)
+    if (ticketId) {
+      const existingQuotation = await prisma.quotation.findFirst({
+        where: { ticketId },
+      });
+      
+      if (existingQuotation) {
+        return NextResponse.json({
+          message: "A quotation already exists for this ticket. Only one quotation per ticket is allowed.",
+          existingQuotationId: existingQuotation.id,
+          existingQuoteNo: existingQuotation.quoteNo
+        }, { status: 409 }); // 409 Conflict
+      }
     }
 
     // If all totals are provided, use them. Otherwise, calculate from rateCardDetails.

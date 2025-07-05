@@ -1,7 +1,12 @@
 // app/api/notifications/count/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { jwtVerify } from "jose";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "your-secret-key",

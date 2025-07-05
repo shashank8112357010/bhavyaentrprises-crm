@@ -1,5 +1,5 @@
 // lib/services/quotations.ts
-import axios from "@/lib/axios";
+import APIService from "@/lib/services/api-service";
 
 interface RateCardDetail {
   rateCardId: string;
@@ -46,67 +46,27 @@ interface GetAllQuotationsParams {
 }
 
 export async function createQuotation(params: CreateQuotationParams) {
-  try {
-    const response = await axios.post("/quotations/create-quotations", params, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    console.error("Quotation Creation Error:", error);
-    const message =
-      error.response?.data?.message || "Failed to create quotation.";
-    throw new Error(message);
-  }
+  return APIService.createQuotation(params);
 }
 
 export async function updateQuotation(id: string, data: UpdateQuotationParams) {
-  try {
-    const response = await axios.put(`/quotations/${id}`, data, {
-      withCredentials: true,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data;
-  } catch (error: any) {
-    console.error("Quotation Update Error:", error);
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      "Failed to update quotation.";
-    throw new Error(message);
-  }
+  return APIService.updateQuotation(id, data);
 }
 
 export async function getAllQuotations(params: GetAllQuotationsParams = {}) {
-  try {
-    const { page = 1, limit = 10, searchQuery = "" } = params;
-
-    const response = await axios.get("/quotations", {
-      withCredentials: true,
-      params: { page, limit, search: searchQuery },
-    });
-
-    return response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to fetch quotations.";
-    throw new Error(message);
-  }
+  return APIService.getQuotations({
+    page: params.page,
+    limit: params.limit,
+    search: params.searchQuery
+  });
 }
 
 // Optional: Fetch single
 export async function getQuotationById(id: string) {
-  try {
-    const response = await axios.get(`/quotations/${id}`, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch quotation.";
-    throw new Error(message);
-  }
+  return APIService.getQuotationById(id);
 }
+
+// Wrapper exports for consistency with APIService pattern
+export const getQuotations = (params: any) => APIService.getQuotations(params);
+export const createQuotationViaAPI = (data: any) => APIService.createQuotation(data);
+export const updateQuotationViaAPI = (id: string, data: any) => APIService.updateQuotation(id, data);

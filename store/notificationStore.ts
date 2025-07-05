@@ -10,6 +10,7 @@ import {
   type NotificationFilters,
   type CreateNotificationInput,
 } from "@/lib/services/notification";
+import APIService from "@/lib/services/api-service";
 
 interface NotificationState {
   notifications: Notification[];
@@ -30,6 +31,7 @@ interface NotificationState {
   markAllAsRead: () => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
   addNotification: (data: CreateNotificationInput) => Promise<Notification>;
+  forceRefresh: () => Promise<void>;
 
   // UI State management
   setCurrentPage: (page: number) => void;
@@ -125,36 +127,65 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   markAsRead: async (notificationId: string) => {
+    // Optimistically update local state first
+    set((state) => ({
+      notifications: state.notifications.map((notification) =>
+        notification.id === notificationId
+          ? { ...notification, isRead: true }
+          : notification,
+      ),
+      unreadCount: Math.max(0, state.unreadCount - 1),
+    }));
+    
     try {
+      // Then make the API call
       await markNotificationAsRead(notificationId);
-
+      
+      // Clear cache after successful API call
+      APIService.clearCache('/notifications');
+      APIService.clearCache('/notifications/count');
+    } catch (error: any) {
+      // Rollback optimistic update on error
       set((state) => ({
         notifications: state.notifications.map((notification) =>
           notification.id === notificationId
-            ? { ...notification, isRead: true }
+            ? { ...notification, isRead: false }
             : notification,
         ),
-        unreadCount: Math.max(0, state.unreadCount - 1),
+        unreadCount: state.unreadCount + 1,
+        error: error.message || "Failed to mark notification as read",
       }));
-    } catch (error: any) {
-      set({ error: error.message || "Failed to mark notification as read" });
       throw error;
     }
   },
 
   markAllAsRead: async () => {
+    // Store previous state for rollback
+    const previousState = get();
+    const previousNotifications = [...previousState.notifications];
+    const previousUnreadCount = previousState.unreadCount;
+    
+    // Optimistically update local state first
+    set((state) => ({
+      notifications: state.notifications.map((notification) => ({
+        ...notification,
+        isRead: true,
+      })),
+      unreadCount: 0,
+    }));
+    
     try {
+      // Then make the API call
       await markAllNotificationsAsRead();
-
-      set((state) => ({
-        notifications: state.notifications.map((notification) => ({
-          ...notification,
-          isRead: true,
-        })),
-        unreadCount: 0,
-      }));
+      
+      // Clear cache after successful API call
+      APIService.clearCache('/notifications');
+      APIService.clearCache('/notifications/count');
     } catch (error: any) {
+      // Rollback optimistic update on error
       set({
+        notifications: previousNotifications,
+        unreadCount: previousUnreadCount,
         error: error.message || "Failed to mark all notifications as read",
       });
       throw error;
@@ -162,35 +193,51 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   deleteNotification: async (notificationId: string) => {
+    // Store notification for rollback
+    const state = get();
+    const notificationToDelete = state.notifications.find(
+      (n) => n.id === notificationId,
+    );
+    const wasUnread = notificationToDelete && !notificationToDelete.isRead;
+    
+    // Optimistically update local state first
+    set((state) => ({
+      notifications: state.notifications.filter(
+        (n) => n.id !== notificationId,
+      ),
+      unreadCount: wasUnread
+        ? Math.max(0, state.unreadCount - 1)
+        : state.unreadCount,
+      totalNotifications: Math.max(0, state.totalNotifications - 1),
+    }));
+    
     try {
+      // Then make the API call
       await deleteNotification(notificationId);
-
-      set((state) => {
-        const notificationToDelete = state.notifications.find(
-          (n) => n.id === notificationId,
-        );
-        const wasUnread = notificationToDelete && !notificationToDelete.isRead;
-
-        return {
-          notifications: state.notifications.filter(
-            (n) => n.id !== notificationId,
-          ),
-          unreadCount: wasUnread
-            ? Math.max(0, state.unreadCount - 1)
-            : state.unreadCount,
-          totalNotifications: Math.max(0, state.totalNotifications - 1),
-        };
-      });
+      
+      // Clear cache after successful API call
+      APIService.clearCache('/notifications');
+      APIService.clearCache('/notifications/count');
     } catch (error: any) {
-      set({ error: error.message || "Failed to delete notification" });
+      // Rollback optimistic update on error
+      if (notificationToDelete) {
+        set((state) => ({
+          notifications: [...state.notifications, notificationToDelete],
+          unreadCount: wasUnread ? state.unreadCount + 1 : state.unreadCount,
+          totalNotifications: state.totalNotifications + 1,
+          error: error.message || "Failed to delete notification",
+        }));
+      }
       throw error;
     }
   },
 
   addNotification: async (data: CreateNotificationInput) => {
     try {
+      // Make API call first for creation
       const newNotification = await createNotification(data);
-
+      
+      // Update local state after successful API call
       set((state) => ({
         notifications: [newNotification, ...state.notifications].slice(
           0,
@@ -200,6 +247,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         totalNotifications: state.totalNotifications + 1,
         isSystemAvailable: true,
       }));
+      
+      // Clear cache after successful API call
+      APIService.clearCache('/notifications');
+      APIService.clearCache('/notifications/count');
 
       return newNotification;
     } catch (error: any) {
@@ -256,5 +307,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       set({ isSystemAvailable: !isTableMissing });
       return !isTableMissing;
     }
+  },
+  
+  // Force refresh to bypass cache
+  forceRefresh: async () => {
+    APIService.clearCache('/notifications');
+    APIService.clearCache('/notifications/count');
+    const state = get();
+    await state.fetchNotifications();
+    await state.fetchUnreadCount();
   },
 }));

@@ -29,6 +29,8 @@ import UpcomingSchedule from "@/components/dashboard/upcoming-schedule";
 import { useTicketStore } from "@/store/ticketStore";
 import { useClientStore } from "@/store/clientStore";
 import { useAgentStore } from "@/store/agentStore";
+import { useDashboardStore } from "@/store/dashboardStore";
+import { usePerformanceStore } from "@/store/performanceStore";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import TotalAgentsCard from "@/components/dashboard/total-agents-card";
@@ -61,8 +63,6 @@ const ProfitLossChart = dynamic(() => import('./finances/ProfitLossChart'), { ss
 
 export default function Home() {
   const {
-    fetchTickets,
-    fetchDashboardCounts,
     openTicketsCount,
     scheduledTodayCount,
     clientUpdatesNeededCount,
@@ -70,9 +70,10 @@ export default function Home() {
     isLoadingDashboardCounts,
   } = useTicketStore();
 
-  const { fetchClients } = useClientStore();
-  const { agents: agentListFromStore, fetchAgents } = useAgentStore(); 
+  const { agents: agentListFromStore } = useAgentStore(); 
   const { user, isLoading: isAuthLoading } = useAuthStore();
+  const { fetchDashboardData, loading: dashboardLoading, error: dashboardError } = useDashboardStore();
+  const { getAgentPerformance } = usePerformanceStore();
 
   // Performance Card State
   const [selectedAgentIdForPerformance, setSelectedAgentIdForPerformance] = useState<string | null>(null);
@@ -90,14 +91,8 @@ export default function Home() {
   useEffect(() => {
     const loadInitialData = async () => {
       if (!isAuthLoading && user) {
-        // Common data for all logged-in users
-        await fetchTickets();
-        await fetchDashboardCounts();
-
-        if (isAdminOrAccounts) {
-          await fetchClients();
-          await fetchAgents(); // Fetches agents for the dropdown if admin
-        }
+        // Single optimized API call to fetch all dashboard data
+        await fetchDashboardData();
 
         // Setup for performance card
         if (isAdmin && user.id) {
@@ -110,7 +105,7 @@ export default function Home() {
       }
     };
     loadInitialData();
-  }, [user, isAuthLoading, fetchTickets, fetchDashboardCounts, fetchClients, fetchAgents, isAdmin, isAgent, isAdminOrAccounts]);
+  }, [user, isAuthLoading, fetchDashboardData, isAdmin, isAgent]);
 
 
   // Fetch performance data when selectedAgentIdForPerformance changes
@@ -120,12 +115,7 @@ export default function Home() {
         setIsPerformanceLoading(true);
         setPerformanceError(null);
         try {
-          const response = await fetch(`/api/performance/agent/${selectedAgentIdForPerformance}`);
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Failed to fetch performance: ${response.statusText}`);
-          }
-          const data: PerformanceData = await response.json();
+          const data = await getAgentPerformance(selectedAgentIdForPerformance, { forceRefresh: false });
           setAgentPerformanceData(data);
         } catch (err: any) {
           setPerformanceError(err.message);
@@ -139,7 +129,7 @@ export default function Home() {
       // Clear performance data if no agent is selected (e.g. admin hasn't selected one yet)
       setAgentPerformanceData(null);
     }
-  }, [selectedAgentIdForPerformance]);
+  }, [selectedAgentIdForPerformance, getAgentPerformance]);
 
 
   const handleAgentSelectionChange = (agentId: string) => {

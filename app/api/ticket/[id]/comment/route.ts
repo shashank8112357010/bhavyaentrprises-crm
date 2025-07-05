@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { createTicketCommentNotification } from "@/lib/services/notification-helpers";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 // Schema for validating comment creation
 const createCommentSchema = z.object({

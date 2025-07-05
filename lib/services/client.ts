@@ -1,4 +1,4 @@
-import axios from "@/lib/axios";
+import APIService from "@/lib/services/api-service";
 import { Client } from "@/components/clients/types"; // Assuming this type is suitable
 import Papa from "papaparse";
 
@@ -15,38 +15,18 @@ export interface CreateClientPayload {
   avatar?: string;
   initials: string;
   activeTickets?: number;
+  state?: string;
 }
 
 export async function createClient(payload: CreateClientPayload) {
-  try {
-    const response = await axios.post("/client", payload, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to create lead.";
-    throw new Error(message);
-  }
+  return APIService.createClient(payload);
 }
 
 // ------------ 7. Import Clients from Excel --------------
 export async function importClientsFromExcel(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-
-  try {
-    const response = await axios.post("/client/import", formData, {
-      withCredentials: true,
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data; // Contains { message, successCount, skippedCount, errorCount, errors }
-  } catch (error: any) {
-    console.error("Error importing clients from Excel:", error);
-    const message = error.response?.data?.error || "Failed to import clients from Excel. Please try again or check the file format.";
-    throw new Error(message);
-  }
+  return APIService.importClientsFromExcel(formData);
 }
 
 // ------------ 2. Get All Lead --------------
@@ -58,73 +38,29 @@ interface GetAllClientsParams {
 }
 
 export async function getAllClients(params: GetAllClientsParams = {}) {
-  try {
-    const { page = 1, limit = "", searchQuery = "" } = params;
-
-    const response = await axios.get("/client", {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-      params: {
-        page,
-        limit,
-        search: searchQuery,
-      },
-    });
-
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch clients.";
-    throw new Error(message);
-  }
+  const response = await APIService.getClients({
+    page: params.page,
+    limit: params.limit,
+    search: params.searchQuery,
+    type: params.type
+  });
+  
+  // Ensure compatibility with existing interface - map data to clients
+  return {
+    ...response,
+    clients: response.data
+  };
 }
 
 export async function updateClient(id: string, updatedAgent: Client) {
-  try {
-    const response = await axios.patch(`/agent/${id}`, updatedAgent, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch agent.";
-    throw new Error(message);
-  }
+  return APIService.updateClient(id, updatedAgent);
 }
 export async function deleteClient(id: string) {
-  try {
-    const response = await axios.delete(`/agent/${id}`, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to delete agent.";
-    throw new Error(message);
-  }
+  return APIService.deleteClient(id);
 }
 
 export async function getClientById(id: string) {
-  try {
-    const response = await axios.get(`/agent/${id}`, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch agent.";
-    throw new Error(message);
-  }
+  return APIService.getClientById(id);
 }
 
 // ------------ 6. Export Clients to CSV --------------
@@ -133,7 +69,7 @@ export async function exportClientsToCsv() {
     // Fetch all clients - modify params if your getAllClients needs specific ones for all data
     const response = await getAllClients({ limit: Number.MAX_SAFE_INTEGER, page: 1 });
 
-    const clientsToExport = response.clients.map((client: Client) => ({
+    const clientsToExport = (response.clients as Client[]).map((client: Client) => ({
       Name: client.name,
       Type: client.type,
       TotalBranches: client.totalBranches,
@@ -146,6 +82,7 @@ export async function exportClientsToCsv() {
         : "", // Handle if date can be null/undefined
       GSTN: client.gstn || "", // Ensure GSTN is string, provide empty if null/undefined
       Initials: client.initials,
+      State: client.state || "",
     }));
 
     const csvString = Papa.unparse(clientsToExport, {
@@ -172,3 +109,10 @@ export async function exportClientsToCsv() {
     throw new Error(error.message || "Failed to export clients to CSV.");
   }
 }
+
+// Wrapper exports for consistency with APIService pattern
+export const getClients = (params: any) => APIService.getClients(params);
+export const createClientViaAPI = (data: any) => APIService.createClient(data);
+export const updateClientViaAPI = (id: string, data: any) => APIService.updateClient(id, data);
+export const deleteClientViaAPI = (id: string) => APIService.deleteClient(id);
+export const getClientByIdViaAPI = (id: string) => APIService.getClientById(id);

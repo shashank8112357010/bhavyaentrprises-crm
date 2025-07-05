@@ -1,7 +1,12 @@
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 export async function GET(req: NextRequest) {
   try {

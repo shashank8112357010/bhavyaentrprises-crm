@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import {
   createClientSchema,
   updateClientSchema,
 } from "@/lib/validations/clientSchema";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 const ITEMS_PER_PAGE = 10;
 
 export async function POST(req: Request) {
@@ -69,6 +72,7 @@ export async function POST(req: Request) {
           .map((n) => n[0])
           .join("")
           .toUpperCase(),
+      state: clientData.state || "chandigarh", // Default state to chandigarh
     };
 
 

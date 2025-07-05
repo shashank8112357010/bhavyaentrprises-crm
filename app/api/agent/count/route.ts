@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@/lib/prisma';
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 
 
 export async function GET(req: NextRequest) {

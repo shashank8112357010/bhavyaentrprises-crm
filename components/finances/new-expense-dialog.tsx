@@ -83,7 +83,7 @@ export function NewExpenseDialog({
     async function fetchAllQuotations() {
       try {
         // This limit might need to be adjusted if users have many quotations
-        const data = await getAllQuotations({ limit: 100, searchQuery: "" });
+        const data: any = await getAllQuotations({ limit: 100, searchQuery: "" });
         setQuotationsToDisplay(data.quotations || []);
       } catch (error) {
         toast({

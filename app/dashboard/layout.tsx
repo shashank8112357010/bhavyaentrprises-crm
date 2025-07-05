@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import { AuthInitializer } from "@/components/auth/AuthInitializer"; // Import
+import { StoreHydrator } from "@/components/hydration/StoreHydrator";
+import { preloadCommonData, serializePreloadedData } from "@/lib/server/preload-data";
+import Script from "next/script";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -18,11 +21,15 @@ export const metadata: Metadata = {
   description: "Banking and NBFC repair and maintenance lead tracker",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Server-side data preloading
+  const preloadedData = await preloadCommonData();
+  const serializedData = serializePreloadedData(preloadedData);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -31,6 +38,13 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
+        {/* Embed preloaded data for client-side hydration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__PRELOADED_DATA__ = ${serializedData};`,
+          }}
+        />
+        
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -38,16 +52,18 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthInitializer>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 p-4 md:p-6 h-[calc(100vh-5rem)] overflow-y-auto">
-                  {children}
-                </main>
+            <StoreHydrator>
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <div className="flex flex-1">
+                  <Sidebar />
+                  <main className="flex-1 p-4 md:p-6 h-[calc(100vh-5rem)] overflow-y-auto">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
-            <ClientToaster />
+              <ClientToaster />
+            </StoreHydrator>
           </AuthInitializer>
         </ThemeProvider>
       </body>

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import { generateQuotationPdf } from "@/lib/pdf/generateQuotationHtml";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 const previewPdfSchema = z.object({
   name: z.string(),

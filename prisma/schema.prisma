@@ -67,6 +67,7 @@ model User {
   @@index([role])
   @@index([department])
   @@index([createdAt])
+  @@index([role, status])
 }
 
 model RateCard {
@@ -104,6 +105,7 @@ model Quotation {
   @@index([clientId])
   @@index([ticketId])
   @@index([createdAt])
+  @@unique([ticketId])
 }
 
 model Client {
@@ -120,12 +122,14 @@ model Client {
   avatar          String?
   initials        String
   gstn            String?
+  state           String?
   tickets         Ticket[]
   Quotation       Quotation[]
 
   @@index([type])
   @@index([contactEmail])
   @@index([contactPhone])
+  @@index([name])
 }
 
 model Expense {
@@ -187,6 +191,9 @@ model Ticket {
   @@index([clientId])
   @@index([createdAt])
   @@index([completedDate])
+  @@index([scheduledDate])
+  @@index([status, assigneeId])
+  @@index([feedback, status])
 }
 
 model Comment {

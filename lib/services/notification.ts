@@ -1,5 +1,5 @@
 // lib/services/notification.ts
-import axios from "../axios";
+import APIService from "@/lib/services/api-service";
 
 export type NotificationType =
   | "TICKET_ASSIGNED"
@@ -50,31 +50,11 @@ export async function getUserNotifications(
   unreadCount: number;
 }> {
   try {
-    const params = new URLSearchParams();
-
-    if (filters?.isRead !== undefined) {
-      params.append("isRead", filters.isRead.toString());
-    }
-    if (filters?.type) {
-      params.append("type", filters.type);
-    }
-    if (filters?.limit) {
-      params.append("limit", filters.limit.toString());
-    }
-    if (filters?.offset) {
-      params.append("offset", filters.offset.toString());
-    }
-
-    const response = await axios.get(`/notifications?${params.toString()}`, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-
-    return response.data;
+    return await APIService.getUserNotifications(filters || {}) as {
+      notifications: Notification[];
+      total: number;
+      unreadCount: number;
+    };
   } catch (error: any) {
     // Check if it's a database table missing error
     const errorMessage =
@@ -110,16 +90,8 @@ export async function getUserNotifications(
 // Get unread notification count
 export async function getUnreadNotificationCount(): Promise<number> {
   try {
-    const response = await axios.get("/notifications/count", {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-
-    return response.data.unreadCount;
+    const response = await APIService.getUnreadNotificationCount();
+    return (response as any).unreadCount;
   } catch (error: any) {
     // Check if it's a database table missing error
     const errorMessage =
@@ -152,69 +124,26 @@ export async function getUnreadNotificationCount(): Promise<number> {
 export async function markNotificationAsRead(
   notificationId: string,
 ): Promise<void> {
-  try {
-    await axios.patch(
-      `/notifications/${notificationId}`,
-      { isRead: true },
-      {
-        withCredentials: true,
-      },
-    );
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to mark notification as read.";
-    throw new Error(message);
-  }
+  await APIService.markNotificationAsRead(notificationId);
 }
 
 // Mark all notifications as read
 export async function markAllNotificationsAsRead(): Promise<void> {
-  try {
-    await axios.post(
-      "/notifications/mark-all-read",
-      {},
-      {
-        withCredentials: true,
-      },
-    );
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error ||
-      "Failed to mark all notifications as read.";
-    throw new Error(message);
-  }
+  await APIService.markAllNotificationsAsRead();
 }
 
 // Delete a specific notification
 export async function deleteNotification(
   notificationId: string,
 ): Promise<void> {
-  try {
-    await axios.delete(`/notifications/${notificationId}`, {
-      withCredentials: true,
-    });
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to delete notification.";
-    throw new Error(message);
-  }
+  await APIService.deleteNotification(notificationId);
 }
 
 // Create a new notification (typically called from server-side)
 export async function createNotification(
   data: CreateNotificationInput,
 ): Promise<Notification> {
-  try {
-    const response = await axios.post("/notifications", data, {
-      withCredentials: true,
-    });
-
-    return response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.error || "Failed to create notification.";
-    throw new Error(message);
-  }
+  return await APIService.createNotification(data) as Notification;
 }
 
 // Helper function to generate notification messages based on type

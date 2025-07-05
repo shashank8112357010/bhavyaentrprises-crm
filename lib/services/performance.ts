@@ -268,10 +268,12 @@ async function testPerformance() {
 // testPerformance();
 */
 
-export default {
+const PerformanceService = {
   evaluateTicket,
   calculateAgentPerformance,
 };
+
+export default PerformanceService;
 
 // Make sure to handle environment variables for DATABASE_URL properly in your deployment.
 // Prisma client will need it. For local dev, .env file is usually sufficient.

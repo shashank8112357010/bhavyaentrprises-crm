@@ -6,6 +6,7 @@ import {
   updateTicket as updateTicketService,
   getTicketById,
 } from "../lib/services/ticket";
+import APIService from "../lib/services/api-service";
 import type { TicketsState, WorkStage } from '../components/kanban/types';
 
 // Core types
@@ -173,10 +174,20 @@ export interface TicketState {
     updatedTicket: Partial<Ticket> & { id: string },
   ) => Promise<void>;
   fetchDashboardCounts: () => Promise<void>;
+  forceRefresh: () => Promise<void>;
 
   // Helper functions
   getTicketFromState: (id: string) => Ticket | undefined;
   clearError: () => void;
+
+  // Light selectors for UI components to avoid direct API calls
+  getOpenTicketsCount: () => number | null;
+  getScheduledTodayCount: () => number | null;
+  getClientUpdatesNeededCount: () => number | null;
+  getCompletedThisWeekCount: () => number | null;
+  getTicketsByStatus: (status: Status) => Ticket[];
+  getAllTickets: () => Ticket[];
+  getTicketsLoading: () => boolean;
 }
 
 export const useTicketStore = create<TicketState>((set, get) => ({
@@ -213,7 +224,7 @@ export const useTicketStore = create<TicketState>((set, get) => ({
       };
 
       const response = await getAllTickets(enhancedFilters);
-      const { tickets } = response;
+      const { tickets } = response as any;
 
       const statusGroups: TicketsState = {
         new: [],
@@ -329,6 +340,10 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
       // Then make the API call
       await updateTicketStatusService(id, status);
+      
+      // Clear cache after successful API call
+      APIService.clearCache('/ticket');
+      APIService.clearCache('/dashboard/data');
     } catch (error: any) {
       // Rollback to previous state on error
       if (previousState) {
@@ -346,28 +361,63 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   createTicket: async (ticketData: CreateTicketInput) => {
     set({ loading: true, error: null });
+    
+    // Create optimistic ticket for immediate UI update
+    const optimisticTicket = {
+      id: `temp-${Date.now()}`,
+      title: ticketData.title,
+      status: 'new' as Status,
+      // Add other required fields with default values
+      ticketId: `T-${Date.now()}`,
+      branch: ticketData.branch,
+      priority: ticketData.priority,
+      description: ticketData.description,
+      createdAt: new Date().toISOString(),
+      // ... other default fields
+    };
+    
+    // Optimistically update local state first
+    set((state) => ({
+      ...state,
+      tickets: {
+        ...state.tickets,
+        new: [optimisticTicket as any, ...state.tickets.new],
+      },
+      all_tickets: [optimisticTicket as any, ...state.all_tickets],
+      loading: false,
+    }));
+    
     try {
+      // Then make the API call
       const newTicket = await createTicket(ticketData);
-      const { ticket } = newTicket;
+      const { ticket } = newTicket as any;
 
-      // Add the complete ticket to the store
+      // Replace optimistic ticket with real ticket
       set((state) => ({
         ...state,
         tickets: {
           ...state.tickets,
-          new: [ticket, ...state.tickets.new],
+          new: state.tickets.new.map(t => t.id === optimisticTicket.id ? ticket : t),
         },
-        all_tickets: [ticket, ...state.all_tickets],
+        all_tickets: state.all_tickets.map(t => t.id === optimisticTicket.id ? ticket : t),
         loading: false,
       }));
-
-      // Refresh tickets to ensure data consistency
-      await get().fetchTickets();
+      
+      // Clear cache after successful API call
+      APIService.clearCache('/ticket');
+      APIService.clearCache('/dashboard/data');
     } catch (error: any) {
-      set({
+      // Remove optimistic ticket on error
+      set((state) => ({
+        ...state,
+        tickets: {
+          ...state.tickets,
+          new: state.tickets.new.filter(t => t.id !== optimisticTicket.id),
+        },
+        all_tickets: state.all_tickets.filter(t => t.id !== optimisticTicket.id),
         error: error.message || "Failed to create ticket",
         loading: false,
-      });
+      }));
       throw error;
     }
   },
@@ -382,7 +432,7 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
       // If not found locally, fetch from API
       const response = await getTicketById(id);
-      const ticket = response.ticket || response;
+      const ticket = (response as any).ticket || response;
 
       // Update local state with fetched ticket
       set((state) => {
@@ -566,5 +616,23 @@ export const useTicketStore = create<TicketState>((set, get) => ({
 
   clearError: () => {
     set({ error: null });
+  },
+
+  // Light selectors for UI components to avoid direct API calls
+  getOpenTicketsCount: () => get().openTicketsCount,
+  getScheduledTodayCount: () => get().scheduledTodayCount,
+  getClientUpdatesNeededCount: () => get().clientUpdatesNeededCount,
+  getCompletedThisWeekCount: () => get().completedThisWeekCount,
+  getTicketsByStatus: (status: Status) => get().tickets[status] || [],
+  getAllTickets: () => get().all_tickets,
+  getTicketsLoading: () => get().loading,
+  
+  // Force refresh to bypass cache
+  forceRefresh: async () => {
+    APIService.clearCache('/ticket');
+    APIService.clearCache('/dashboard/data');
+    APIService.clearCache('/ticket/counts');
+    await get().fetchTickets();
+    await get().fetchDashboardCounts();
   },
 }));

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma";
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 import {
   updateTicketSchema,
   createWorkStageSchema,
@@ -8,6 +8,11 @@ import {
 } from "@/lib/validations/ticketSchema";
 import { TicketStatus } from "@prisma/client";
 import { createTicketStatusChangeNotification } from "@/lib/services/notification-helpers";
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 export async function PATCH(
   req: NextRequest,

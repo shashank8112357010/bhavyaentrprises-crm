@@ -195,7 +195,7 @@ export default function EditQuotationPage() {
 
     setIsLoadingQuotation(true);
     try {
-      const quotationData = await getQuotationById(quotationId);
+      const quotationData: any = await getQuotationById(quotationId);
 
 
       // Set client data
@@ -235,7 +235,7 @@ export default function EditQuotationPage() {
             searchQuery: "",
             limit: 1000,
           });
-          const allRateCardsData = rateCardResponse.data || [];
+          const allRateCardsData = (rateCardResponse.data as RateCard[]) || [];
 
           const items: QuotationItem[] = [];
 
@@ -354,7 +354,7 @@ export default function EditQuotationPage() {
 
 
 
-        setRateCards(response.data || []);
+        setRateCards((response.data as RateCard[]) || []);
       } catch (error) {
         console.error("Error fetching rate cards:", error);
         toast({

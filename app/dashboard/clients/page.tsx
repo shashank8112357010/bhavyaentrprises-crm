@@ -78,6 +78,7 @@ type Client = {
   initials: string;
   activeTickets?: number;
   gstn?: string;
+  state?: string;
 };
 
 type GetClient = {
@@ -95,6 +96,7 @@ type GetClient = {
   initials: string;
   activeTickets?: number;
   gstn?: string;
+  state?: string;
   tickets: any[];
 };
 
@@ -124,6 +126,7 @@ export default function ClientsPage() {
     avatar: "",
     initials: "",
     gstn: "",
+    state: "chandigarh",
   });
 
   const [currentPage, setCurrentPage] = useState(0);
@@ -132,7 +135,7 @@ export default function ClientsPage() {
       try {
         setLoading(true);
         const data = await getAllClients();
-        setClients(data?.clients || []);
+        setClients((data?.clients as GetClient[]) || []);
       } catch (err) {
         console.error("Failed to fetch clients:", err);
         toast({
@@ -266,7 +269,7 @@ export default function ClientsPage() {
       setIsDialogOpen(false);
 
       const data = await getAllClients();
-      setClients(data?.clients || []);
+      setClients((data?.clients as GetClient[]) || []);
 
       toast({
         title: "Success",
@@ -285,6 +288,7 @@ export default function ClientsPage() {
         avatar: "",
         initials: "",
         gstn: "",
+        state: "chandigarh",
       });
     } catch (err: any) {
       console.error("Error creating client", err);
@@ -443,6 +447,13 @@ export default function ClientsPage() {
                     setNewClient({ ...newClient, gstn: e.target.value })
                   }
                 />
+                <Input
+                  placeholder="State"
+                  value={newClient.state}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, state: e.target.value })
+                  }
+                />
                 <Select
                   value={newClient.contractStatus}
                   onValueChange={(value) =>
@@ -569,6 +580,7 @@ export default function ClientsPage() {
                   <TableHead>Contact Person</TableHead>
                   <TableHead>Contact Email</TableHead>
                   <TableHead>Contact Phone</TableHead>
+                  <TableHead>State</TableHead>
                   <TableHead>Contract Status</TableHead>
                   <TableHead>Last Service Date</TableHead>
                   {user?.role === "ADMIN" && (
@@ -608,6 +620,7 @@ export default function ClientsPage() {
                         {client.contactEmail}
                       </TableCell>
                       <TableCell>{client.contactPhone}</TableCell>
+                      <TableCell>{client.state || "—"}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -661,7 +674,7 @@ export default function ClientsPage() {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={user?.role === "ADMIN" ? 9 : 8}
+                      colSpan={user?.role === "ADMIN" ? 10 : 9}
                       className="text-center py-6 text-muted-foreground"
                     >
                       No clients found.

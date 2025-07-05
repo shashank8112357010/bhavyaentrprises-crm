@@ -88,7 +88,7 @@ export default function AgentsPage() {
 
   useEffect(() => {
     if (user) {
-      fetchAgents({}, user.role);
+      fetchAgents();
     }
   }, [fetchAgents, user]);
 
@@ -137,7 +137,7 @@ export default function AgentsPage() {
   }, [error, toast]);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value, user?.role);
+    setSearchQuery(event.target.value);
   };
 
   const handlePageClick = (event: { selected: number }) => {

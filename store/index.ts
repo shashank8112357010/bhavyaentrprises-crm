@@ -5,6 +5,7 @@ export { useClientStore } from "./clientStore";
 export { useAuthStore } from "./authStore";
 export { useNotificationStore } from "./notificationStore";
 export { useQuotationStore } from "./quotationStore";
+export { useDashboardStore } from "./dashboardStore";
 // Re-export types
 export type {
   Ticket,

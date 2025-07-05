@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prismaWithReconnect as prisma } from "@/lib/prisma";
 
 import crypto from 'crypto';
 import bcryptjs from 'bcryptjs';
 import { sendMail } from '@/lib/mailer';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 // Helper function to add hours to a date
 const addHours = (date: Date, hours: number): Date => {

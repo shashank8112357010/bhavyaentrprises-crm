@@ -1,4 +1,4 @@
-import axios from "@/lib/axios";
+import APIService from "@/lib/services/api-service";
 import { Agent, CreateAgentPayload } from "@/components/agent/types";
 
 interface GetAllAgentsParams {
@@ -15,125 +15,50 @@ interface PaginatedAgentsResponse {
 }
 
 export async function createAgent(payload: CreateAgentPayload) {
-  try {
-    const response = await axios.post("/agent/create-agent", payload, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to create agent.";
-    throw new Error(message);
-  }
+  return APIService.createAgentAccount(payload);
 }
 
 export async function getAllAgents(
   params: GetAllAgentsParams = {},
 ): Promise<PaginatedAgentsResponse> {
-  try {
-    const { page = 1, limit = 10, searchQuery = "" } = params;
-
-    const response = await axios.get("/agent", {
-      params: { page, limit, searchQuery },
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-
-    return response.data; // Should now be the paginated response
-  } catch (error: any) {
-    const message =
-      error.response?.data?.message || // Use message from API error if available
-      error.response?.data?.error ||
-      "Failed to fetch agents.";
-    throw new Error(message);
-  }
+  const response = await APIService.getAgents({
+    page: params.page,
+    limit: params.limit,
+    search: params.searchQuery
+  });
+  
+  // Ensure compatibility with existing interface
+  return {
+    data: response.data as Agent[],
+    total: response.total,
+    page: response.page,
+    limit: response.limit
+  };
 }
 
 // Fetch all agents (no pagination, for dropdowns/forms)
 export async function getAllAgentsUnpaginated(): Promise<Agent[]> {
-  try {
-    const response = await axios.get("/agent", {
-      params: { all: true },
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      "Failed to fetch all agents.";
-    throw new Error(message);
-  }
+  const response = await APIService.getAllAgentsUnpaginated();
+  return (response as any).data || response;
 }
 
 export async function deleteAgent(id: string) {
-  try {
-    const response = await axios.delete(`/agent/${id}`, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to delete agent.";
-    throw new Error(message);
-  }
+  return APIService.deleteAgent(id);
 }
 
 export async function getAgentById(id: string) {
-  try {
-    const response = await axios.get(`/agent/${id}`, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    // Handle the API response wrapper
-    return response.data.agent || response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      "Failed to fetch agent.";
-    throw new Error(message);
-  }
+  const response = await APIService.getAgentById(id) as any;
+  return response.agent || response;
 }
 
 export async function updateAgent(id: string, updatedAgent: Agent) {
-  try {
-    const response = await axios.patch(`/agent/${id}`, updatedAgent, {
-      withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    // Handle the API response wrapper
-    return response.data.agent || response.data;
-  } catch (error: any) {
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      "Failed to update agent.";
-    throw new Error(message);
-  }
+  const response = await APIService.updateAgent(id, updatedAgent) as any;
+  return response.agent || response;
 }
+
+// Wrapper exports for consistency with APIService pattern
+export const getAgents = (params: any) => APIService.getAgents(params);
+export const createAgentViaAPI = (data: any) => APIService.createAgentAccount(data);
+export const updateAgentViaAPI = (id: string, data: any) => APIService.updateAgent(id, data);
+export const deleteAgentViaAPI = (id: string) => APIService.deleteAgent(id);
+export const getAgentByIdViaAPI = (id: string) => APIService.getAgentById(id);

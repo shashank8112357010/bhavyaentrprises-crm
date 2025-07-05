@@ -141,7 +141,7 @@ export default function TicketDetailsPage() {
     setLoading(true);
     try {
       const data = await getTicketById(ticketId);
-      setTicket(data.ticket || data);
+      setTicket((data as any).ticket || data);
     } catch (err: any) {
       setError(err.message || "Failed to fetch ticket");
     } finally {
@@ -160,8 +160,8 @@ export default function TicketDetailsPage() {
     try {
       const data = await getTicketById(ticketId);
       if (data) {
-        setTicket(data.ticket || []);
-        setDocuments(data.documents || []);
+        setTicket((data as any).ticket || []);
+        setDocuments((data as any).documents || []);
       } else {
         setError("Ticket not found.");
       }
@@ -210,11 +210,11 @@ export default function TicketDetailsPage() {
 
     setIsSubmittingComment(true);
     try {
-      const addedComment: Comment = await addComment(
+      const addedComment = await addComment(
         ticketId,
         comment,
         currentUserId
-      );
+      ) as Comment;
 
       setTicket((prevTicket) => {
         if (!prevTicket) return null;

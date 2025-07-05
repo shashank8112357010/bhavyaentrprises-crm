@@ -139,7 +139,7 @@ export default function QuotationsPage() {
       await fetchQuotations({
         page: page + 1, // API is 1-based
         limit: itemsPerPage,
-        searchQuery: debouncedSearchQuery,
+        search: debouncedSearchQuery,
       });
     } catch (err: any) {
       console.error("Error fetching quotations:", err);
