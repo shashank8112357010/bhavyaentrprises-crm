@@ -126,7 +126,7 @@ export default function QuotationsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0); // 0-based for react-paginate
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { toast } = useToast();
   const { user } = useAuthStore();
@@ -140,6 +140,7 @@ export default function QuotationsPage() {
         page: page + 1, // API is 1-based
         limit: itemsPerPage,
         search: debouncedSearchQuery,
+        force: true, // Force refresh to ensure fresh data
       });
     } catch (err: any) {
       console.error("Error fetching quotations:", err);
@@ -444,7 +445,7 @@ Bhavya Enterprises Team`;
                 <SelectValue placeholder={itemsPerPage} />
               </SelectTrigger>
               <SelectContent>
-                {[5, 10, 15].map((size) => (
+                {[10, 15, 25, 50].map((size) => (
                   <SelectItem key={size} value={size.toString()}>
                     {size}
                   </SelectItem>

@@ -14,6 +14,23 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
+  
+  // Optimize for production
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
+  
+  // Better error handling for production
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  
+  // Static generation configuration
+  generateBuildId: async () => {
+    // Generate a build ID based on timestamp for cache busting
+    return `build-${Date.now()}`;
+  },
 
   async headers() {
     return [

@@ -90,10 +90,15 @@ export default function KanbanPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        await fetchTickets({
-          startDate: startDateTicket,
-          endDate: endDateTicket,
-        });
+        // Only fetch tickets when we have a user and both dates are set
+        if (user && startDateTicket && endDateTicket) {
+          await fetchTickets({
+            startDate: startDateTicket,
+            endDate: endDateTicket,
+            force: true, // Always force refresh for initial load
+          });
+        }
+        
         if (user) {
           await fetchAllAgents();
         }
@@ -116,9 +121,57 @@ export default function KanbanPage() {
     fetchClients,
     startDateTicket,
     endDateTicket,
-    user?.role,
+    user,
     toast,
   ]);
+
+  // Listen for ticket creation events to refresh the view
+  useEffect(() => {
+    const handleTicketCreated = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Ticket created event received', customEvent.detail);
+      
+      // Use a more aggressive refresh approach
+      try {
+        // Clear all related caches first
+        if (typeof window !== 'undefined') {
+          const { default: storeSync } = await import('@/lib/services/store-sync');
+          await storeSync.syncAllStores({ delay: 50 });
+        }
+        
+        // Then refresh tickets with current filters
+        await fetchTickets({
+          startDate: startDateTicket,
+          endDate: endDateTicket,
+          force: true,
+        });
+        
+        toast({
+          title: "Ticket Added",
+          description: "New ticket has been added to the board.",
+        });
+      } catch (error) {
+        console.error('Error refreshing tickets after creation:', error);
+        
+        // Fallback: simple force refresh
+        try {
+          await fetchTickets({
+            startDate: startDateTicket,
+            endDate: endDateTicket,
+            force: true,
+          });
+        } catch (fallbackError) {
+          console.error('Fallback refresh also failed:', fallbackError);
+        }
+      }
+    };
+
+    window.addEventListener('ticket-created', handleTicketCreated);
+    
+    return () => {
+      window.removeEventListener('ticket-created', handleTicketCreated);
+    };
+  }, [fetchTickets, startDateTicket, endDateTicket, toast]);
 
 
 

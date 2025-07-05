@@ -100,8 +100,11 @@ export default function ExpensesPage() {
         limit: itemsPerPage,
         searchQuery: debouncedSearchQuery,
       });
-      setExpenses((response as any).data || []);
-      setTotalCount((response as any).total || 0);
+      console.log(response);
+      
+      
+      setExpenses((response as any).data.expenses || []);
+      setTotalCount((response as any).data.pagination.total || 0);
     } catch (err: any) {
       console.error("Error fetching expenses:", err);
       setError(err.message || "Failed to fetch expenses.");
@@ -257,7 +260,7 @@ export default function ExpensesPage() {
                     </TableCell>
                     <TableCell>{exp.quotation?.name || "N/A"}</TableCell>
                     <TableCell>
-                      {exp?.ticket?.title || "N/A"}
+                      {exp?.ticket?.title.slice(0, 20) || "N/A"}
                     </TableCell>
                     <TableCell>
                       {exp.paymentType === "ONLINE"

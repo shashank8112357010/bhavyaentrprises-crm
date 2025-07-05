@@ -155,7 +155,7 @@ export default function EnhancedTicketsPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [debouncedSearchQuery, statusFilter, priorityFilter, user, allTickets.length, loading, toast]);
+  }, [debouncedSearchQuery, statusFilter, priorityFilter, user, allTickets, loading, toast]);
 
   // Fetch next page for infinite scroll
   const fetchNextPage = useCallback(async () => {
@@ -179,7 +179,7 @@ export default function EnhancedTicketsPage() {
   // Effect for initial load and filter changes
   useEffect(() => {
     handleRefresh();
-  }, [debouncedSearchQuery, statusFilter, priorityFilter]);
+  }, [debouncedSearchQuery, statusFilter, priorityFilter, handleRefresh]);
 
   // Render individual ticket card
   const renderTicketCard = useCallback((ticket: EnhancedTicket, index: number) => {

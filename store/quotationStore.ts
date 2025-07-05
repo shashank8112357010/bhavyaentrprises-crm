@@ -151,6 +151,9 @@ export const useQuotationStore = create<QuotationState>((set, get) => ({
         filters
       });
 
+      console.log(response);
+      
+
       const pageKey = `${page}_${limit}_${JSON.stringify({ search, ...filters })}`;
       
       set((state) => {
@@ -258,6 +261,12 @@ export const useQuotationStore = create<QuotationState>((set, get) => ({
   },
 
   addQuotation: (quotation: Quotation) => {
+    // Clear cache BEFORE updating state to ensure fresh data
+    APIService.clearPaginatedCache('/quotations');
+    APIService.clearCache('/quotations');
+    APIService.clearCache('/dashboard/data');
+    APIService.clearCache('/ticket'); // Clear ticket cache as quotations affect tickets
+    
     // Optimistically update local state
     set((state) => ({
       allQuotations: [quotation, ...state.allQuotations],
@@ -265,10 +274,19 @@ export const useQuotationStore = create<QuotationState>((set, get) => ({
       total: state.total + 1,
       totalQuotations: state.totalQuotations + 1,
     }));
-    // Clear cache after optimistic update
-    APIService.clearPaginatedCache('/quotations');
-    APIService.clearCache('/quotations');
-    APIService.clearCache('/dashboard/data');
+    
+    // Use the centralized store sync service for consistency
+    setTimeout(async () => {
+      try {
+        await get().forceRefresh();
+        
+        // Use centralized sync service
+        const { syncAfterQuotationCreate } = await import('../lib/services/store-sync');
+        await syncAfterQuotationCreate();
+      } catch (error) {
+        console.warn('Error during quotation store sync:', error);
+      }
+    }, 100);
   },
 
   updateQuotationInStore: (

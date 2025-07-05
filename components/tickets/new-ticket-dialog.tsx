@@ -99,7 +99,7 @@ export default function NewTicketDialog() {
 
       await createTicket(ticketData);
 
-      setOpen(false);
+      // Reset form and close dialog first for immediate feedback
       setFormData({
         title: "",
         branch: "",
@@ -110,7 +110,17 @@ export default function NewTicketDialog() {
         assigneeId: "",
         clientId: "",
       });
+      setOpen(false);
+      
+      // Show success message
       toast({ title: "Success", description: "Ticket created successfully!" });
+      
+      // Trigger custom event to refresh ticket lists
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ticket-created', {
+          detail: { newTicket: ticketData }
+        }));
+      }
     } catch (error: any) {
       toast({
         title: "Error",

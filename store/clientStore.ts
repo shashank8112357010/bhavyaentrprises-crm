@@ -228,15 +228,26 @@ export const useClientStore = create<ClientState>((set, get) => ({
   },
 
   addClient: (client: Client) => {
+    // Clear cache BEFORE updating state to ensure fresh data
+    APIService.clearPaginatedCache('/client');
+    APIService.clearCache('/client');
+    APIService.clearCache('/dashboard/data');
+    
     // Optimistically update local state
     set((state) => ({
       allClients: [client, ...state.allClients],
       total: state.total + 1
     }));
-    // Clear cache after optimistic update
-    APIService.clearPaginatedCache('/client');
-    APIService.clearCache('/client');
-    APIService.clearCache('/dashboard/data');
+    
+    // Use the centralized store sync service
+    setTimeout(async () => {
+      try {
+        const { syncAfterClientCreate } = await import('../lib/services/store-sync');
+        await syncAfterClientCreate();
+      } catch (error) {
+        console.warn('Error syncing stores after client creation:', error);
+      }
+    }, 100);
   },
 
   updateClient: (id: string, updatedClient: Partial<Client>) => {

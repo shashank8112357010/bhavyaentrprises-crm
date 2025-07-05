@@ -267,12 +267,12 @@ export default function InfiniteClientsPage() {
     }
   }
 
-  const handleEditClient = (client: Client) => {
+  const handleEditClient = useCallback((client: Client) => {
     setEditingClient(client);
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClient = async (clientId: string, clientName: string) => {
+  const handleDeleteClient = useCallback(async (clientId: string, clientName: string) => {
     if (
       !confirm(
         `Are you sure you want to delete client "${clientName}"? This action cannot be undone.`
@@ -306,7 +306,7 @@ export default function InfiniteClientsPage() {
         variant: "destructive",
       });
     }
-  };
+  }, [forceRefresh, toast]);
 
   const handleEditSuccess = () => {
     setIsEditDialogOpen(false);

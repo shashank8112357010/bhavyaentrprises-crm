@@ -291,6 +291,16 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const state = get();
       state.resetPagination();
       await state.fetchAgents({ force: true });
+      
+      // Use the centralized store sync service
+      setTimeout(async () => {
+        try {
+          const { syncAfterAgentCreate } = await import('../lib/services/store-sync');
+          await syncAfterAgentCreate();
+        } catch (error) {
+          console.warn('Error syncing stores after agent creation:', error);
+        }
+      }, 100);
     } catch (error: any) {
       set({ error: error.message || "Failed to create agent" });
       throw error; // Rethrow to allow form to handle it

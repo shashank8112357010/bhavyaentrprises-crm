@@ -74,17 +74,21 @@ export class APIService {
     );
 
     const data = response.data || response.clients || response.agents || response.quotations || response;
-    const total = response.total || response.totalCount || data.length;
-    const totalPages = Math.ceil(total / safeLimit);
+    const total = response.total || response.totalCount || response.pagination?.total || data.length;
+    const actualPage = response.page || response.pagination?.page || page;
+    const actualLimit = response.limit || response.pagination?.limit || safeLimit;
+    const totalPages = response.totalPages || Math.ceil(total / actualLimit);
+    const hasNextPage = response.hasNextPage !== undefined ? response.hasNextPage : actualPage < totalPages;
+    const hasPrevPage = response.hasPrevPage !== undefined ? response.hasPrevPage : actualPage > 1;
 
     return {
       data,
       total,
-      page,
-      limit: safeLimit,
+      page: actualPage,
+      limit: actualLimit,
       totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
+      hasNextPage,
+      hasPrevPage
     };
   }
 

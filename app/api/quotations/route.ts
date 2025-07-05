@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const page = searchParams.get("page") || "1";
-    const limit = searchParams.get("limit") || "10";
+    const limit = searchParams.get("limit") || "15";
     const search = searchParams.get("search") || "";
 
     const pageNum = parseInt(page, 10);
@@ -42,7 +42,19 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    const totalPages = Math.ceil(total / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
     return NextResponse.json({
+      data: quotations,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages,
+      hasNextPage,
+      hasPrevPage,
+      // Legacy format for backward compatibility
       quotations,
       pagination: { page: pageNum, limit: limitNum, total },
     });

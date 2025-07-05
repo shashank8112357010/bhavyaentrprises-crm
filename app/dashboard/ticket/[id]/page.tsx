@@ -243,7 +243,7 @@ export default function TicketDetailsPage() {
     if (ticketId) {
       loadTicketData();
     }
-  }, [ticketId]);
+  }, [ticketId, loadTicketData]);
 
   if (loading) {
     return (

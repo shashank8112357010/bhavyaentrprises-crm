@@ -58,6 +58,8 @@ export async function GET(req: Request) {
       take: limitNum,
       orderBy: { createdAt: "desc" },
     });
+    console.log(expenses ,"expenses");
+    
 
     return NextResponse.json({
       expenses,

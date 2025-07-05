@@ -123,6 +123,7 @@ export interface FetchTicketsFilters {
   endDate?: string;
   role?: string;
   userId?: string;
+  force?: boolean;
 }
 
 export interface DashboardCounts {
@@ -362,62 +363,49 @@ export const useTicketStore = create<TicketState>((set, get) => ({
   createTicket: async (ticketData: CreateTicketInput) => {
     set({ loading: true, error: null });
     
-    // Create optimistic ticket for immediate UI update
-    const optimisticTicket = {
-      id: `temp-${Date.now()}`,
-      title: ticketData.title,
-      status: 'new' as Status,
-      // Add other required fields with default values
-      ticketId: `T-${Date.now()}`,
-      branch: ticketData.branch,
-      priority: ticketData.priority,
-      description: ticketData.description,
-      createdAt: new Date().toISOString(),
-      // ... other default fields
-    };
-    
-    // Optimistically update local state first
-    set((state) => ({
-      ...state,
-      tickets: {
-        ...state.tickets,
-        new: [optimisticTicket as any, ...state.tickets.new],
-      },
-      all_tickets: [optimisticTicket as any, ...state.all_tickets],
-      loading: false,
-    }));
-    
     try {
-      // Then make the API call
+      // Make the API call first to ensure we have real data
       const newTicket = await createTicket(ticketData);
       const { ticket } = newTicket as any;
 
-      // Replace optimistic ticket with real ticket
+      // Clear cache BEFORE updating state to ensure fresh data
+      APIService.clearCache('/ticket');
+      APIService.clearCache('/dashboard/data');
+      APIService.clearCache('/ticket/counts');
+      APIService.clearPaginatedCache('/ticket');
+      
+      // Clear quotation cache as tickets may affect quotations
+      APIService.clearCache('/quotations');
+      APIService.clearPaginatedCache('/quotations');
+      
+      // Clear client and agent caches for dashboard consistency
+      APIService.clearCache('/client');
+      APIService.clearCache('/agent');
+      
+      // Immediately update local state with real ticket data
       set((state) => ({
         ...state,
         tickets: {
           ...state.tickets,
-          new: state.tickets.new.map(t => t.id === optimisticTicket.id ? ticket : t),
+          new: [ticket, ...state.tickets.new],
         },
-        all_tickets: state.all_tickets.map(t => t.id === optimisticTicket.id ? ticket : t),
+        all_tickets: [ticket, ...state.all_tickets],
         loading: false,
       }));
       
-      // Clear cache after successful API call
-      APIService.clearCache('/ticket');
-      APIService.clearCache('/dashboard/data');
+      // Use the centralized store sync service for consistency
+      try {
+        const { syncAfterTicketCreate } = await import('../lib/services/store-sync');
+        await syncAfterTicketCreate();
+      } catch (storeError) {
+        console.warn('Error syncing stores after ticket creation:', storeError);
+      }
+      
     } catch (error: any) {
-      // Remove optimistic ticket on error
-      set((state) => ({
-        ...state,
-        tickets: {
-          ...state.tickets,
-          new: state.tickets.new.filter(t => t.id !== optimisticTicket.id),
-        },
-        all_tickets: state.all_tickets.filter(t => t.id !== optimisticTicket.id),
+      set({
         error: error.message || "Failed to create ticket",
         loading: false,
-      }));
+      });
       throw error;
     }
   },
