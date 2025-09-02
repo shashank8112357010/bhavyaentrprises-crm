@@ -59,7 +59,7 @@ async function seedUsers() {
       },
       {
         name: 'Shashank',
-        email: 'shashank.sharma@praarabdh.com',
+        email: 'shashank@bhavyaentrprises.com',
         password: 'admin@123',
         role: 'ADMIN', // Ensure this is a valid enum value
         mobile: '9999971363',
@@ -118,19 +118,24 @@ async function seedClients() {
     ];
 
     for (const client of clients) {
-      await prisma.client.upsert({
-        where: { name: client.name },
-        update: {},
-        create: {
-          ...client,
-          name: sanitizeString(client.name),
-          contactPerson: sanitizeString(client.contactPerson),
-          contactEmail: sanitizeString(client.contactEmail),
-          contactPhone: sanitizeString(client.contactPhone),
-          gstn: sanitizeString(client.gstn),
-          initials: sanitizeString(client.initials),
-        },
+      // Check if client already exists by name
+      const existingClient = await prisma.client.findFirst({
+        where: { name: client.name }
       });
+
+      if (!existingClient) {
+        await prisma.client.create({
+          data: {
+            ...client,
+            name: sanitizeString(client.name),
+            contactPerson: sanitizeString(client.contactPerson),
+            contactEmail: sanitizeString(client.contactEmail),
+            contactPhone: sanitizeString(client.contactPhone),
+            gstn: sanitizeString(client.gstn),
+            initials: sanitizeString(client.initials),
+          }
+        });
+      }
     }
   } catch (error) {
     console.error('Error seeding clients:', error);

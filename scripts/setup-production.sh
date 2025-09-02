@@ -8,6 +8,20 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}Starting Bhavya Enterprises CRM setup...${NC}"
 
+# Update system packages
+echo -e "${YELLOW}Updating system packages...${NC}"
+sudo apt-get update
+
+# Install Node.js and npm if not installed
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    echo -e "${YELLOW}Installing Node.js and npm...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+fi
+
+echo -e "${GREEN}Node.js version: $(node --version)${NC}"
+echo -e "${GREEN}npm version: $(npm --version)${NC}"
+
 # Check if postgresql is installed
 if ! command -v psql &> /dev/null; then
     echo -e "${RED}PostgreSQL is not installed. Please install PostgreSQL first.${NC}"
