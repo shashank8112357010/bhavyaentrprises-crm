@@ -67,9 +67,24 @@ npx prisma migrate deploy
 echo -e "${YELLOW}Seeding the database with initial data...${NC}"
 npx prisma db seed
 
+# Generate Prisma client
+echo -e "${YELLOW}Generating Prisma client...${NC}"
+npx prisma generate
+
 # Build the Next.js application
 echo -e "${YELLOW}Building the Next.js application...${NC}"
 npm run build
+
+# Check if build was successful
+if [ ! -d ".next" ]; then
+    echo -e "${RED}Build failed! .next directory not found.${NC}"
+    exit 1
+fi
+
+# Stop any existing PM2 processes
+echo -e "${YELLOW}Stopping existing PM2 processes...${NC}"
+pm2 stop bhavya-crm 2>/dev/null || true
+pm2 delete bhavya-crm 2>/dev/null || true
 
 # Create Nginx configuration
 echo -e "${YELLOW}Creating Nginx configuration...${NC}"
@@ -103,6 +118,20 @@ fi
 # Start the application with PM2
 echo -e "${YELLOW}Starting the application with PM2...${NC}"
 pm2 start npm --name "bhavya-crm" -- start
+
+# Wait for app to start
+echo -e "${YELLOW}Waiting for application to start...${NC}"
+sleep 10
+
+# Check if PM2 process is running
+if ! pm2 list | grep -q "bhavya-crm.*online"; then
+    echo -e "${RED}Application failed to start! Check PM2 logs with: pm2 logs bhavya-crm${NC}"
+    exit 1
+fi
+
+# Save PM2 configuration
+pm2 save
+pm2 startup
 
 # Install Certbot and get SSL certificate
 echo -e "${YELLOW}Setting up SSL with Let's Encrypt...${NC}"
