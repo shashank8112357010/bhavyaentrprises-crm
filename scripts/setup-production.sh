@@ -15,9 +15,9 @@ if ! command -v psql &> /dev/null; then
 fi
 
 # Database configuration
-DB_NAME="bhavya"
-DB_USER="bhavya_admin"
-DB_PASSWORD="your_secure_password_here" # Change this to a secure password
+DB_NAME="interiorcrm"
+DB_USER="admin"
+DB_PASSWORD="admin"
 DB_HOST="localhost"
 
 # Create database user if not exists
@@ -43,14 +43,16 @@ EOSQL
 # Update .env file
 echo -e "${YELLOW}Updating .env file...${NC}"
 cat > .env <<EOL
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/${DB_NAME}?schema=public"
-NEXTAUTH_SECRET="your-nextauth-secret-key"
-NEXT_PUBLIC_APP_URL="https://crm.bhavyaentrprises.com"
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="587"
-SMTP_USER="your-email@gmail.com"
-SMTP_PASSWORD="your-app-specific-password"
-JWT_SECRET="your-jwt-secret-key"
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/${DB_NAME}"
+JWT_SECRET=bhavyaentrprises_secret
+NEXT_PUBLIC_API_BASE_URL=https://crm.bhavyaentrprises.com/api
+NEXT_PUBLIC_BASE_URL=https://crm.bhavyaentrprises.com
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=help@tchassistant.co.in
+SMTP_PASS="Kgn?c6@|6"
+NEXT_PUBLIC_ADMIN_USER_EMAIL=lead@praarabdh.com
 EOL
 
 # Install dependencies
@@ -106,7 +108,7 @@ pm2 start npm --name "bhavya-crm" -- start
 echo -e "${YELLOW}Setting up SSL with Let's Encrypt...${NC}"
 sudo apt-get update
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d crm.bhavyaentrprises.com --non-interactive --agree-tos --email your-email@gmail.com
+sudo certbot --nginx -d crm.bhavyaentrprises.com --non-interactive --agree-tos --email lead@praarabdh.com
 
 echo -e "${GREEN}Setup completed successfully!${NC}"
 echo -e "${GREEN}Your CRM is now running at https://crm.bhavyaentrprises.com${NC}"
