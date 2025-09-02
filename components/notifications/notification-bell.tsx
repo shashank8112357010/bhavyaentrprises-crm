@@ -178,7 +178,7 @@ export function NotificationBell() {
                   Retry
                 </Button>
               </div>
-            ) : notifications.length === 0 ? (
+            ) : !notifications || notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center">
                 <Bell className="h-12 w-12 text-muted-foreground mb-3" />
                 <p className="text-sm font-medium text-muted-foreground mb-1">

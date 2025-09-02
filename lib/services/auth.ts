@@ -52,8 +52,7 @@ export async function logout() {
 
     return { success: true };
   } catch (error: any) {
-    console.error("Logout failed:", error);
-    throw new Error("Logout failed. Please try again.");
+    throw error; // Re-throw for upstream handling
   }
 }
 
@@ -67,7 +66,6 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
     const payload = verify(token, secret) as TokenPayload;
     return payload;
   } catch (error: any) {
-    console.error("Token verification failed:", error);
-    return null;
+    throw error;
   }
 }

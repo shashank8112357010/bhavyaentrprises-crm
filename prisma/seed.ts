@@ -88,4 +88,101 @@ async function seedUsers() {
   }
 }
 
-seedUsers();
+async function seedClients() {
+  try {
+    const clients = [
+      {
+        name: 'ABC Corporation',
+        type: 'Corporate',
+        totalBranches: 3,
+        contactPerson: 'Mike Johnson',
+        contactEmail: 'mike@abccorp.com',
+        contactPhone: '1234567890',
+        contractStatus: 'ACTIVE',
+        lastServiceDate: new Date(),
+        gstn: 'GSTN123456',
+        initials: 'ABC',
+      },
+      {
+        name: 'XYZ Industries',
+        type: 'Manufacturing',
+        totalBranches: 2,
+        contactPerson: 'Sarah Wilson',
+        contactEmail: 'sarah@xyzind.com',
+        contactPhone: '9876543210',
+        contractStatus: 'ACTIVE',
+        lastServiceDate: new Date(),
+        gstn: 'GSTN789012',
+        initials: 'XYZ',
+      },
+    ];
+
+    for (const client of clients) {
+      await prisma.client.upsert({
+        where: { name: client.name },
+        update: {},
+        create: {
+          ...client,
+          name: sanitizeString(client.name),
+          contactPerson: sanitizeString(client.contactPerson),
+          contactEmail: sanitizeString(client.contactEmail),
+          contactPhone: sanitizeString(client.contactPhone),
+          gstn: sanitizeString(client.gstn),
+          initials: sanitizeString(client.initials),
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error seeding clients:', error);
+  }
+}
+
+async function seedRateCards() {
+  try {
+    const rateCards = [
+      {
+        srNo: 1,
+        description: 'Basic Maintenance',
+        unit: 'Per Visit',
+        rate: 1000,
+        bankName: 'HDFC',
+      },
+      {
+        srNo: 2,
+        description: 'Advanced Repair',
+        unit: 'Per Hour',
+        rate: 2500,
+        bankName: 'ICICI',
+      },
+    ];
+
+    for (const rateCard of rateCards) {
+      await prisma.rateCard.create({
+        data: {
+          ...rateCard,
+          description: sanitizeString(rateCard.description),
+          unit: sanitizeString(rateCard.unit),
+          bankName: sanitizeString(rateCard.bankName),
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error seeding rate cards:', error);
+  }
+}
+
+async function main() {
+  try {
+    await seedUsers();
+    await seedClients();
+    await seedRateCards();
+    console.log('Database seeded successfully');
+  } catch (error) {
+    console.error('Error seeding database:', error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main();

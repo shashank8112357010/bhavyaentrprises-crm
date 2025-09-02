@@ -43,7 +43,7 @@ export default function PriorityIssues() {
     )
     .slice(0, 5); // Show top 5
 
-  if (priorityIssues.length === 0) {
+  if (!priorityIssues || priorityIssues.length === 0) {
     return (
       <div className="p-3 rounded-lg border bg-card text-center text-muted-foreground">
         <AlertTriangle className="mx-auto h-8 w-8 mb-2 text-green-500" />

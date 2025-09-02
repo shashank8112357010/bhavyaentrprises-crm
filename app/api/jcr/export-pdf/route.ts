@@ -117,7 +117,10 @@ export async function POST(req: NextRequest) {
 
 
     const templatePath = join(process.cwd(), "lib/pdf/templates/jcr.ejs");
-    const html = await renderFile(templatePath, { jcr: data });
+    const html = await renderFile(templatePath, { 
+      jcr: data,
+      baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    });
 
     const browser = await puppeteer.launch({
       headless: true,
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
     await browser.close();
 
     const fileName = `${data.jcrNo.replace(/\//g, "-")}_jcr.pdf`;
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(Buffer.from(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

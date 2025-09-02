@@ -11,8 +11,6 @@ import {
   UserCheck2,
   IndianRupee,
   NotebookTabsIcon,
-  Phone,
-  Mail,
   Settings,
   Menu,
   FileText,
@@ -45,8 +43,6 @@ export default function Sidebar({ className }: SidebarProps) {
     { name: "Expenses", href: "/dashboard/expenses", icon: <Receipt className="h-5 w-5" /> },
 
     { name: "Rate Card", href: "/dashboard/rate-card", icon: <NotebookTabsIcon className="h-5 w-5" /> },
-    { name: "Calls", href: "/dashboard/calls", icon: <Phone className="h-5 w-5" /> },
-    { name: "Email Templates", href: "/dashboard/email-template", icon: <Mail className="h-5 w-5" /> },
     { name: "Settings", href: "/dashboard/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 

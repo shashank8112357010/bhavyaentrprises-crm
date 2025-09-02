@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { TicketStatus } from "@prisma/client";
 import { verifyToken } from "@/lib/services/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Verify user authentication

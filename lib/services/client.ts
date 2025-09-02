@@ -43,7 +43,6 @@ export async function importClientsFromExcel(file: File) {
     });
     return response.data; // Contains { message, successCount, skippedCount, errorCount, errors }
   } catch (error: any) {
-    console.error("Error importing clients from Excel:", error);
     const message = error.response?.data?.error || "Failed to import clients from Excel. Please try again or check the file format.";
     throw new Error(message);
   }
@@ -82,9 +81,9 @@ export async function getAllClients(params: GetAllClientsParams = {}) {
   }
 }
 
-export async function updateClient(id: string, updatedAgent: Client) {
+export async function updateClient(id: string, updatedClient: Client) {
   try {
-    const response = await axios.patch(`/agent/${id}`, updatedAgent, {
+    const response = await axios.patch(`/client/${id}`, updatedClient, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -94,25 +93,25 @@ export async function updateClient(id: string, updatedAgent: Client) {
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch agent.";
+    const message = error.response?.data?.error || "Failed to update client.";
     throw new Error(message);
   }
 }
 export async function deleteClient(id: string) {
   try {
-    const response = await axios.delete(`/agent/${id}`, {
+    const response = await axios.delete(`/client/${id}`, {
       withCredentials: true,
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to delete agent.";
+    const message = error.response?.data?.message || "Failed to delete client.";
     throw new Error(message);
   }
 }
 
 export async function getClientById(id: string) {
   try {
-    const response = await axios.get(`/agent/${id}`, {
+    const response = await axios.get(`/client/${id}`, {
       withCredentials: true,
       headers: {
         "Cache-Control": "no-cache",
@@ -122,7 +121,7 @@ export async function getClientById(id: string) {
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || "Failed to fetch agent.";
+    const message = error.response?.data?.error || "Failed to fetch client.";
     throw new Error(message);
   }
 }
@@ -166,7 +165,6 @@ export async function exportClientsToCsv() {
     // e.g., toast({ title: "Export Successful", description: "Client data exported to CSV." });
     return true;
   } catch (error: any) {
-    console.error("Error exporting clients to CSV:", error);
     // Optionally, use a toast for error notification
     // e.g., toast({ title: "Export Failed", description: error.message || "Could not export client data.", variant: "destructive" });
     throw new Error(error.message || "Failed to export clients to CSV.");

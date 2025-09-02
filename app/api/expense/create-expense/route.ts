@@ -200,8 +200,27 @@ export async function POST(req: NextRequest) {
 
     const expenseDisplayId = `${prefix}${serial.toString().padStart(4, "0")}`;
 
-    // Keep existing logic for file naming
-    const expenseId = `EXPENSE${quotationId}${serial.toString().padStart(2, "0")}`;
+    // Create unique customId using UUID to avoid conflicts
+    let expenseId: string;
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    do {
+      expenseId = `EXPENSE${randomUUID().substring(0, 8)}`;
+      attempts++;
+      
+      // Check if this customId already exists
+      const existingExpense = await prisma.expense.findUnique({
+        where: { customId: expenseId }
+      });
+      
+      if (!existingExpense) break;
+      
+    } while (attempts < maxAttempts);
+    
+    if (attempts >= maxAttempts) {
+      throw new Error('Unable to generate unique expense ID after multiple attempts');
+    }
 
     const finalFilename = `${expenseId}${path.extname(filePath)}`;
     const finalPath = path.join(
@@ -227,6 +246,8 @@ export async function POST(req: NextRequest) {
       screenshotUrl = `/expenses/${screenshotFilename}`;
     }
 
+    console.log(`Creating expense with customId: ${expenseId}, displayId: ${expenseDisplayId}`);
+    
     const expense = await prisma.expense.create({
       data: {
         displayId: expenseDisplayId,
@@ -243,6 +264,8 @@ export async function POST(req: NextRequest) {
         approvalName,
       },
     });
+
+    console.log(`Successfully created expense with ID: ${expense.id}`);
 
     return NextResponse.json({ message: "Expense created", expense });
   } catch (error) {

@@ -27,9 +27,8 @@ export async function sendReports(excelFilePath: string, pdfFilePath: string): P
       ]
     });
 
-    console.log('Business insights reports sent successfully');
+    // Report sent successfully
   } catch (error) {
-    console.error('Error sending business insights reports:', error);
     throw error;
   }
 }

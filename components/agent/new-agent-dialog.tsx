@@ -24,6 +24,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "../ui/spinner";
 import { useAgentStore } from "@/store/agentStore";
+import { useRouter } from "next/navigation";
 
 
 interface FormData {
@@ -45,6 +46,7 @@ export function NewAgentDialog() {
 
   const { toast } = useToast();
   const { addAgent  } = useAgentStore();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +59,17 @@ export function NewAgentDialog() {
         description: "Agent created successfully.",
       });
       setOpen(false);
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        mobile: "",
+        role: "",
+      });
+      
+      // Refresh the page to show the new agent
+      router.refresh();
       
     } catch (error: any) {
      

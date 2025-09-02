@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,7 +44,6 @@ export async function GET(req: NextRequest) {
       pagination: { page: pageNum, limit: limitNum, total },
     });
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to fetch quotations." },
       { status: 500 },

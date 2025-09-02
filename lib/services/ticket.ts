@@ -191,7 +191,6 @@ export async function getTicketsForSelection(): Promise<TicketForSelection[]> {
     });
     return response.data.tickets || response.data;
   } catch (error: any) {
-    console.error("Error fetching tickets for selection:", error);
     const message =
       error.response?.data?.error || "Failed to fetch tickets for selection.";
     throw new Error(message);
@@ -351,7 +350,6 @@ export async function getComments(id: string) {
     const response = await axios.get(`/ticket/${id}/comment`);
     return response.data;
   } catch (error: any) {
-    console.error("Error fetching comments:", error);
     const message =
       error.response?.data?.message || "Failed to fetch comments.";
     throw new Error(message);
@@ -376,7 +374,6 @@ export async function addComment(id: string, text: string, userId: string) {
     });
     return response.data;
   } catch (error: any) {
-    console.error("Error adding comment:", error);
     const message = error.response?.data?.message || "Failed to add comment.";
     throw new Error(message);
   }

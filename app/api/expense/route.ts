@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ExpenseCategory, Prisma } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
@@ -60,7 +62,6 @@ export async function GET(req: Request) {
       pagination: { page: pageNum, limit: limitNum, total },
     });
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to fetch expenses." },
       { status: 500 }

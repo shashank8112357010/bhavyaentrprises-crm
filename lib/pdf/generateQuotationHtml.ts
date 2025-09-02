@@ -46,11 +46,10 @@ async function getBrowserInstance(): Promise<Browser> {
     try {
       await browserInstance.version(); // Quick check if browser is still responsive
     } catch (e) {
-      console.warn("Cached browser instance seems unresponsive, attempting to close and relaunch.", e);
       try {
         if (browserInstance) await browserInstance.close();
       } catch (closeError) {
-        console.error("Error closing unresponsive browser instance:", closeError);
+        // Error closing unresponsive browser instance, ignore and continue
       }
       browserInstance = null; // Force relaunch
     }
@@ -73,12 +72,9 @@ async function getBrowserInstance(): Promise<Browser> {
         ],
       });
       browserInstance.on('disconnected', () => {
-        console.log('Browser instance disconnected event received.');
         browserInstance = null; // Clear instance on disconnect
       });
-      console.log("New browser instance launched successfully.");
     } catch (launchError) {
-        console.error("Failed to launch browser:", launchError);
         browserInstance = null; // Ensure no broken instance is cached
         throw launchError;
     }
@@ -145,8 +141,8 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
   let page;
   try {
     const templatePath = path.join(process.cwd(), "lib", "pdf", "templates", "quotation.ejs");
-    const logoPath = `file://${path.join(process.cwd(), "public", "logo.png")}`;
-    const upiQrPath = `file://${path.join(process.cwd(), "public", "upi.png")}`;
+    const logoPath = path.join(process.cwd(), "public", "bhavyalogo.png").replace(/\\/g, '/');
+    const upiQrPath = path.join(process.cwd(), "public", "upi.png").replace(/\\/g, '/');
 
     const today = new Date();
     let validUntilDateStr = new Date(today.getTime() + 7 * 86400000).toLocaleDateString("en-GB"); // Default: one week
@@ -169,11 +165,33 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
       rateCards: params.rateCards || [],
       name: params.name,
       rateCardDetails: params.rateCardDetails || [],
-      logoPath,
-      upiQrPath,
+      logoPath: `file://${logoPath}`,
+      upiQrPath: `file://${upiQrPath}`,
+      baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
     };
 
-    const html = await ejs.renderFile(templatePath, templateData);
+    // Configure EJS options with a custom escape function
+    const ejsOptions = {
+      escape: (unsafe: string) => {
+        if (unsafe === undefined || unsafe === null) return '';
+        return String(unsafe)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      },
+      // Add EJS options to control variable behavior
+      strict: false,
+      rmWhitespace: false,
+      _with: false, // Don't use 'with' scope
+      localsName: 'data', // Use 'data.' prefix for all variables
+      async: false,
+      debug: false,
+      compileDebug: process.env.NODE_ENV !== 'production'
+    };
+
+    const html = await ejs.renderFile(templatePath, templateData, ejsOptions);
     const browser = await getBrowserInstance();
 
     page = await browser.newPage();
@@ -204,16 +222,14 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
     return Buffer.from(pdfBuffer); // Convert Uint8Array to Buffer
 
   } catch (error: any) {
-    console.error("Error in PDF generation:", error.message, error.stack);
     // If error is related to browser launch/connection, try to close and nullify browserInstance
     if (error.message.includes("Protocol error") ||
         error.message.includes("Target closed") ||
         error.message.includes("Browser.newPage") ||
         error.message.includes("puppeteer.launch")) {
         if (browserInstance) {
-            console.log("Attempting to close potentially problematic browser instance due to error.");
             try { await browserInstance.close(); } catch (closeErr: any) {
-              console.error("Error closing browser instance during error handling:", closeErr.message);
+              // Ignore browser close errors during error handling
             }
             browserInstance = null;
         }
@@ -224,7 +240,7 @@ export async function generateQuotationPdf(params: QuotationPdfParams): Promise<
       try {
         await page.close();
       } catch (pageCloseError: any) {
-        console.error("Error closing page:", pageCloseError.message);
+        // Ignore page close errors
       }
     }
     // DO NOT call browser.close() here if we are caching the instance

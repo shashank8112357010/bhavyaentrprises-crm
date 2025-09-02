@@ -114,10 +114,6 @@ Bhavya Enterprises CRM
       html,
     });
   } catch (error) {
-    console.error(
-      `Failed to send assignment email to ${assigneeEmail}:`,
-      error,
-    );
     throw error;
   }
 }
@@ -206,10 +202,6 @@ Bhavya Enterprises CRM
       html,
     });
   } catch (error) {
-    console.error(
-      `Failed to send status change email to ${assigneeEmail}:`,
-      error,
-    );
     throw error;
   }
 }

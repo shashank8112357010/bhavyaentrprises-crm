@@ -75,11 +75,13 @@ export default function AgentPerformanceDetailsPage() {
     <div className="container mx-auto p-4">
       {/* Optional: Add a page title or breadcrumbs here if this page is kept separate */}
       {/* <h1 className="text-xl font-semibold mb-4">Agent Performance Details</h1> */}
-      <AgentPerformanceCard
-        performanceData={performanceData}
-        isLoading={isLoading}
-        error={error}
-      />
+      {isLoading ? (
+        <div className="p-6 text-center">Loading performance data...</div>
+      ) : error ? (
+        <div className="p-6 text-center text-red-500">Error: {error}</div>
+      ) : (
+        <AgentPerformanceCard data={performanceData} />
+      )}
     </div>
   );
 }

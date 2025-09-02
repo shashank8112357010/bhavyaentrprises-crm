@@ -45,34 +45,53 @@ export async function GET(req: NextRequest) {
       whereClause.type = type;
     }
 
-    // Get notifications with pagination
-    const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notification.findMany({
-        where: whereClause,
-        include: {
-          ticket: {
-            select: {
-              id: true,
-              title: true,
-              ticketId: true,
-            },
+    // Optimize parallel queries - only count if needed for pagination UI
+    const shouldGetCount = offset === 0 || url.searchParams.has("needCount");
+    const shouldGetUnreadCount = url.searchParams.get("needUnreadCount") !== "false";
+    
+    // Execute main query
+    const notificationsQuery = prisma.notification.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        message: true,
+        isRead: true,
+        createdAt: true,
+        actionUrl: true,
+        ticket: {
+          select: {
+            id: true,
+            title: true,
+            ticketId: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.notification.count({
-        where: whereClause,
-      }),
-      prisma.notification.count({
-        where: {
-          userId: userId,
-          isRead: false,
-        },
-      }),
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: limit,
+      skip: offset,
+    });
+
+    // Conditional count queries
+    const countQuery = shouldGetCount ? prisma.notification.count({
+      where: whereClause,
+    }) : Promise.resolve(null);
+
+    const unreadCountQuery = shouldGetUnreadCount ? prisma.notification.count({
+      where: {
+        userId: userId,
+        isRead: false,
+      },
+    }) : Promise.resolve(null);
+
+    // Execute all queries in parallel
+    const [notifications, total, unreadCount] = await Promise.all([
+      notificationsQuery,
+      countQuery,
+      unreadCountQuery,
     ]);
 
     return NextResponse.json({

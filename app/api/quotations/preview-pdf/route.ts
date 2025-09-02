@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
     // Sanitize filename for download
     const sanitizedQuotationNumber = quotationNumber.replace(/\//g, "-");
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(Buffer.from(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

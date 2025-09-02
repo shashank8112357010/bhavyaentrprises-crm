@@ -64,7 +64,7 @@ export function NotificationItem({
         setIsMarkingRead(true);
         await markAsRead(notification.id);
       } catch (error) {
-        console.error("Failed to mark notification as read:", error);
+        // Error is handled by the parent component
       } finally {
         setIsMarkingRead(false);
       }
@@ -78,7 +78,7 @@ export function NotificationItem({
       setIsMarkingRead(true);
       await markAsRead(notification.id);
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+      // Error is handled by the parent component
     } finally {
       setIsMarkingRead(false);
     }
@@ -90,7 +90,7 @@ export function NotificationItem({
     try {
       await deleteNotificationFromStore(notification.id);
     } catch (error) {
-      console.error("Failed to delete notification:", error);
+      // Error is handled by the parent component
       setIsDeleting(false);
     }
   };

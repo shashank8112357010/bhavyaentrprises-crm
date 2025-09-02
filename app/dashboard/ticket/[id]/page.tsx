@@ -148,6 +148,7 @@ export default function TicketDetailsPage() {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("financials");
 
   const isAdminOrAccounts = user?.role === "ADMIN" || user?.role === "ACCOUNTS";
 
@@ -232,7 +233,7 @@ export default function TicketDetailsPage() {
     if (ticketId) {
       loadTicketData();
     }
-  }, [ticketId, loadTicketData]);
+  }, [ticketId]); 
 
   if (loading) {
     return (
@@ -305,7 +306,39 @@ export default function TicketDetailsPage() {
   }
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      {/* Header */}
+      <div className="flex items-center justify-between space-y-2">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Ticket Details</h2>
+          <p className="text-muted-foreground">
+            {ticket.ticketId} - {ticket.title}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isAdminOrAccounts && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReassignDialogOpen(true)}
+              >
+                <User className="h-4 w-4 mr-2" />
+                Reassign
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditDialogOpen(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium flex items-center">
@@ -523,8 +556,7 @@ export default function TicketDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Tabs state */}
-      {/** @ts-ignore-next-line: state is below for clarity */}
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="financials">Financials</TabsTrigger>
@@ -831,7 +863,7 @@ export default function TicketDetailsPage() {
           />
         </>
       )}
-    </Tabs>
+      </Tabs>
     </div>
   );
 }

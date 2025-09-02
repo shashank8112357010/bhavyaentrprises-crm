@@ -112,7 +112,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
         <div className="flex items-center justify-center p-8">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
-      ) : notifications.length === 0 ? (
+      ) : !notifications || notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center">
           <BellOff className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">No notifications</p>

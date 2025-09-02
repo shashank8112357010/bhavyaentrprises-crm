@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma"; // Added Prisma import for types
 import { Prisma } from "@prisma/client";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/agents
 export async function GET(req: NextRequest) {
   try {
@@ -88,7 +90,6 @@ export async function GET(req: NextRequest) {
       limit,
     });
   } catch (error) {
-    console.error("Failed to fetch agents:", error); // Log the actual error
     return NextResponse.json(
       { message: "Failed to fetch agents" },
       { status: 500 },

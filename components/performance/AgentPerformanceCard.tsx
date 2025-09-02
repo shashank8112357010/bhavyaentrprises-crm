@@ -33,26 +33,16 @@ interface PerformanceData {
   }>;
 }
 
-interface AgentPerformanceCardProps {
-  performanceData: PerformanceData | null;
-  isLoading: boolean;
-  error: string | null;
+export interface AgentPerformanceCardProps {
+  data: PerformanceData | null;
 }
 
-const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performanceData, isLoading, error }) => {
-  if (isLoading) {
-    return <div className="p-6 text-center">Loading performance data...</div>;
-  }
-
-  if (error) {
-    return <div className="p-6 text-center text-red-500">Error: {error}</div>;
-  }
-
-  if (!performanceData) {
+const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ data }) => {
+  if (!data) {
     return <div className="p-6 text-center">No performance data available.</div>;
   }
 
-  const performance = performanceData; // Use a shorter alias
+  const performance = data; // Use a shorter alias
 
   // Helper to get quotation and expense details for pending lists
   const getTicketFinancials = (ticket: { Quotation?: any[], expenses?: any[] }) => {
@@ -85,7 +75,7 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
         <div className=" p-6 rounded-md border border-blue-200 shadow-sm">
           <p className="text-lg mb-1"><strong>Agent:</strong> {performance.agent}</p>
 
-          {performance.jcrPending.length > 0 && (
+          {performance.jcrPending?.length > 0 && (
             <div className="mt-4">
               <p className="font-medium text-blue-700">📌 JCR Pending ({performance.jcrPending.length}):</p>
               <ul className="list-disc list-inside ml-4 text-sm text-gray-600">
@@ -101,7 +91,7 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
             </div>
           )}
 
-          {performance.poPending.length > 0 && (
+          {performance.poPending?.length > 0 && (
             <div className="mt-4">
               <p className="font-medium text-blue-700">📌 PO Pending ({performance.poPending.length}):</p>
               <ul className="list-disc list-inside ml-4 text-sm text-gray-600">
@@ -117,7 +107,7 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
             </div>
           )}
 
-          {performance.billingReadyNotSubmitted.length > 0 && (
+          {performance.billingReadyNotSubmitted?.length > 0 && (
             <div className="mt-4">
               <p className="font-medium text-orange-700">📌 Ready But Not Billed ({performance.billingReadyNotSubmitted.length}):</p>
               <ul className="list-disc list-inside ml-4 text-sm text-gray-600">
@@ -133,7 +123,7 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
             </div>
           )}
 
-          {performance.pendingClientAction.length > 0 && (
+          {performance.pendingClientAction?.length > 0 && (
             <div className="mt-4">
               <p className="font-medium text-yellow-700">📌 Pending Client Follow-up ({performance.pendingClientAction.length}):</p>
               <ul className="list-disc list-inside ml-4 text-sm text-gray-600">
@@ -145,14 +135,14 @@ const AgentPerformanceCard: React.FC<AgentPerformanceCardProps> = ({ performance
               </ul>
             </div>
           )}
-           {(performance.jcrPending.length === 0 && performance.poPending.length === 0 && performance.billingReadyNotSubmitted.length === 0 && performance.pendingClientAction.length === 0) && (
+           {((performance.jcrPending?.length || 0) === 0 && (performance.poPending?.length || 0) === 0 && (performance.billingReadyNotSubmitted?.length || 0) === 0 && (performance.pendingClientAction?.length || 0) === 0) && (
             <p className="mt-4 text-gray-600">No immediate action items for the agent.</p>
            )}
         </div>
       </div>
 
       {/* Admin Notifications Section */}
-      {performance.adminNotifications.length > 0 && (
+      {performance.adminNotifications?.length > 0 && (
         <div>
           <h2 className="text-2xl font-semibold mb-4 ">🛠️ Admin Watchlist & Planning</h2>
           <div className=" p-6 rounded-md border border-red-300 shadow-sm">

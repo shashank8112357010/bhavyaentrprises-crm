@@ -71,7 +71,7 @@ export function UploadClientsDialog({ onUploadComplete }: UploadClientsDialogPro
       }
       if (errorCount > 0) {
         toastDescription += ` ${errorCount} row${errorCount > 1 ? 's' : ''} had errors.`;
-        console.error("Client Import Errors:", response.errors);
+        // Handle client import errors in the UI
          // Optionally, display some errors in the dialog or a more detailed toast
         // For now, logging to console as per plan.
       }

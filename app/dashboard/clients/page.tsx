@@ -82,7 +82,7 @@ type Client = {
 
 type GetClient = {
   id?: string;
-  displayId?: string; // Add displayId field
+  displayId?: string;
   name: string;
   type: string;
   totalBranches: number;
@@ -95,7 +95,9 @@ type GetClient = {
   initials: string;
   activeTickets?: number;
   gstn?: string;
-  tickets: any[];
+  tickets?: any[];
+  activeTicketsCount?: number;
+  totalTicketsCount?: number;
 };
 
 export default function ClientsPage() {
@@ -577,7 +579,7 @@ export default function ClientsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedClients.length > 0 ? (
+                {paginatedClients?.length > 0 ? (
                   paginatedClients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="flex items-center gap-2">
@@ -728,7 +730,7 @@ export default function ClientsPage() {
             <div className="col-span-full flex justify-center py-10">
               <Spinner size="6" />
             </div>
-          ) : paginatedClients.length > 0 ? (
+          ) : paginatedClients?.length > 0 ? (
             paginatedClients.map((client) => (
               <Card key={client.id} className="overflow-hidden">
                 <CardHeader className="p-4 pb-2">
@@ -773,14 +775,14 @@ export default function ClientsPage() {
                         <div className="text-center">
                           <Badge
                             variant={
-                              client.tickets.length > 1
+                              (client.activeTicketsCount || 0) > 5
                                 ? "destructive"
-                                : client.tickets.length > 5
+                                : (client.activeTicketsCount || 0) > 1
                                   ? "default"
                                   : "secondary"
                             }
                           >
-                            {client.tickets.length}
+                            {client.activeTicketsCount || 0}
                           </Badge>
                         </div>
                       </div>
@@ -852,7 +854,7 @@ export default function ClientsPage() {
 
       {/* Edit Client Dialog */}
       <EditClientDialog
-        client={editingClient}
+        client={editingClient as any}
         isOpen={isEditDialogOpen}
         onClose={() => {
           setIsEditDialogOpen(false);

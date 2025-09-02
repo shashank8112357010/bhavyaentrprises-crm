@@ -120,7 +120,7 @@ export function EditClientDialog({
       onClose();
       onSuccess();
     } catch (error: any) {
-      console.error("Error updating client:", error);
+      // Error is handled by the toast notification
       toast({
         title: "Error",
         description: error.message || "Failed to update client.",

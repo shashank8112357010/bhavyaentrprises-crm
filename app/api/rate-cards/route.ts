@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
@@ -36,7 +38,6 @@ export async function GET(req: NextRequest) {
       limit,
     });
   } catch (error) {
-    console.error("Failed to fetch paginated rate cards", error);
     return NextResponse.json(
       { error: "Failed to fetch rate cards" },
       { status: 500 }

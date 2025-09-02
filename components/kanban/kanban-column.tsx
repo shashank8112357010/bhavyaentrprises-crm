@@ -37,10 +37,10 @@ export function KanbanColumn({ id, title, icon, tickets }: KanbanColumnProps) {
 
       <div className="flex-1 overflow-y-auto">
         <SortableContext
-          items={tickets.map((t) => t.id)}
+          items={tickets?.map((t) => t.id) || []}
           strategy={verticalListSortingStrategy}
         >
-          {tickets.length > 0 ? (
+          {tickets?.length > 0 ? (
             tickets.map((ticket) => (
               <SortableTicket key={ticket.id} ticket={ticket} />
             ))

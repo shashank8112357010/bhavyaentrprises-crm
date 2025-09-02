@@ -14,6 +14,17 @@ interface CreateNotificationData {
 // Server-side function to create notifications directly in database
 export async function createNotificationInDB(data: CreateNotificationData) {
   try {
+    // Validate that the user exists before creating notification
+    const userExists = await prisma.user.findUnique({
+      where: { id: data.userId },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      console.warn(`Cannot create notification: User with ID ${data.userId} does not exist`);
+      return null;
+    }
+
     const notification = await prisma.notification.create({
       data: {
         userId: data.userId,

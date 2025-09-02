@@ -52,7 +52,6 @@ export async function createQuotation(params: CreateQuotationParams) {
     });
     return response.data;
   } catch (error: any) {
-    console.error("Quotation Creation Error:", error);
     const message =
       error.response?.data?.message || "Failed to create quotation.";
     throw new Error(message);
@@ -72,7 +71,6 @@ export async function updateQuotation(id: string, data: UpdateQuotationParams) {
     });
     return response.data;
   } catch (error: any) {
-    console.error("Quotation Update Error:", error);
     const message =
       error.response?.data?.message ||
       error.response?.data?.error ||

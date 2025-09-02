@@ -79,10 +79,10 @@ export async function PUT(
         where: { id: { in: uniqueRateCardIds } },
       });
 
-      const rateCardsMap = new Map(fetchedRateCards.map(rc => [rc.id, rc]));
+      const rateCardsMap = new Map(fetchedRateCards.map((rc: any) => [rc.id, rc]));
 
       for (const item of updateData.rateCardDetails) {
-        const rateCard = rateCardsMap.get(item.rateCardId);
+        const rateCard = rateCardsMap.get(item.rateCardId) as any;
         if (!rateCard) {
           return NextResponse.json(
             { message: `Rate card with ID ${item.rateCardId} not found in fetched batch.` },
@@ -132,7 +132,6 @@ export async function PUT(
         if (existingQuotation.clientId) { // If there was an existing client, fetch its full details for PDF
             const existingClientFull = await prisma.client.findUnique({ where: { id: existingQuotation.clientId } });
             if (!existingClientFull) {
-                console.error(`Data integrity issue: Client ID ${existingQuotation.clientId} on quotation ${id} not found.`);
                 return NextResponse.json({ message: `Associated client data is missing.` }, { status: 500 });
             }
             clientForPdf = existingClientFull;
@@ -198,9 +197,6 @@ export async function PUT(
       });
     }
     
-    console.log(updatedQuotationPrisma , "updatedQuotationPrisma for PDF gen");
-    console.log(clientForPdf, "clientForPdf for PDF gen");
-
     const pdfBuffer = await generateQuotationPdf({
       quotationId: updatedQuotationPrisma.quoteNo,
       client: clientForPdf, // Use the fully fetched client object (or null)
@@ -223,7 +219,7 @@ export async function PUT(
     if (existingQuotation.pdfUrl && existingQuotation.pdfUrl !== dataToUpdate.pdfUrl) {
       const oldPdfPath = path.join(process.cwd(), "public", existingQuotation.pdfUrl);
       if (fs.existsSync(oldPdfPath)) {
-        try { fs.unlinkSync(oldPdfPath); } catch (deleteError) { console.warn("Could not delete old PDF file:", deleteError); }
+        try { fs.unlinkSync(oldPdfPath); } catch (deleteError) { /* Ignore deletion errors */ }
       }
     }
 
@@ -237,7 +233,6 @@ export async function PUT(
 
     return NextResponse.json(responseQuotation);
   } catch (error: any) {
-    console.error("[PUT_QUOTATION_ERROR]", error);
     if (error.code === "P2025") {
       return NextResponse.json( { message: "Quotation not found or related data missing" }, { status: 404 });
     }
@@ -270,7 +265,6 @@ export async function GET(
     }
     return NextResponse.json(quotation);
   } catch (error) {
-    console.error("[GET_QUOTATION_BY_ID_ERROR]", error);
     // if (error instanceof jwt.JsonWebTokenError) { // Uncomment if JWT verification is added
     //     return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     // }
@@ -353,7 +347,6 @@ export async function DELETE(
       message: "Quotation and related data deleted successfully",
     });
   } catch (error) {
-    console.error("[DELETE_QUOTATION_ERROR]", error);
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 },

@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
-    
-
     const url = new URL(req.url);
+    
+    // Pagination parameters
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 100); // Max 100 items
+    const skip = (page - 1) * limit;
+    
+    // Existing parameters
     const startDateStr = url.searchParams.get("startDate");
     const endDateStr = url.searchParams.get("endDate");
     const statusFilter = url.searchParams.get("status"); // optional status filter
@@ -55,54 +62,76 @@ export async function GET(req: NextRequest) {
       whereConditions.AND.push({ assigneeId: userId });
     }
 
-    const tickets = await prisma.ticket.findMany({
-      where: whereConditions,
-      include: {
-        assignee: {
-          select: { id: true, name: true, avatar: true, initials: true },
-        },
-        workStage: {
-          select: {
-            quoteNo: true,
-            quoteTaxable: true,
-            quoteAmount: true,
-            dateReceived: true,
-            agentName: true,
-            stateName: true,
-            adminName: true,
-            clientName: true,
-            siteName: true,
-            approval: true,
-            poStatus: true,
-            poNumber: true,
-            jcrStatus: true,
-            poFilePath: true,
-            jcrFilePath: true,
+    // Execute queries in parallel for performance
+    const [tickets, totalCount] = await Promise.all([
+      prisma.ticket.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        orderBy: [
+          { createdAt: 'desc' }, // Most recent first
+          { id: 'asc' } // Stable sort for consistency
+        ],
+        include: {
+          assignee: {
+            select: { id: true, name: true, avatar: true, initials: true },
+          },
+          workStage: {
+            select: {
+              quoteNo: true,
+              quoteTaxable: true,
+              quoteAmount: true,
+              dateReceived: true,
+              agentName: true,
+              stateName: true,
+              adminName: true,
+              clientName: true,
+              siteName: true,
+              approval: true,
+              poStatus: true,
+              poNumber: true,
+              jcrStatus: true,
+              poFilePath: true,
+              jcrFilePath: true,
+            },
+          },
+          client: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              contactPerson: true,
+            },
+          },
+          expenses: {
+            select: {
+              id: true,
+              amount: true,
+              category: true,
+              createdAt: true,
+              pdfUrl: true,
+            },
+          },
+          Quotation: {
+            select: {
+              id: true,
+              name: true,
+              subtotal: true,
+              gst: true,
+              grandTotal: true,
+              createdAt: true,
+              expectedExpense: true,
+            },
+          },
+          _count: {
+            select: { comments: true },
           },
         },
-        client: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            contactPerson: true,
-          },
-        },
-        expenses: {
-          select: {
-            id: true,
-            amount: true,
-            category: true,
-            createdAt: true,
-            pdfUrl: true,
-          },
-        },
-        Quotation: true, // ✅ All fields from Quotation
-        _count: {
-          select: { comments: true },
-        },
-      },
-    });
+      }),
+      prisma.ticket.count({
+        where: whereConditions,
+      }),
+    ]);
 
     // (Your existing transform logic here)
 
@@ -169,7 +198,22 @@ export async function GET(req: NextRequest) {
       quotations: ticket.Quotation,
     }));
 
-    return NextResponse.json({ tickets: transformedTickets });
+    // Pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return NextResponse.json({ 
+      tickets: transformedTickets,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        hasNextPage,
+        hasPrevPage,
+        limit
+      }
+    });
   } catch (error: any) {
     console.error("Error fetching tickets:", error);
     return NextResponse.json(

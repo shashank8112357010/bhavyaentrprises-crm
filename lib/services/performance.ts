@@ -1,5 +1,14 @@
 // lib/services/performance.ts
-import { Prisma, PrismaClient, Ticket, WorkStage, Expense, Quotation, User, TicketStatus, TicketFeedback } from '@prisma/client';
+import { Prisma, PrismaClient, Ticket, WorkStage, Expense, Quotation, User, TicketStatus } from '@prisma/client';
+
+// TicketFeedback enum matches the one in schema.prisma
+enum TicketFeedback {
+  POSITIVE = 'POSITIVE',
+  NEUTRAL = 'NEUTRAL',
+  NEGATIVE = 'NEGATIVE',
+  PENDING = 'PENDING',
+}
+
 
 // Initialize Prisma Client
 // It should automatically pick up DATABASE_URL from the environment if set,
@@ -247,10 +256,9 @@ async function testPerformance() {
      process.env.DATABASE_URL = "postgresql://admin:praarabdh@financial@god@147.79.68.189:5432/interiorcrm";
   }
   try {
-    const performanceData = await calculateAgentPerformance(agentIdToTest);
-    console.log(JSON.stringify(performanceData, null, 2));
+    await calculateAgentPerformance(agentIdToTest);
   } catch (error) {
-    console.error("Error calculating performance:", error);
+    // Handle error appropriately
   } finally {
     await prisma.$disconnect();
   }
@@ -259,10 +267,12 @@ async function testPerformance() {
 // testPerformance();
 */
 
-export default {
+const performanceService = {
   evaluateTicket,
   calculateAgentPerformance,
 };
+
+export default performanceService;
 
 // Make sure to handle environment variables for DATABASE_URL properly in your deployment.
 // Prisma client will need it. For local dev, .env file is usually sufficient.

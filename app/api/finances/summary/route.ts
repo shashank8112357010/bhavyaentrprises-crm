@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 
+export const dynamic = 'force-dynamic';
+
 function getDateRange(range: string) {
   const now = new Date();
   switch (range) {
@@ -59,7 +61,6 @@ export async function GET(req: NextRequest) {
       end,
     });
   } catch (error) {
-    console.error("[FINANCE SUMMARY ERROR]", error);
     return NextResponse.json({ error: "Failed to fetch financial summary." }, { status: 500 });
   }
 }

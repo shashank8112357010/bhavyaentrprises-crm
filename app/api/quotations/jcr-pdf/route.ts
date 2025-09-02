@@ -80,7 +80,10 @@ export async function POST(req: NextRequest) {
 
     // Render EJS template
     const templatePath = path.join(process.cwd(), "lib/pdf/templates/jcr.ejs");
-    const html = await renderFile(templatePath, { jcr: jcrData });
+    const html = await renderFile(templatePath, { 
+      jcr: jcrData,
+      baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    });
 
     // Generate PDF with Puppeteer
     const browser = await puppeteer.launch({
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest) {
     // Sanitize filename
     const filename = `JCR-${jcrData.jcrNo.replace(/\//g, "-")}.pdf`;
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(Buffer.from(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

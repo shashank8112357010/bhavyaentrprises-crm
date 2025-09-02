@@ -76,8 +76,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         isSystemAvailable: true,
       });
     } catch (error: any) {
-      console.warn("Notification fetch error:", error);
-
       // Check if it's a database table missing error
       if (
         error.message.includes("doesn't exist") ||
@@ -110,7 +108,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const count = await getUnreadNotificationCount();
       set({ unreadCount: count, isSystemAvailable: true });
     } catch (error: any) {
-      console.warn("Failed to fetch unread count:", error);
       // For missing table, set count to 0 instead of showing error
       if (
         error.message.includes("doesn't exist") ||

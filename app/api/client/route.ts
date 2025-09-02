@@ -92,14 +92,16 @@ export async function POST(req: Request) {
 
 export async function GET(request: NextRequest) {
   try {
-    const ITEMS_PER_PAGE = 100;
     const { searchParams } = new URL(request.url);
 
+    // Optimized pagination - reduce default from 100 to 20, max 50
     const pageParam = searchParams.get("page") || "1";
+    const limitParam = searchParams.get("limit") || "20";
     const search = searchParams.get("search") || "";
     const type = searchParams.get("type") || "all";
 
-    const pageNum = parseInt(pageParam, 10) || 1;
+    const pageNum = Math.max(1, parseInt(pageParam, 10) || 1);
+    const limit = Math.min(parseInt(limitParam, 10) || 20, 50); // Max 50 items per page
 
     const where: any = {};
 
@@ -116,32 +118,53 @@ export async function GET(request: NextRequest) {
       where.type = type;
     }
 
-    const totalCount = await prisma.client.count({ where });
-
-    const clientsWithTickets = await prisma.client.findMany({
-      where,
-      skip: (pageNum - 1) * ITEMS_PER_PAGE,
-      take: ITEMS_PER_PAGE,
-      orderBy: {
-        name: "asc",
-      },
-      include: {
-        tickets: {
-          select: {
-            id: true,
+    // Execute count and data queries in parallel for performance
+    const [totalCount, clientsWithTickets] = await Promise.all([
+      prisma.client.count({ where }),
+      prisma.client.findMany({
+        where,
+        skip: (pageNum - 1) * limit,
+        take: limit,
+        orderBy: [
+          { name: "asc" },
+          { id: "asc" } // Stable sort
+        ],
+        include: {
+          tickets: {
+            select: {
+              id: true,
+              status: true, // Add status for better insight
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
-    // Map to attach ticket IDs as string array
+    // Map clients with optimized ticket data
     const clients = clientsWithTickets.map((client) => ({
       ...client,
-      // ticketIds: client.tickets.map((ticket) => ticket.id),
-      // tickets: undefined, // optionally remove full ticket objects
+      activeTicketsCount: client.tickets.filter(t => 
+        !["completed", "billing_completed"].includes(t.status)
+      ).length,
+      totalTicketsCount: client.tickets.length,
+      // Remove full ticket objects to reduce payload
+      tickets: undefined
     }));
 
-    return NextResponse.json({ clients, totalCount });
+    // Enhanced pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    return NextResponse.json({ 
+      clients,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1,
+        limit
+      }
+    });
   } catch (error) {
     console.error("GET /api/clients error:", error);
     return NextResponse.json(
